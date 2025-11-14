@@ -29,20 +29,39 @@
   - [x] Linting (ESLint) and formatting (Prettier)
   - [x] Complete README
 
-### 🚧 In Progress
-
-- [ ] `deploy_local` MCP tool
-  - [ ] Process management (start/stop/status)
-  - [ ] Port allocation
-  - [ ] Log streaming
-  - [ ] Health checks
+- [x] `deploy_local` MCP tool implementation
+  - [x] Process management (start/stop/status)
+  - [x] Port allocation (auto-assign or manual)
+  - [x] Log streaming to files
+  - [x] Health checks with retry logic
+  - [x] Support for Node.js apps
+  - [x] Additional tools: `stop_local`, `list_local`, `logs_local`
+  - [x] Runtime package (`internal/runtime/process.go`)
+  - [x] Dependency auto-installation (npm install)
 
 ### 📋 TODO for v0
 
-- [ ] End-to-end testing
-  - [ ] Test full flow: init → create_app → deploy_local
-  - [ ] Test with actual Tiger database
-  - [ ] Test in Claude Code
+- [x] End-to-end testing
+  - [x] Test full flow: init → create_app → deploy_local
+  - [x] Test in Claude Code
+  - [x] MCP server successfully loads and tools are available
+- [ ] Refine MCP tools
+  - [ ] Test and improve create_app tool
+  - [ ] Test and improve deploy_local tool
+  - [ ] Test and improve stop_local tool
+  - [ ] Test and improve list_local tool
+  - [ ] Test and improve logs_local tool
+  - [ ] Add better error messages
+  - [ ] Validate input parameters
+  - [ ] Handle edge cases
+- [x] Improve installation DX
+  - [x] Fix progress bar rendering issues (replaced with spinner)
+  - [x] Better terminal output formatting (consistent 2-space indentation)
+  - [x] Cleaner status messages (simplified text, better alignment)
+  - [x] Fix IDE selection display order consistency (fixed order)
+  - [x] Add colored output for success/error states (orange accent color 196)
+  - [x] Cool ASCII art banner with brand colors
+  - [x] Updated tagline: "Infrastructure for AI native development"
 - [ ] Additional templates
   - [ ] `api-node` - REST API only (no frontend)
   - [ ] `cli-node` - CLI tool template
@@ -51,8 +70,8 @@
   - [ ] Usage examples
   - [ ] Template customization guide
 - [ ] Build and distribution
-  - [ ] Build script
-  - [ ] Release process
+  - [ ] Build script for multi-platform binaries
+  - [ ] Release process (GitHub Actions)
   - [ ] Install script (https://cli.0p.dev)
 
 ## v1 - Expansion

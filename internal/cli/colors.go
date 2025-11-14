@@ -1,11 +1,9 @@
 package cli
 
-import "fmt"
-
 // ANSI color codes
 const (
 	colorReset  = "\033[0m"
-	colorAccent = "\033[38;2;255;79;0m" // #ff4f00
+	colorAccent = "\033[38;5;196m" // Bright red-orange (256-color: 196) - approximates #ff4f00
 	colorGray   = "\033[90m"
 )
 

@@ -44,32 +44,31 @@ func Init() error {
 }
 
 func printBanner() {
-	// ASCII art with "0" accented
 	fmt.Println()
-	fmt.Println("     ___                       _")
-	fmt.Println("    / " + accent("_") + " \\ _ __   ___ _ __ __ _| |_ ___  _ __")
-	fmt.Println("   | " + accent("|") + " | | '_ \\ / _ \\ '__/ _` | __/ _ \\| '__|")
-	fmt.Println("   | " + accent("|_|") + " | |_) |  __/ | | (_| | || (_) | |")
-	fmt.Println("    \\" + accent("___") + "/| .__/ \\___|_|  \\__,_|\\__\\___/|_|")
-	fmt.Println("         |_|")
+	fmt.Println(accent("     ██████╗ ██████╗ ███████╗██████╗  █████╗ ████████╗ ██████╗ ██████╗ "))
+	fmt.Println(accent("    ██╔═████╗██╔══██╗██╔════╝██╔══██╗██╔══██╗╚══██╔══╝██╔═══██╗██╔══██╗"))
+	fmt.Println(accent("    ██║██╔██║██████╔╝█████╗  ██████╔╝███████║   ██║   ██║   ██║██████╔╝"))
+	fmt.Println(accent("    ████╔╝██║██╔═══╝ ██╔══╝  ██╔══██╗██╔══██║   ██║   ██║   ██║██╔══██╗"))
+	fmt.Println(accent("    ╚██████╔╝██║     ███████╗██║  ██║██║  ██║   ██║   ╚██████╔╝██║  ██║"))
+	fmt.Println(accent("     ╚═════╝ ╚═╝     ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝"))
 	fmt.Println()
-	fmt.Println("  " + accent("Infrastructure for AI agents"))
+	fmt.Println(accent("               Infrastructure for AI native development"))
 	fmt.Println()
-	fmt.Println("──────────────────────────────────────────────────")
+	fmt.Println("──────────────────────────────────────────────────────────────────────────")
 }
 
 func ensureTigerCLI() error {
 	fmt.Println()
 	fmt.Println(accent("[1/4]") + " Checking dependencies...")
+	fmt.Println()
 
 	// Check if tiger is installed
 	if _, err := exec.LookPath("tiger"); err == nil {
-		fmt.Println("      ✓ tiger-cli found")
+		fmt.Println("  " + accent("✓") + " tiger-cli found")
 		return nil
 	}
 
-	fmt.Println("      tiger-cli not found " + accent("→") + " installing now")
-	fmt.Print("      ")
+	fmt.Println("  Installing tiger-cli...")
 
 	start := time.Now()
 
@@ -78,44 +77,36 @@ func ensureTigerCLI() error {
 	cmd.Stdout = nil
 	cmd.Stderr = nil
 
-	// Show progress animation while installing
+	// Show spinner while installing
 	done := make(chan error)
 	go func() {
 		done <- cmd.Run()
 	}()
 
-	// Simulate progress bar
-	ticker := time.NewTicker(100 * time.Millisecond)
+	spinner := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+	spinnerIdx := 0
+	ticker := time.NewTicker(80 * time.Millisecond)
 	defer ticker.Stop()
 
-	progress := 0.0
 	var installErr error
 
 progressLoop:
 	for {
 		select {
 		case installErr = <-done:
-			// Show full progress bar
-			fmt.Print("\r      " + fullProgressBar(32))
 			elapsed := time.Since(start)
-			fmt.Printf(" %.1fs\n", elapsed.Seconds())
 			if installErr != nil {
+				fmt.Printf("  %s Installation failed (%.1fs)\n", accent("✗"), elapsed.Seconds())
 				return fmt.Errorf("failed to install tiger-cli: %w", installErr)
 			}
-			fmt.Println("      ✓ tiger-cli installed")
+			fmt.Printf("  %s tiger-cli installed (%.1fs)\n", accent("✓"), elapsed.Seconds())
 			break progressLoop
 		case <-ticker.C:
-			// Increment progress (slower at end to feel realistic)
-			if progress < 0.7 {
-				progress += 0.05
-			} else if progress < 0.9 {
-				progress += 0.02
-			} else if progress < 0.95 {
-				progress += 0.01
-			}
-			fmt.Print("\r      " + progressBar(32, progress))
+			fmt.Printf("\r  %s Installing...", accent(spinner[spinnerIdx]))
+			spinnerIdx = (spinnerIdx + 1) % len(spinner)
 		}
 	}
+	fmt.Print("\r") // Clear spinner line
 
 	return nil
 }
@@ -123,27 +114,30 @@ progressLoop:
 func ensureTigerAuth() error {
 	fmt.Println()
 	fmt.Println(accent("[2/4]") + " Authentication")
+	fmt.Println()
 
 	// Check if already authenticated
-	cmd := exec.Command("tiger", "service", "list")
-	cmd.Stderr = nil
-	cmd.Stdout = nil
-	if err := cmd.Run(); err == nil {
-		// Try to get user email
-		emailCmd := exec.Command("tiger", "auth", "whoami")
-		if output, err := emailCmd.Output(); err == nil {
-			email := strings.TrimSpace(string(output))
-			if email != "" {
-				fmt.Printf("      ✓ Already authenticated as %s\n", email)
-				return nil
+	statusCmd := exec.Command("tiger", "auth", "status")
+	output, err := statusCmd.CombinedOutput()
+	if err == nil && strings.Contains(string(output), "Logged in") {
+		// Parse project ID if available
+		lines := strings.Split(string(output), "\n")
+		for _, line := range lines {
+			if strings.Contains(line, "Project ID") {
+				parts := strings.Split(line, ":")
+				if len(parts) == 2 {
+					projectID := strings.TrimSpace(parts[1])
+					fmt.Printf("  %s Authenticated (Project: %s)\n", accent("✓"), projectID)
+					return nil
+				}
 			}
 		}
-		fmt.Println("      ✓ Already authenticated with Tiger Cloud")
+		fmt.Println("  " + accent("✓") + " Authenticated with Tiger Cloud")
 		return nil
 	}
 
 	// Not authenticated, prompt user
-	fmt.Print("      ? Authenticate with Tiger Cloud (opens browser) [Y/n]: ")
+	fmt.Print("  Authenticate with Tiger Cloud (opens browser) [Y/n]: ")
 	reader := bufio.NewReader(os.Stdin)
 	response, err := reader.ReadString('\n')
 	if err != nil {
@@ -155,47 +149,37 @@ func ensureTigerAuth() error {
 		return fmt.Errorf("authentication required to continue")
 	}
 
-	fmt.Println("      " + accent("↓") + " Opening browser...")
+	fmt.Println()
+	fmt.Println("  Opening browser...")
 	start := time.Now()
 
-	cmd = exec.Command("tiger", "auth", "login")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
+	loginCmd := exec.Command("tiger", "auth", "login")
+	loginCmd.Stdout = os.Stdout
+	loginCmd.Stderr = os.Stderr
+	loginCmd.Stdin = os.Stdin
 
-	if err := cmd.Run(); err != nil {
+	if err := loginCmd.Run(); err != nil {
 		return fmt.Errorf("authentication failed: %w", err)
 	}
 
 	elapsed := time.Since(start)
-	fmt.Print("      " + fullProgressBar(32))
-	fmt.Printf(" %.1fs\n", elapsed.Seconds())
+	fmt.Printf("  %s Authentication complete (%.1fs)\n", accent("✓"), elapsed.Seconds())
 
-	// Try to get user email
-	emailCmd := exec.Command("tiger", "auth", "whoami")
-	if output, err := emailCmd.Output(); err == nil {
-		email := strings.TrimSpace(string(output))
-		if email != "" {
-			fmt.Printf("      ✓ Authenticated as %s\n", email)
-			return nil
-		}
-	}
-
-	fmt.Println("      ✓ Authentication successful!")
 	return nil
 }
 
 func selectIDEs() ([]mcp.IDEClient, error) {
 	fmt.Println()
 	fmt.Println(accent("[3/4]") + " IDE Configuration")
+	fmt.Println()
 	supportedIDEs := mcp.GetSupportedIDEs()
 
-	fmt.Println("      ? Select IDE(s) to configure:")
+	fmt.Println("  Select IDE(s) to configure:")
 	for i, ide := range supportedIDEs {
-		fmt.Printf("        " + accent(fmt.Sprintf("%d)", i+1)) + " %s\n", ide)
+		fmt.Printf("    " + accent(fmt.Sprintf("%d.", i+1)) + " %s\n", ide)
 	}
 	fmt.Println()
-	fmt.Print("      Enter numbers separated by commas (e.g., 1,2) or press Enter for all: ")
+	fmt.Print("  Enter selections (e.g., 1,2) or press Enter for all: ")
 
 	reader := bufio.NewReader(os.Stdin)
 	response, err := reader.ReadString('\n')
@@ -234,13 +218,12 @@ func installMCPServers(ides []mcp.IDEClient) error {
 	fmt.Println()
 
 	for _, ide := range ides {
-		fmt.Printf("      %s\n", ide)
+		fmt.Printf("  Configuring %s\n", accent(string(ide)))
 
 		// Install Tiger MCP
 		tigerStart := time.Now()
-		fmt.Print("        Tiger MCP      ")
 
-		// Redirect tiger output
+		// Suppress tiger MCP output
 		oldStdout := os.Stdout
 		oldStderr := os.Stderr
 		os.Stdout = nil
@@ -251,27 +234,23 @@ func installMCPServers(ides []mcp.IDEClient) error {
 		os.Stdout = oldStdout
 		os.Stderr = oldStderr
 
+		tigerElapsed := time.Since(tigerStart)
 		if err != nil {
-			fmt.Println()
+			fmt.Printf("    %s Tiger MCP (%.1fs)\n", accent("✗"), tigerElapsed.Seconds())
 			return fmt.Errorf("failed to install Tiger MCP for %s: %w", ide, err)
 		}
-
-		tigerElapsed := time.Since(tigerStart)
-		fmt.Print(fullProgressBar(32))
-		fmt.Printf(" %.1fs ✓\n", tigerElapsed.Seconds())
+		fmt.Printf("    %s Tiger MCP (%.1fs)\n", accent("✓"), tigerElapsed.Seconds())
 
 		// Install 0perator MCP
 		opStart := time.Now()
-		fmt.Print("        0perator MCP   ")
 
 		if err := mcp.Install0peratorMCP(ide); err != nil {
-			fmt.Println()
+			fmt.Printf("    %s 0perator MCP (%.1fs)\n", accent("✗"), time.Since(opStart).Seconds())
 			return fmt.Errorf("failed to install 0perator MCP for %s: %w", ide, err)
 		}
 
 		opElapsed := time.Since(opStart)
-		fmt.Print(fullProgressBar(32))
-		fmt.Printf(" %.1fs ✓\n", opElapsed.Seconds())
+		fmt.Printf("    %s 0perator MCP (%.1fs)\n", accent("✓"), opElapsed.Seconds())
 		fmt.Println()
 	}
 

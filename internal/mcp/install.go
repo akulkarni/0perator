@@ -21,7 +21,7 @@ const (
 // ideConfigPaths maps IDE clients to their MCP config file paths
 // Paths with ~ will be expanded to user's home directory
 var ideConfigPaths = map[IDEClient]string{
-	ClaudeCode: "~/.config/claude/mcp.json",
+	ClaudeCode: "~/.claude.json",
 	Cursor:     "~/.cursor/mcp.json",
 	Windsurf:   "~/.windsurf/mcp.json",
 }
@@ -61,38 +61,50 @@ func getConfigPath(client IDEClient) (string, error) {
 
 // InstallTigerMCP installs Tiger MCP for the given IDE client
 func InstallTigerMCP(client IDEClient) error {
-	fmt.Printf("Installing Tiger MCP for %s...\n", client)
-
 	cmd := exec.Command("tiger", "mcp", "install", string(client), "--no-backup")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	output, err := cmd.CombinedOutput()
 
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to install Tiger MCP: %w", err)
+	if err != nil {
+		// Check if it's just because tiger is already installed
+		if strings.Contains(string(output), "already exists") {
+			return nil
+		}
+		return fmt.Errorf("failed to install Tiger MCP: %w\nOutput: %s", err, string(output))
 	}
 
-	fmt.Printf("✓ Tiger MCP installed for %s\n", client)
 	return nil
 }
 
 // Install0peratorMCP adds 0perator MCP server to the IDE's config file
 func Install0peratorMCP(client IDEClient) error {
-	fmt.Printf("Installing 0perator MCP for %s...\n", client)
 
 	configPath, err := getConfigPath(client)
 	if err != nil {
 		return err
 	}
 
-	// Read existing config (tiger should have created this)
+	// Ensure config directory exists
+	configDir := filepath.Dir(configPath)
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		return fmt.Errorf("failed to create config directory: %w", err)
+	}
+
+	// Read existing config or create new one
 	var config MCPConfig
 	data, err := os.ReadFile(configPath)
 	if err != nil {
-		return fmt.Errorf("failed to read config file (did tiger mcp install run?): %w", err)
-	}
-
-	if err := json.Unmarshal(data, &config); err != nil {
-		return fmt.Errorf("failed to parse config file: %w", err)
+		if !os.IsNotExist(err) {
+			return fmt.Errorf("failed to read config file: %w", err)
+		}
+		// File doesn't exist, create new config
+		config = MCPConfig{
+			MCPServers: make(map[string]MCPServer),
+		}
+	} else {
+		// File exists, parse it
+		if err := json.Unmarshal(data, &config); err != nil {
+			return fmt.Errorf("failed to parse config file: %w", err)
+		}
 	}
 
 	// Add 0perator MCP server
@@ -100,8 +112,18 @@ func Install0peratorMCP(client IDEClient) error {
 		config.MCPServers = make(map[string]MCPServer)
 	}
 
+	// Get the full path to the 0perator binary
+	operatorPath, err := exec.LookPath("0perator")
+	if err != nil {
+		// If not in PATH, use the current executable path
+		operatorPath, err = os.Executable()
+		if err != nil {
+			return fmt.Errorf("failed to determine 0perator binary path: %w", err)
+		}
+	}
+
 	config.MCPServers["0perator"] = MCPServer{
-		Command: "0perator",
+		Command: operatorPath,
 		Args:    []string{"mcp", "start"},
 		Env: map[string]string{
 			"OPERATOR_CONFIG": filepath.Join(os.Getenv("HOME"), ".config", "0perator", "config.json"),
@@ -118,20 +140,35 @@ func Install0peratorMCP(client IDEClient) error {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 
-	fmt.Printf("✓ 0perator MCP installed for %s\n", client)
 	return nil
 }
 
 // InstallBoth installs both Tiger and 0perator MCP servers for the given IDE
 func InstallBoth(client IDEClient) error {
-	fmt.Printf("\n━━━ Configuring %s ━━━\n", client)
-
-	// First install Tiger MCP (this creates/updates the config file)
-	if err := InstallTigerMCP(client); err != nil {
+	// Check if Tiger MCP config already exists
+	configPath, err := getConfigPath(client)
+	if err != nil {
 		return err
 	}
 
-	// Then add 0perator to the same config file that tiger just created
+	tigerExists := false
+	if data, err := os.ReadFile(configPath); err == nil {
+		var config MCPConfig
+		if json.Unmarshal(data, &config) == nil {
+			if _, exists := config.MCPServers["tiger"]; exists {
+				tigerExists = true
+			}
+		}
+	}
+
+	// Only install Tiger if it doesn't exist
+	if !tigerExists {
+		if err := InstallTigerMCP(client); err != nil {
+			return err
+		}
+	}
+
+	// Add 0perator to the config file
 	if err := Install0peratorMCP(client); err != nil {
 		return err
 	}
@@ -139,11 +176,12 @@ func InstallBoth(client IDEClient) error {
 	return nil
 }
 
-// GetSupportedIDEs returns a list of supported IDE clients
+// GetSupportedIDEs returns a list of supported IDE clients in a consistent order
 func GetSupportedIDEs() []IDEClient {
-	ides := make([]IDEClient, 0, len(ideConfigPaths))
-	for ide := range ideConfigPaths {
-		ides = append(ides, ide)
+	// Return in a fixed order for consistent UI
+	return []IDEClient{
+		ClaudeCode,
+		Cursor,
+		Windsurf,
 	}
-	return ides
 }

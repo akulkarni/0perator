@@ -32,7 +32,7 @@ func (s *Server) registerTools() {
 // ===== Tool 1: discover_patterns =====
 
 type DiscoverPatternsInput struct {
-	Query string `json:"query" jsonschema:"required,description=Search query to find relevant templates (e.g. 'web app', 'deploy cloudflare', 'authentication')"`
+	Query string `json:"query" jsonschema:"Search query to find relevant templates (e.g. 'web app', 'deploy cloudflare', 'authentication')"`
 }
 
 type DiscoverPatternsOutput struct {
@@ -73,7 +73,7 @@ func (s *Server) handleDiscoverPatterns(ctx context.Context, req *mcp.CallToolRe
 // ===== Tool 2: get_template =====
 
 type GetTemplateInput struct {
-	Name string `json:"name" jsonschema:"required,description=Name of the template to retrieve (e.g. 'create_web_app', 'deploy_cloudflare')"`
+	Name string `json:"name" jsonschema:"Name of the template to retrieve (e.g. 'create_web_app', 'deploy_cloudflare')"`
 }
 
 type GetTemplateOutput struct {

@@ -14,8 +14,8 @@ import (
 
 // ExecuteInput defines the input for the execute tool
 type ExecuteInput struct {
-	Operation string                 `json:"operation" jsonschema:"required,enum=run_command,enum=read_file,enum=create_file,enum=edit_file,enum=start_process,enum=stop_process,enum=get_logs,enum=list_processes,description=Operation to execute"`
-	Params    map[string]interface{} `json:"params" jsonschema:"required,description=Parameters for the operation"`
+	Operation string                 `json:"operation" jsonschema:"Operation to execute: run_command, read_file, create_file, edit_file, start_process, stop_process, get_logs, or list_processes"`
+	Params    map[string]interface{} `json:"params" jsonschema:"Parameters for the operation"`
 }
 
 // ExecuteOutput defines the output for the execute tool

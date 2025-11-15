@@ -14,46 +14,32 @@
   - [x] Progress bars and timing
 - [x] MCP server implementation
   - [x] Basic server using `mcp-go`
-  - [x] `create_app` tool
+  - [x] 3-tool architecture (discover_patterns, get_template, execute)
   - [x] Tool definitions and handlers
-- [x] Template system
-  - [x] Generic scaffolding engine with embed.FS
-  - [x] Template variable substitution
-  - [x] Use-case first naming convention
-- [x] `web-node` template
-  - [x] package.json with modern dependencies
-  - [x] TypeScript configuration (strict mode)
-  - [x] Fastify server with Zod validation
-  - [x] Conditional database integration
-  - [x] Testing setup (Vitest)
-  - [x] Linting (ESLint) and formatting (Prettier)
-  - [x] Complete README
-
-- [x] `deploy_local` MCP tool implementation
-  - [x] Process management (start/stop/status)
+- [x] Prompt template system
+  - [x] Frontmatter parser with YAML
+  - [x] Tag-based discovery with scoring
+  - [x] Category defaults system
+  - [x] Template loading from embed.FS
+  - [x] Semantic search algorithm
+- [x] Execute primitives
+  - [x] run_command - Shell command execution
+  - [x] read_file - Read file contents
+  - [x] create_file - Create/overwrite files
+  - [x] edit_file - Patch existing files
+  - [x] start_process - Start and track processes
+  - [x] stop_process - Stop tracked processes
+  - [x] get_logs - Get process logs
+  - [x] list_processes - List running processes
+- [x] Process management
+  - [x] Local deployment (bare processes)
   - [x] Port allocation (auto-assign or manual)
   - [x] Log streaming to files
   - [x] Health checks with retry logic
-  - [x] Support for Node.js apps
-  - [x] Additional tools: `stop_local`, `list_local`, `logs_local`
   - [x] Runtime package (`internal/runtime/process.go`)
   - [x] Dependency auto-installation (npm install)
-
-### 📋 TODO for v0
-
-- [x] End-to-end testing
-  - [x] Test full flow: init → create_app → deploy_local
-  - [x] Test in Claude Code
-  - [x] MCP server successfully loads and tools are available
-- [ ] Refine MCP tools
-  - [ ] Test and improve create_app tool
-  - [ ] Test and improve deploy_local tool
-  - [ ] Test and improve stop_local tool
-  - [ ] Test and improve list_local tool
-  - [ ] Test and improve logs_local tool
-  - [ ] Add better error messages
-  - [ ] Validate input parameters
-  - [ ] Handle edge cases
+- [x] Initial templates
+  - [x] `create_web_app.md` - Comprehensive Node.js + TypeScript + Fastify guide
 - [x] Improve installation DX
   - [x] Fix progress bar rendering issues (replaced with spinner)
   - [x] Better terminal output formatting (consistent 2-space indentation)
@@ -62,79 +48,129 @@
   - [x] Add colored output for success/error states (orange accent color 196)
   - [x] Cool ASCII art banner with brand colors
   - [x] Updated tagline: "Infrastructure for AI native development"
-- [ ] Additional templates
-  - [ ] `api-node` - REST API only (no frontend)
-  - [ ] `cli-node` - CLI tool template
-- [ ] Documentation
-  - [ ] Installation guide
-  - [ ] Usage examples
-  - [ ] Template customization guide
 - [x] Build and distribution
   - [x] Build script for multi-platform binaries
   - [x] Release process (GitHub Actions)
   - [x] Install script (scripts/install.sh)
+- [x] Documentation
+  - [x] Updated README with new architecture
+  - [x] Architecture diagrams
+  - [x] Workflow examples
+
+### 📋 TODO for v0
+
+- [ ] Complete remaining templates
+  - [ ] `database_tiger.md` - Tiger Cloud PostgreSQL/TimescaleDB integration
+  - [ ] `auth_jwt.md` - JWT authentication guide
+  - [ ] `payments_stripe.md` - Stripe payment integration guide
+  - [ ] `deploy_cloudflare.md` - Cloudflare Pages deployment guide
+- [ ] Configure defaults
+  - [ ] Set default templates in `internal/prompts/defaults.go`
+  - [ ] Validate defaults on startup
+- [ ] End-to-end testing
+  - [ ] Test full flow: discover → get_template → execute
+  - [ ] Test in Claude Code
+  - [ ] Test in Cursor/Windsurf
+  - [ ] Verify all 8 execute primitives work
+  - [ ] Test template composition (web → db → auth → payments)
+- [ ] Refinements
+  - [ ] Better error messages in execute operations
+  - [ ] Input validation for all operations
+  - [ ] Handle edge cases (port conflicts, missing files, etc.)
+  - [ ] Improve discovery algorithm (synonym support)
+- [ ] Distribution
   - [ ] Host install script at https://cli.0p.dev
+  - [ ] Test installation on clean machines
+  - [ ] Create release (v0.2.0)
 
 ## v1 - Expansion
 
-### v1a - External Deploy
-- [ ] Vercel deployment integration
+### v1a - Additional Templates
+- [ ] `create_api.md` - REST API only (no frontend)
+- [ ] `create_cli.md` - CLI tool template
+- [ ] `email_resend.md` - Resend email integration
+- [ ] `email_sendgrid.md` - SendGrid email integration
+- [ ] `storage_r2.md` - Cloudflare R2 file storage
+- [ ] `storage_s3.md` - AWS S3 file storage
+- [ ] `testing_vitest.md` - Vitest testing setup
+- [ ] `feature_websockets.md` - Real-time WebSocket features
+- [ ] `feature_cron.md` - Scheduled tasks
+
+### v1b - External Deploy
+- [ ] `deploy_vercel.md` - Vercel deployment
+- [ ] `deploy_railway.md` - Railway deployment
+- [ ] `deploy_fly.md` - Fly.io deployment
 - [ ] Environment variable management
 - [ ] Production URL handling
 
-### v1b - CLI Commands
-- [ ] `0perator create app` - Direct CLI usage
-- [ ] `0perator deploy` - Deploy without IDE
+### v1c - Template Enhancements
+- [ ] Template versioning
+- [ ] User-configurable defaults (~/.config/0perator/config.yaml)
+- [ ] Template validation tool
+- [ ] Community template contributions
+- [ ] Template marketplace infrastructure
+
+### v1d - CLI Commands
+- [ ] `0perator templates list` - List available templates
+- [ ] `0perator templates search <query>` - Search templates
 - [ ] `0perator status` - Show running apps
-- [ ] `0perator logs` - View app logs
+- [ ] `0perator logs <process-id>` - View app logs
 
-### v1c - Multi-agent Support
-- [ ] Parallel app creation
-- [ ] Workspace management
-- [ ] Inter-app communication
-
-### v1d - Pricing
-- [ ] Usage tracking
-- [ ] Paid tier features
-- [ ] Billing integration
-
-## v2 - Sharing / Discovery
-- [ ] App gallery
-- [ ] Public/private apps
-- [ ] Share app URLs
+## v2 - Discovery & Sharing
+- [ ] Public template registry
+- [ ] Template versioning and updates
+- [ ] Community-contributed templates
+- [ ] Template ratings and reviews
 - [ ] Fork/remix functionality
 
-## v3 - Prompt Templates
-- [ ] Create prompt template system (like Tiger MCP)
-- [ ] Common app patterns as prompts
-- [ ] Community-contributed prompts
+## v3 - Advanced Features
+- [ ] Multi-agent support (parallel app creation)
+- [ ] Workspace management
+- [ ] Inter-app communication
+- [ ] Template composition patterns
 
 ## v4 - Day 2 Operations
 - [ ] "Why is my app slow?" diagnostics
 - [ ] Database query analysis
 - [ ] Performance monitoring
-- [ ] Error tracking
+- [ ] Error tracking integration
+- [ ] Log aggregation
 
-## v5 - Stripe Integration
-- [ ] Automatic billing setup
-- [ ] Payment forms
-- [ ] Webhook handling
-- [ ] Subscription management
+## v5 - Enterprise
+- [ ] Usage tracking
+- [ ] Paid tier features
+- [ ] Billing integration
+- [ ] Team workspaces
+- [ ] Access control
 
 ## Technical Debt / Improvements
 
-- [ ] Error handling improvements
-- [ ] Better logging
-- [ ] Configuration file support (~/.config/0perator/config.json)
+- [ ] Error handling improvements across all operations
+- [ ] Better logging (structured logging)
+- [ ] Configuration file validation
 - [ ] Update check on startup
 - [ ] Telemetry/analytics (opt-in)
 - [ ] Refactor tiger-cli dependency
   - [ ] Option: Import as library (requires tiger-cli changes)
   - [ ] Option: Keep shelling out (current approach)
+- [ ] Performance optimization
+  - [ ] Cache template loading
+  - [ ] Parallel file operations
+  - [ ] Faster discovery algorithm
 
-## Questions / Decisions
+## Architecture Decisions
 
-- [ ] How to handle template updates?
-- [ ] Should we support custom user templates?
-- [ ] Database migration strategy for templates?
+### ✅ Resolved
+- [x] **Architecture:** Prompt templates vs scaffolding → Prompt templates
+- [x] **Tools:** Many specific tools vs few generic tools → 3 tools (discover/get/execute)
+- [x] **Primitives:** 8 core operations for maximum flexibility
+- [x] **Discovery:** Tag-based semantic search with scoring
+- [x] **Defaults:** Category-based defaults (e.g., Cloudflare for deployment)
+
+### 🤔 Open Questions
+- [ ] How to handle template updates when users have customized apps?
+- [ ] Should we support custom user templates? How?
+- [ ] Database migration strategy for template-generated apps?
 - [ ] How to handle breaking changes in templates?
+- [ ] Should templates include "upgrade paths" to newer versions?
+- [ ] How to handle multiple versions of the same template?

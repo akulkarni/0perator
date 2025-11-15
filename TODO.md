@@ -62,6 +62,7 @@
 - [ ] Complete remaining templates
   - [ ] `database_tiger.md` - Tiger Cloud PostgreSQL/TimescaleDB integration
   - [ ] `auth_jwt.md` - JWT authentication guide
+  - [ ] `email_resend.md` - Resend email integration (needed for auth)
   - [ ] `payments_stripe.md` - Stripe payment integration guide
   - [ ] `deploy_cloudflare.md` - Cloudflare Pages deployment guide
 - [ ] Configure defaults
@@ -88,7 +89,6 @@
 ### v1a - Additional Templates
 - [ ] `create_api.md` - REST API only (no frontend)
 - [ ] `create_cli.md` - CLI tool template
-- [ ] `email_resend.md` - Resend email integration
 - [ ] `email_sendgrid.md` - SendGrid email integration
 - [ ] `storage_r2.md` - Cloudflare R2 file storage
 - [ ] `storage_s3.md` - AWS S3 file storage

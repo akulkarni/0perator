@@ -41,6 +41,12 @@ func main() {
 			os.Exit(1)
 		}
 
+	case "uninstall":
+		if err := cli.Uninstall(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+
 	case "version", "--version", "-v":
 		fmt.Printf("0perator %s\n", Version)
 
@@ -55,10 +61,11 @@ func main() {
 }
 
 func printUsage() {
-	fmt.Println(`0perator - Infrastructure for AI agents
+	fmt.Println(`0perator - Infrastructure for AI native development
 
 Usage:
   0perator init              Initialize and configure MCP servers
+  0perator uninstall         Remove 0perator from your system
   0perator mcp start         Start the MCP server (stdio mode)
   0perator version           Show version information
   0perator help              Show this help message
@@ -66,6 +73,7 @@ Usage:
 Examples:
   $ 0perator init            # Set up 0perator with your IDE
   $ 0perator mcp start       # Run MCP server (called by IDE)
+  $ 0perator uninstall       # Remove 0perator
 
 Documentation: https://0p.dev/docs`)
 }

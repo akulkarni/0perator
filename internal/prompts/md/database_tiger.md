@@ -14,30 +14,38 @@ Integrate a PostgreSQL or TimescaleDB database from Tiger Cloud into your Node.j
 ## Overview
 
 This guide shows you how to:
-1. Provision a database using Tiger MCP
-2. Set up Drizzle ORM in your Node.js application
-3. Define schemas and run migrations
-4. Integrate database queries with Fastify routes
-5. Handle connections, errors, and transactions
+1. **START PROVISIONING DATABASE IMMEDIATELY** (runs in background, takes ~2 min)
+2. Set up Drizzle ORM while database provisions
+3. Define schemas and create files
+4. Run migrations (database will be ready by then)
+5. Integrate with Fastify routes
 
 **Prerequisites:** Existing Node.js/TypeScript application (see `create_web_app` template)
 
-## Step 1: Provision Database with Tiger MCP
+⚡ **IMPORTANT: Provision database FIRST, BEFORE doing anything else!**
 
-Use Tiger MCP to create a PostgreSQL or TimescaleDB database service.
+## Step 1: Provision Database (Do This FIRST!)
 
-**Conceptual steps:**
-- Use Tiger MCP to provision a new database service
-- Choose appropriate CPU/memory configuration
-- Select a region close to your users
-- Get the connection string
+**Start provisioning immediately** so it runs in background while you work:
+
+Use Tiger MCP to create a free PostgreSQL database:
+```
+mcp__tiger__service_create(wait=false)
+```
+
+This will:
+- Create a free database service in ~2 minutes (background)
+- Return connection string immediately
+- Allow you to continue building while it provisions
 
 Tiger MCP will return a connection string like:
 ```
 postgres://tsdbadmin:password@xxxxx.tsdb.cloud.timescale.com:12345/tsdb
 ```
 
-Save this for Step 3.
+**Save this connection string** - you'll need it in Step 3.
+
+**Continue to Step 2 immediately** - don't wait for database to finish provisioning!
 
 ## Step 2: Install Drizzle Dependencies
 

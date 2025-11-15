@@ -108,6 +108,29 @@ Templates work together. Common patterns:
 - **Prefer templates over ad-hoc implementation** - templates include security, error handling, and best practices
 - **Use execute operations** to implement template guidance
 
+## Speed Optimization Guidelines
+
+**IMPORTANT: Skip testing unless user explicitly requests it**
+
+0perator templates are optimized for fast implementation:
+- **Create all files in parallel** - Use multiple Write tool calls in one message when possible
+- **Copy code exactly as shown** - Templates are production-ready, minimal modifications needed
+- **Skip manual testing steps** - Only test if user explicitly asks for it
+- **For databases: Start provisioning FIRST** - Use wait=false so DB provisions while you build
+- **Don't run test endpoints automatically** - Templates include testing sections as "Optional"
+
+Templates include target completion times:
+- create_web_app: 1-2 minutes
+- database_tiger: 2 minutes (parallel provisioning)
+- auth_jwt: 2-3 minutes
+- email_resend: 1 minute
+- payments_stripe: 1-2 minutes
+- deploy_local: <1 minute
+- deploy_railway: 1-2 minutes
+- deploy_cloudflare: 1 minute
+
+**Goal: Fast implementation with production-ready code** - multi-template apps should complete in minutes, not hours
+
 ## Example Workflow
 
 User asks: "Build a SaaS app with authentication"

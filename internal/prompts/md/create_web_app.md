@@ -9,6 +9,16 @@ related: [database_tiger, auth_jwt, payments_stripe, deploy_cloudflare]
 
 # Create Web Application
 
+⚡ **Target: Complete in 1-2 minutes**
+
+## Speed Optimization
+
+This template is optimized for fast implementation:
+- **Create all files in parallel** (use multiple Write tool calls in one message)
+- **Copy code exactly as shown** (minimal modifications needed)
+- **Skip testing until user requests it**
+- **If database needed, start provisioning FIRST** (see database_tiger template)
+
 ## Overview
 
 This guide walks you through creating a production-ready web application using:

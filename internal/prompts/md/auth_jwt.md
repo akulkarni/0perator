@@ -9,14 +9,23 @@ related: [create_web_app, email_resend]
 
 # Add JWT Authentication
 
+⚡ **Target: Complete in 2-3 minutes**
+
 Add a complete authentication system with JWT tokens, secure password hashing, email verification, and password reset functionality to your Node.js application.
 
-## Overview
+## Speed Optimization
 
-This guide implements:
-- User signup and login with bcrypt password hashing
-- JWT access tokens (short-lived) and refresh tokens (long-lived)
-- Email verification flow
+This template is optimized for fast implementation:
+- **Create all files in parallel** (don't wait between files)
+- **Copy code exactly as shown** (minimal modifications needed)
+- **Skip testing until user requests it**
+- All code blocks are production-ready
+
+## What You'll Build
+
+- User signup and login with bcrypt password hashing (10 rounds)
+- JWT access tokens (15min) and refresh tokens (7 days)
+- Email verification flow (with placeholder email service)
 - Password reset flow
 - Protected route middleware
 - Token refresh mechanism
@@ -24,6 +33,7 @@ This guide implements:
 **Prerequisites:**
 - Existing Node.js/TypeScript application (see `create_web_app`)
 - Database setup with Drizzle ORM (see `database_tiger`)
+- **Database should be provisioning in background** (started in database_tiger Step 1)
 
 **Security Note:** This template follows security best practices including password hashing, token expiration, and secure token storage patterns.
 
@@ -892,7 +902,22 @@ User → POST /auth/request-password-reset {email}
 - ✅ Indexes on frequently queried columns
 - ✅ Timestamps for audit trails
 
-## Testing the Auth System
+## Authentication System Complete
+
+Your authentication system is now fully integrated. The following endpoints are available:
+
+- `POST /auth/signup` - User registration with email verification
+- `POST /auth/verify-email` - Email verification
+- `POST /auth/login` - User login (returns access + refresh tokens)
+- `GET /profile` - Protected route example (requires auth)
+- `POST /auth/refresh` - Token refresh
+- `POST /auth/forgot-password` - Password reset request
+- `POST /auth/reset-password` - Password reset confirmation
+- `POST /auth/logout` - Logout (invalidates refresh token)
+
+### Optional: Testing the Auth System
+
+If you want to test the endpoints manually:
 
 ```bash
 # 1. Signup

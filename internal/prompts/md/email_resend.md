@@ -9,6 +9,16 @@ related: [auth_jwt, payments_stripe]
 
 # Add Resend Email Integration
 
+⚡ **Target: Complete in 1 minute**
+
+## Speed Optimization
+
+This template is optimized for fast implementation:
+- **Create email service file in one step** (all functions together)
+- **Copy code exactly as shown** (production-ready templates included)
+- **Skip testing unless user requests it**
+- **Update auth routes after email service is created**
+
 Integrate Resend for sending transactional emails including email verification, password reset, welcome emails, and order confirmations.
 
 ## Overview
@@ -18,7 +28,7 @@ This guide implements:
 - HTML email templates (verification, password reset, welcome, order confirmation)
 - Error handling and retry logic
 - Email delivery status tracking
-- Testing strategies
+- Testing strategies (optional)
 
 **Prerequisites:** Existing Node.js/TypeScript application (see `create_web_app`)
 
@@ -582,11 +592,17 @@ if (user) {
 }
 ```
 
-## Step 7: Testing Email Sending
+## Step 7: Email Integration Complete
 
-### Development Testing
+Email service is now integrated with your application. Emails will be sent automatically during:
+- User signup (verification email)
+- Email verification success (welcome email)
+- Password reset request (reset email)
+- Order completion (order confirmation email)
 
-Create `src/test-email.ts`:
+### Optional: Testing Email Sending
+
+If you want to test emails manually, create `src/test-email.ts`:
 
 ```typescript
 import 'dotenv/config';
@@ -640,7 +656,7 @@ Run tests:
 npx tsx src/test-email.ts
 ```
 
-### Check Email Delivery
+### Optional: Check Email Delivery
 
 1. Visit https://resend.com/emails
 2. View sent emails and their status

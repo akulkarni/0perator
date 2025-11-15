@@ -57,32 +57,40 @@
   - [x] Architecture diagrams
   - [x] Workflow examples
 
-### 📋 TODO for v0
+### ✅ Completed for v0
 
-- [ ] Complete remaining templates
-  - [ ] `database_tiger.md` - Tiger Cloud PostgreSQL/TimescaleDB integration
-  - [ ] `auth_jwt.md` - JWT authentication guide
-  - [ ] `email_resend.md` - Resend email integration (needed for auth)
-  - [ ] `payments_stripe.md` - Stripe payment integration guide
-  - [ ] `deploy_cloudflare.md` - Cloudflare Pages deployment guide
-- [ ] Configure defaults
-  - [ ] Set default templates in `internal/prompts/defaults.go`
-  - [ ] Validate defaults on startup
-- [ ] End-to-end testing
-  - [ ] Test full flow: discover → get_template → execute
-  - [ ] Test in Claude Code
-  - [ ] Test in Cursor/Windsurf
-  - [ ] Verify all 8 execute primitives work
-  - [ ] Test template composition (web → db → auth → payments)
+- [x] Complete all 7 foundational templates
+  - [x] `create_web_app.md` - Node.js + TypeScript + Fastify web applications
+  - [x] `database_tiger.md` - Tiger Cloud PostgreSQL/TimescaleDB integration
+  - [x] `auth_jwt.md` - JWT authentication with email verification and password reset
+  - [x] `email_resend.md` - Resend email integration for transactional emails
+  - [x] `payments_stripe.md` - Stripe payment integration (one-time + subscriptions)
+  - [x] `deploy_cloudflare.md` - Cloudflare Pages for static sites and serverless functions
+  - [x] `deploy_railway.md` - Railway for Node.js servers and long-running workloads
+- [x] Configure defaults
+  - [x] Set default templates in `internal/prompts/defaults.go`
+  - [x] All 5 categories configured (deployment, database, authentication, payments, email)
+- [x] Testing
+  - [x] Template loading tests (all 7 templates load correctly)
+  - [x] Default configuration tests (all 5 defaults verified)
+  - [x] Discovery algorithm tests (tag-based search working)
+
+### 📋 TODO for v0.2.0 Release
+
+- [ ] Real-world testing
+  - [ ] Test in Claude Code with actual app creation
+  - [ ] Test template composition (web → db → auth → payments → deploy)
+  - [ ] Verify all 8 execute primitives work in practice
+  - [ ] Test in Cursor/Windsurf (if possible)
 - [ ] Refinements
   - [ ] Better error messages in execute operations
   - [ ] Input validation for all operations
   - [ ] Handle edge cases (port conflicts, missing files, etc.)
-  - [ ] Improve discovery algorithm (synonym support)
 - [ ] Distribution
   - [ ] Host install script at https://cli.0p.dev
   - [ ] Test installation on clean machines
   - [ ] Create release (v0.2.0)
+  - [ ] Update README with examples
 
 ## v1 - Expansion
 

@@ -185,11 +185,13 @@ install_binary() {
 
     # Install binary
     echo "  Installing to $INSTALL_DIR..."
+    # Find the binary in the extracted directory
+    EXTRACTED_DIR="${BINARY_NAME}-${VERSION}-${PLATFORM}"
     if [ "$OS" = "windows" ]; then
-        mv "${BINARY_NAME}.exe" "$INSTALL_DIR/"
+        mv "$EXTRACTED_DIR/${BINARY_NAME}.exe" "$INSTALL_DIR/"
         chmod +x "$INSTALL_DIR/${BINARY_NAME}.exe"
     else
-        mv "$BINARY_NAME" "$INSTALL_DIR/"
+        mv "$EXTRACTED_DIR/$BINARY_NAME" "$INSTALL_DIR/"
         chmod +x "$INSTALL_DIR/$BINARY_NAME"
     fi
 

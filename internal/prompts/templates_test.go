@@ -102,6 +102,8 @@ func TestDiscoverPatterns(t *testing.T) {
 		{"payments stripe", "payments_stripe"},
 		{"deploy static site", "deploy_cloudflare"},
 		{"deploy backend server", "deploy_railway"},
+		{"deploy locally", "deploy_local"},
+		{"run local server", "deploy_local"},
 	}
 
 	for _, tc := range testCases {

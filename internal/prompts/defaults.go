@@ -3,13 +3,12 @@ package prompts
 import "fmt"
 
 // DefaultTemplates maps categories to their default template names
-// NOTE: Update this map after creating the initial templates
 var DefaultTemplates = map[string]string{
-	// Will be populated after templates are created:
-	// "deployment":     "deploy_cloudflare",
-	// "database":       "database_tiger",
-	// "authentication": "auth_jwt",
-	// "payments":       "payments_stripe",
+	"deployment":     "deploy_railway",    // Railway for servers (most common), Cloudflare for static sites
+	"database":       "database_tiger",    // Tiger Cloud PostgreSQL/TimescaleDB
+	"authentication": "auth_jwt",          // JWT-based authentication
+	"payments":       "payments_stripe",   // Stripe for payments and subscriptions
+	"email":          "email_resend",      // Resend for transactional emails
 }
 
 // GetDefaultTemplate returns the default template for a category

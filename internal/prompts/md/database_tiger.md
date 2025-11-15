@@ -89,7 +89,12 @@ Use the `execute` tool with `create_file` or `edit_file` operation.
 
 Create `src/db/client.ts`:
 
+**IMPORTANT: Import dotenv FIRST before accessing process.env**
+
 ```typescript
+// Load environment variables FIRST
+import 'dotenv/config';
+
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from './schema';
@@ -220,7 +225,7 @@ server.get('/health', async (request, reply) => {
   try {
     // Simple query to verify database connection
     await db.execute('SELECT 1');
-    return { status: 'ok', database: 'connected' };
+    return { status: 'ok', database: 'connected', timestamp: new Date().toISOString() };
   } catch (error) {
     reply.status(503);
     return { status: 'error', database: 'disconnected' };
@@ -613,7 +618,7 @@ const paginatedUsers = await db
 // Periodically verify connection
 setInterval(async () => {
   try {
-    await db.execute(sql`SELECT 1`);
+    await db.execute('SELECT 1');
   } catch (error) {
     server.log.error('Database health check failed:', error);
   }

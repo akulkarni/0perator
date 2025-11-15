@@ -96,7 +96,7 @@ Create a complete `package.json` with all dependencies:
   \"dependencies\": {
     \"fastify\": \"^4.26.0\",
     \"@fastify/static\": \"^7.0.0\",
-    \"@fastify/type-provider-zod\": \"^2.0.0\",
+    \"@fastify/type-provider-zod\": \"^4.0.1\",
     \"zod\": \"^3.22.4\",
     \"dotenv\": \"^16.4.0\"
   },
@@ -228,16 +228,17 @@ Configure linting:
 
 Set up Fastify server with Zod validation:
 
+**IMPORTANT: dotenv MUST be imported first, before any other imports that use process.env**
+
 ```typescript
+// Load environment variables FIRST before any other imports
+import 'dotenv/config';
+
 import Fastify from 'fastify';
 import fastifyStatic from '@fastify/static';
 import { serializerCompiler, validatorCompiler, ZodTypeProvider } from '@fastify/type-provider-zod';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import dotenv from 'dotenv';
-
-// Load environment variables
-dotenv.config();
 
 // ES modules __dirname equivalent
 const __filename = fileURLToPath(import.meta.url);

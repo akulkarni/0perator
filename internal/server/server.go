@@ -28,6 +28,9 @@ func New() *Server {
 	// Register tools
 	s.registerTools()
 
+	// Register prompts
+	s.registerPrompts()
+
 	return s
 }
 

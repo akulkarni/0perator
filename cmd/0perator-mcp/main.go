@@ -7,6 +7,9 @@ import (
 	"github.com/akulkarni/0perator/internal/cli"
 )
 
+// Version is set at build time via -ldflags
+var Version = "dev"
+
 func main() {
 	if len(os.Args) < 2 {
 		printUsage()
@@ -39,7 +42,7 @@ func main() {
 		}
 
 	case "version", "--version", "-v":
-		fmt.Println("0perator v0.1.0")
+		fmt.Printf("0perator %s\n", Version)
 
 	case "help", "--help", "-h":
 		printUsage()

@@ -69,10 +69,11 @@
   - [ ] Installation guide
   - [ ] Usage examples
   - [ ] Template customization guide
-- [ ] Build and distribution
-  - [ ] Build script for multi-platform binaries
-  - [ ] Release process (GitHub Actions)
-  - [ ] Install script (https://cli.0p.dev)
+- [x] Build and distribution
+  - [x] Build script for multi-platform binaries
+  - [x] Release process (GitHub Actions)
+  - [x] Install script (scripts/install.sh)
+  - [ ] Host install script at https://cli.0p.dev
 
 ## v1 - Expansion
 

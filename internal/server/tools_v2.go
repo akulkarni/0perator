@@ -32,7 +32,7 @@ const (
 func (s *Server) registerOperatorTool() {
 	mcp.AddTool(s.mcpServer, &mcp.Tool{
 		Name:        "operator",
-		Description: "🚀 NEW ACTION SYSTEM - Execute actions to build applications. Commands: 'list' (show all actions), 'discover' (search actions), 'execute' (run single action or sequence). This is the new fast path for building apps.",
+		Description: "🎯 START HERE - Build applications using 0perator's action system. Commands: 'list' (show all available actions), 'discover' (search for actions like 'web', 'database', 'auth'), 'execute' (run actions). Example: To build a SaaS app, discover relevant actions then execute them. Much faster than templates - actions complete in seconds, not minutes.",
 	}, s.handleOperator)
 }
 

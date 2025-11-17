@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 
+	"github.com/akulkarni/0perator/internal/operator"
 	"github.com/akulkarni/0perator/internal/runtime"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -11,12 +12,14 @@ import (
 type Server struct {
 	mcpServer      *mcp.Server
 	processManager *runtime.ProcessManager
+	operator       *operator.Operator
 }
 
 // New creates a new 0perator MCP server
 func New() *Server {
 	s := &Server{
 		processManager: runtime.NewProcessManager(),
+		operator:       operator.New(),
 	}
 
 	// Create MCP server with metadata
@@ -27,6 +30,9 @@ func New() *Server {
 
 	// Register tools
 	s.registerTools()
+
+	// Register the new operator tool
+	s.registerOperatorTool()
 
 	// Register prompts
 	s.registerPrompts()

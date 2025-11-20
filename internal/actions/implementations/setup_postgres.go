@@ -12,10 +12,10 @@ import (
 // SetupPostgresAction returns the action definition for setting up PostgreSQL
 func SetupPostgresAction() *actions.Action {
 	return &actions.Action{
-		Name:         "setup_postgres",
-		Description:  "Setup PostgreSQL database with optional TimescaleDB extension",
+		Name:         "setup_postgres_docker",
+		Description:  "Setup PostgreSQL database locally using Docker (for local development only - use Tiger Cloud for production)",
 		Category:     actions.CategorySetup,
-		Tags:         []string{"database", "postgres", "postgresql", "timescale", "sql"},
+		Tags:         []string{"database", "postgres", "postgresql", "docker", "local"},
 		Tier:         actions.TierFast,
 		EstimatedTime: 30 * time.Second,
 

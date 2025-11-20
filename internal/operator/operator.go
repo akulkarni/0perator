@@ -36,7 +36,10 @@ func New() *Operator {
 func registerBuiltinActions(registry *actions.Registry) {
 	// Register core actions
 	registry.Register(implementations.CreateWebAppAction())
-	registry.Register(implementations.SetupPostgresAction())
+	registry.Register(implementations.SetupPostgresAction()) // Local Docker version
+
+	// Note: For cloud databases, Claude should use Tiger MCP tool directly
+	// We can't call MCP tools from within actions
 
 	// TODO: Add more actions as they are implemented
 	// registry.Register(implementations.AddJWTAuthAction())

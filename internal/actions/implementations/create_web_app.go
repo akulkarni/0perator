@@ -2,6 +2,7 @@ package implementations
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -150,34 +151,93 @@ func createWebAppImpl(ctx context.Context, inputs map[string]interface{}) (map[s
 }
 
 func createNextApp(ctx context.Context, path, name string, typescript bool, styling string) error {
-	args := []string{
-		"create-next-app@latest",
+	// MUCH FASTER: Create basic Next.js structure manually instead of using create-next-app
+	// create-next-app downloads 100+ MB every time and takes 2-5 minutes
+
+	// Create directory structure
+	dirs := []string{
 		path,
-		"--use-pnpm",
-		"--app", // Use App Router
+		filepath.Join(path, "app"),
+		filepath.Join(path, "public"),
+		filepath.Join(path, "components"),
+	}
+
+	for _, dir := range dirs {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return fmt.Errorf("failed to create directory %s: %w", dir, err)
+		}
+	}
+
+	// Create package.json
+	packageJSON := map[string]interface{}{
+		"name": name,
+		"version": "0.1.0",
+		"private": true,
+		"scripts": map[string]string{
+			"dev": "next dev",
+			"build": "next build",
+			"start": "next start",
+		},
+		"dependencies": map[string]string{
+			"next": "14.0.0",
+			"react": "^18.2.0",
+			"react-dom": "^18.2.0",
+		},
 	}
 
 	if typescript {
-		args = append(args, "--typescript")
-	} else {
-		args = append(args, "--javascript")
+		packageJSON["devDependencies"] = map[string]string{
+			"@types/node": "^20.0.0",
+			"@types/react": "^18.2.0",
+			"@types/react-dom": "^18.2.0",
+			"typescript": "^5.0.0",
+		}
 	}
 
-	if styling == "tailwind" {
-		args = append(args, "--tailwind")
-	} else {
-		args = append(args, "--no-tailwind")
+	packageData, _ := json.MarshalIndent(packageJSON, "", "  ")
+	if err := os.WriteFile(filepath.Join(path, "package.json"), packageData, 0644); err != nil {
+		return fmt.Errorf("failed to create package.json: %w", err)
 	}
 
-	// Add non-interactive flags
-	args = append(args, "--eslint", "--import-alias", "@/*")
+	// Create a basic app/page.tsx or app/page.jsx
+	ext := "jsx"
+	if typescript {
+		ext = "tsx"
+	}
 
-	cmd := exec.CommandContext(ctx, "pnpx", args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = strings.NewReader("y\n") // Auto-confirm
+	pageContent := `export default function Home() {
+  return (
+    <main>
+      <h1>Welcome to Next.js!</h1>
+    </main>
+  )
+}`
 
-	return cmd.Run()
+	if err := os.WriteFile(filepath.Join(path, "app", fmt.Sprintf("page.%s", ext)), []byte(pageContent), 0644); err != nil {
+		return fmt.Errorf("failed to create page: %w", err)
+	}
+
+	// Create app/layout.tsx or app/layout.jsx
+	layoutContent := `export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en">
+      <body>{children}</body>
+    </html>
+  )
+}`
+
+	if err := os.WriteFile(filepath.Join(path, "app", fmt.Sprintf("layout.%s", ext)), []byte(layoutContent), 0644); err != nil {
+		return fmt.Errorf("failed to create layout: %w", err)
+	}
+
+	// Note: User will need to run 'pnpm install' to install dependencies
+	// But this is MUCH faster than downloading create-next-app every time
+
+	return nil
 }
 
 func createReactApp(ctx context.Context, path, name string, typescript bool) error {
@@ -188,8 +248,9 @@ func createReactApp(ctx context.Context, path, name string, typescript bool) err
 	}
 
 	cmd := exec.CommandContext(ctx, "pnpm", "create", "vite@latest", path, "--template", template)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	// Don't output to stdout/stderr as it breaks MCP protocol
+	// cmd.Stdout = os.Stdout
+	// cmd.Stderr = os.Stderr
 	cmd.Stdin = strings.NewReader("y\n")
 
 	return cmd.Run()
@@ -202,8 +263,9 @@ func createVueApp(ctx context.Context, path, name string, typescript bool) error
 	}
 
 	cmd := exec.CommandContext(ctx, "pnpm", "create", "vite@latest", path, "--template", template)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	// Don't output to stdout/stderr as it breaks MCP protocol
+	// cmd.Stdout = os.Stdout
+	// cmd.Stderr = os.Stderr
 	cmd.Stdin = strings.NewReader("y\n")
 
 	return cmd.Run()

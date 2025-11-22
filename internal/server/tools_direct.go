@@ -63,8 +63,11 @@ func (s *Server) registerDirectTools() {
 	// UI/Design tools
 	mcp.AddTool(s.mcpServer, &mcp.Tool{
 		Name:        "add_brutalist_ui",
-		Description: "🏗️ Add brutalist/minimalist UI components - monospace fonts, #ff4500 links, no CSS frameworks, inline styles only",
+		Description: "🏗️ Add brutalist/minimalist UI components - monospace fonts, #ff4500 links, no CSS frameworks, inline styles only.",
 	}, s.handleAddBrutalistUI)
+
+	// Debug: Print to stderr to confirm registration
+	// fmt.Fprintf(os.Stderr, "Debug: Registered add_brutalist_ui tool\n")
 }
 
 // Input/Output types for each tool

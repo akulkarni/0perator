@@ -34,6 +34,9 @@ func New() *Server {
 	// Register the operator tool (minimal wrapper for backward compatibility)
 	s.registerOperatorTool()
 
+	// Debug: Log registered tools count
+	// fmt.Fprintf(os.Stderr, "Debug: Registered tools in MCP server\n")
+
 	return s
 }
 

@@ -31,6 +31,10 @@ func (o *Operator) ExecuteDirectTool(ctx context.Context, toolName string, args 
 		return tools.SetupPostgresFree(ctx, args)
 	case "setup_sqlite":
 		return tools.SetupSQLite(ctx, args)
+	case "add_brutalist_ui":
+		return tools.AddBrutalistUI(ctx, args)
+	case "add_jwt_auth":
+		return tools.AddJWTAuth(ctx, args)
 	default:
 		return fmt.Errorf("unknown tool: %s", toolName)
 	}
@@ -55,6 +59,9 @@ func (o *Operator) ListTools() []string {
 		"create_express_api",
 		"setup_postgres_free",
 		"setup_sqlite",
+		"add_brutalist_ui",
+		"add_jwt_auth",
+		"add_stripe_payments",
 	}
 }
 

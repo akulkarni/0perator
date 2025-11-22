@@ -8,6 +8,28 @@ import (
 	"path/filepath"
 )
 
+// buildDevDependencies returns the appropriate dev dependencies based on options
+func buildDevDependencies(typescript, tailwind bool) map[string]string {
+	deps := map[string]string{
+		"@types/node":      "^20.0.0",
+		"@types/react":     "^18.2.0",
+		"@types/react-dom": "^18.2.0",
+		"@types/pg":        "^8.10.0",
+	}
+
+	if typescript {
+		deps["typescript"] = "^5.0.0"
+	}
+
+	if tailwind {
+		deps["tailwindcss"] = "^3.3.0"
+		deps["autoprefixer"] = "^10.0.1"
+		deps["postcss"] = "^8"
+	}
+
+	return deps
+}
+
 // CreateNextJSAppImproved creates a complete Next.js app with proper configuration
 func CreateNextJSAppImproved(ctx context.Context, args map[string]string) error {
 	name := args["name"]
@@ -16,7 +38,9 @@ func CreateNextJSAppImproved(ctx context.Context, args map[string]string) error 
 	}
 
 	typescript := args["typescript"] != "false"
-	tailwind := args["tailwind"] != "false"
+	// Default to brutalist (no Tailwind) unless explicitly requested
+	tailwind := args["tailwind"] == "true"
+	brutalist := args["brutalist"] != "false" // Default true
 
 	projectPath := filepath.Join(".", name)
 
@@ -62,16 +86,7 @@ func CreateNextJSAppImproved(ctx context.Context, args map[string]string) error 
 			"react-dom": "^18.2.0",
 			"pg":        "^8.11.3",
 		},
-		"devDependencies": map[string]string{
-			"@types/node":      "^20.0.0",
-			"@types/react":     "^18.2.0",
-			"@types/react-dom": "^18.2.0",
-			"@types/pg":        "^8.10.0",
-			"typescript":       "^5.0.0",
-			"tailwindcss":      "^3.3.0",
-			"autoprefixer":     "^10.0.1",
-			"postcss":          "^8",
-		},
+		"devDependencies": buildDevDependencies(typescript, tailwind),
 	}
 
 	packageData, _ := json.MarshalIndent(packageJSON, "", "  ")
@@ -316,8 +331,78 @@ export async function POST() {
 		return fmt.Errorf("failed to create app/api/init-db/route.ts: %w", err)
 	}
 
-	// Create main page with proper TypeScript
-	pageContent := `'use client';
+	// Create main page - brutalist by default, Tailwind if requested
+	var pageContent string
+	if brutalist && !tailwind {
+		// Brutalist version with inline styles and monospace font
+		pageContent = `'use client';
+
+import { useState, useEffect } from 'react';
+
+export default function Home() {
+  const [dbStatus, setDbStatus] = useState<'checking' | 'connected' | 'not-configured' | 'error'>('checking');
+
+  useEffect(() => {
+    checkDatabase();
+  }, []);
+
+  const checkDatabase = async () => {
+    try {
+      const response = await fetch('/api/init-db', { method: 'POST' });
+      if (response.ok) {
+        setDbStatus('connected');
+      } else {
+        setDbStatus('not-configured');
+      }
+    } catch (error) {
+      setDbStatus('error');
+    }
+  };
+
+  return (
+    <main style={{ padding: '2rem', fontFamily: 'monospace', maxWidth: '800px', margin: '0 auto' }}>
+      <h1 style={{ fontSize: '2rem', marginBottom: '2rem' }}>Welcome to ${name}!</h1>
+
+      <div style={{ padding: '1rem', background: '#f0f0f0', marginBottom: '2rem', borderRadius: '4px' }}>
+        <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Database Status</h2>
+        {dbStatus === 'checking' && (
+          <p>Checking database connection...</p>
+        )}
+        {dbStatus === 'connected' && (
+          <p style={{ color: 'green' }}>✅ Database connected and ready!</p>
+        )}
+        {dbStatus === 'not-configured' && (
+          <div style={{ color: '#ff4500' }}>
+            <p>⚠️ Database not configured</p>
+            <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>Run 'setup_database' to create a PostgreSQL database</p>
+          </div>
+        )}
+        {dbStatus === 'error' && (
+          <p style={{ color: '#ff4500' }}>❌ Database connection error</p>
+        )}
+      </div>
+
+      <div style={{ padding: '1rem', background: '#f0f0f0', borderRadius: '4px' }}>
+        <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Getting Started</h2>
+        <ol style={{ lineHeight: '1.8' }}>
+          <li>Set up your database with 'setup_database'</li>
+          <li>Start developing with 'npm run dev'</li>
+          <li>Build for production with 'npm run build'</li>
+        </ol>
+      </div>
+
+      <div style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: '1px solid #ccc' }}>
+        <a href="https://github.com/akulkarni/0perator" style={{ color: '#ff4500', textDecoration: 'underline' }}>
+          Built with 0perator
+        </a>
+      </div>
+    </main>
+  );
+}
+`
+	} else {
+		// Tailwind version (only if explicitly requested)
+		pageContent = `'use client';
 
 import { useState, useEffect } from 'react';
 
@@ -378,12 +463,37 @@ export default function Home() {
   );
 }
 `
+	}
 	if err := os.WriteFile(filepath.Join(projectPath, "app", "page.tsx"), []byte(pageContent), 0644); err != nil {
 		return fmt.Errorf("failed to create app/page.tsx: %w", err)
 	}
 
-	// Create layout with Tailwind
-	layoutContent := `import type { Metadata } from 'next'
+	// Create layout - brutalist by default, Tailwind if requested
+	var layoutContent string
+	if brutalist && !tailwind {
+		// Brutalist version - no external fonts, minimal styles
+		layoutContent = `import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: '${name}',
+  description: 'Built with Next.js and PostgreSQL',
+}
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en">
+      <body style={{ margin: 0, padding: 0, fontFamily: 'monospace' }}>{children}</body>
+    </html>
+  )
+}
+`
+	} else {
+		// Tailwind version with custom font
+		layoutContent = `import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 
@@ -406,6 +516,7 @@ export default function RootLayout({
   )
 }
 `
+	}
 	if err := os.WriteFile(filepath.Join(projectPath, "app", "layout.tsx"), []byte(layoutContent), 0644); err != nil {
 		return fmt.Errorf("failed to create app/layout.tsx: %w", err)
 	}
@@ -524,7 +635,11 @@ next-env.d.ts
 	fmt.Printf("   - Database utilities and connection pool\n")
 	fmt.Printf("   - Auto database check on dev startup\n")
 	fmt.Printf("   - Database initialization scripts\n")
-	fmt.Printf("   - Tailwind CSS configured\n")
+	if brutalist && !tailwind {
+		fmt.Printf("   - Brutalist UI (monospace, #ff4500 links, inline styles)\n")
+	} else if tailwind {
+		fmt.Printf("   - Tailwind CSS configured\n")
+	}
 	fmt.Printf("   - Environment variables template\n")
 	fmt.Printf("\nNext steps:\n")
 	fmt.Printf("1. cd %s\n", name)

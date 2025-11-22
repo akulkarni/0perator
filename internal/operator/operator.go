@@ -35,6 +35,9 @@ func (o *Operator) ExecuteDirectTool(ctx context.Context, toolName string, args 
 		return tools.AddBrutalistUI(ctx, args)
 	case "add_jwt_auth":
 		return tools.AddJWTAuth(ctx, args)
+	case "add_stripe_payments":
+		// Stub - returns basic implementation
+		return fmt.Errorf("Stripe payments integration is not yet implemented")
 	default:
 		return fmt.Errorf("unknown tool: %s", toolName)
 	}
@@ -55,13 +58,13 @@ func (o *Operator) ExecuteRecipe(ctx context.Context, recipeName string, inputs 
 func (o *Operator) ListTools() []string {
 	return []string{
 		"create_nextjs_app",
-		"create_react_app",
-		"create_express_api",
+		// "create_react_app",     // Stub - commented out
+		// "create_express_api",   // Stub - commented out
 		"setup_postgres_free",
 		"setup_sqlite",
 		"add_brutalist_ui",
 		"add_jwt_auth",
-		"add_stripe_payments",
+		// "add_stripe_payments",  // Stub - commented out
 	}
 }
 

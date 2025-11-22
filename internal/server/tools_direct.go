@@ -22,15 +22,16 @@ func (s *Server) registerDirectTools() {
 		Description: "🚀 Create a Next.js app with TypeScript and Tailwind CSS. Fast setup for modern web applications.",
 	}, s.handleCreateNextJSApp)
 
-	mcp.AddTool(s.mcpServer, &mcp.Tool{
-		Name:        "create_react_app",
-		Description: "⚛️ Create a React app using Vite for lightning-fast development.",
-	}, s.handleCreateReactApp)
+	// Commented out stub tools for now to make room for add_brutalist_ui
+	// mcp.AddTool(s.mcpServer, &mcp.Tool{
+	// 	Name:        "create_react_app",
+	// 	Description: "⚛️ Create a React app using Vite for lightning-fast development.",
+	// }, s.handleCreateReactApp)
 
-	mcp.AddTool(s.mcpServer, &mcp.Tool{
-		Name:        "create_express_api",
-		Description: "🔧 Create an Express.js API with basic structure and middleware.",
-	}, s.handleCreateExpressAPI)
+	// mcp.AddTool(s.mcpServer, &mcp.Tool{
+	// 	Name:        "create_express_api",
+	// 	Description: "🔧 Create an Express.js API with basic structure and middleware.",
+	// }, s.handleCreateExpressAPI)
 
 	// Database tools
 	mcp.AddTool(s.mcpServer, &mcp.Tool{
@@ -54,11 +55,11 @@ func (s *Server) registerDirectTools() {
 		Description: "🔐 Add JWT authentication to your application with secure token handling.",
 	}, s.handleAddJWTAuth)
 
-	// Payment tools
-	mcp.AddTool(s.mcpServer, &mcp.Tool{
-		Name:        "add_stripe_payments",
-		Description: "💳 Integrate Stripe payments with checkout and subscription support.",
-	}, s.handleAddStripePayments)
+	// Payment tools - commented out stub for now
+	// mcp.AddTool(s.mcpServer, &mcp.Tool{
+	// 	Name:        "add_stripe_payments",
+	// 	Description: "💳 Integrate Stripe payments with checkout and subscription support.",
+	// }, s.handleAddStripePayments)
 
 	// UI/Design tools
 	mcp.AddTool(s.mcpServer, &mcp.Tool{

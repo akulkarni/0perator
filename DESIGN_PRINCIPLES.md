@@ -50,7 +50,7 @@ steps:
 
 ## 3. Core Design Principles
 
-### 3.1 Principle of Minimal External Dependencies
+### 3.1 Minimize External Dependencies
 
 **Definition:** Avoid heavy frameworks and ORMs. Use lightweight, standard libraries.
 
@@ -63,7 +63,7 @@ steps:
 
 **Rationale:** Every dependency is a potential failure point, version conflict, and cognitive load for both AI agents and developers. Lightweight implementations are more predictable and debuggable.
 
-### 3.2 Principle of Optimal Operation Ordering
+### 3.2 Start Long Operations First
 
 **Definition:** Start long-running operations first to maximize parallelism.
 
@@ -75,7 +75,7 @@ When building applications:
 
 **Evidence:** Database provisioning is the longest operation (~3 minutes). Starting it first reduces total wait time by 60%.
 
-### 3.3 Principle of Minimal Decision Points
+### 3.3 Minimize Decision Points
 
 **Definition:** Every decision required from an AI agent increases latency and error probability.
 
@@ -86,7 +86,7 @@ When building applications:
 
 **Evidence:** Removing the "which database tier?" prompt reduced agent hesitation by 100% and eliminated an entire round of user interaction.
 
-### 3.4 Principle of Direct Mapping
+### 3.4 Use Direct Tool Mapping
 
 **Definition:** Tool names and functions should have a 1:1 correspondence with user intent.
 
@@ -98,7 +98,7 @@ Tool called: create_web_app (not operator.execute("create", "web_app"))
 
 **Rationale:** Abstraction layers that make sense for human programmers create unnecessary cognitive load for AI agents.
 
-### 3.5 Principle of Compositional Simplicity
+### 3.5 Keep Composition Simple
 
 **Definition:** Complex operations should be expressible as linear sequences of simple operations.
 
@@ -109,7 +109,7 @@ Tool called: create_web_app (not operator.execute("create", "web_app"))
 
 **Trade-off:** Less powerful than full programming constructs, but more reliable for AI execution.
 
-### 3.6 Principle of Fail-Fast with Fallback
+### 3.6 Fail Fast with Fallbacks
 
 **Definition:** Tools should attempt optimal paths first, then gracefully degrade.
 

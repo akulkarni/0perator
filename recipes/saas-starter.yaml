@@ -1,0 +1,12 @@
+name: SaaS Starter
+desc: Complete SaaS app with Next.js, PostgreSQL, auth, and payments
+inputs:
+  app_name: string = my-saas
+  auth: jwt = jwt
+
+steps:
+  - create_nextjs_app name={{app_name}} typescript=true tailwind=true
+  - setup_postgres_free name={{app_name}}_db
+  - add_jwt_auth
+  - add_stripe_payments mode=subscription
+  - create_env_file template=saas

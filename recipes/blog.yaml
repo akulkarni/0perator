@@ -1,0 +1,11 @@
+name: Blog
+desc: Static blog with Markdown support and SEO
+inputs:
+  name: string = my-blog
+
+steps:
+  - create_astro_app name={{name}}
+  - add_markdown_blog
+  - add_rss_feed
+  - add_seo_meta
+  - deploy_to_netlify

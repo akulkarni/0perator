@@ -1,0 +1,12 @@
+name: API Backend
+desc: Express API with database, authentication, and Swagger docs
+inputs:
+  name: string = my-api
+  db: postgres|sqlite = postgres
+
+steps:
+  - create_express_api name={{name}}
+  - setup_{{db}}_free name={{name}}_db
+  - add_jwt_middleware
+  - add_swagger_docs
+  - create_dockerfile type=node

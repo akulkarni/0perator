@@ -25,12 +25,13 @@ func New() *Server {
 	// Create MCP server with metadata
 	s.mcpServer = mcp.NewServer(&mcp.Implementation{
 		Name:    "0perator",
-		Version: "0.2.0",
+		Version: "2.0.0", // Version 2: Uses Tiger CLI directly
 	}, nil)
 
-	// Register ONLY the new operator tool (action-based system)
-	// Old template-based tools are deprecated
-	// s.registerTools() // REMOVED - using action-based system now
+	// Register direct tools - these are what Claude sees
+	s.registerDirectTools()
+
+	// Register the operator tool (wrapper for complex operations)
 	s.registerOperatorTool()
 
 	// Register prompts (keep for now, might be useful for other purposes)

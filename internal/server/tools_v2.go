@@ -32,7 +32,7 @@ const (
 func (s *Server) registerOperatorTool() {
 	mcp.AddTool(s.mcpServer, &mcp.Tool{
 		Name:        "operator",
-		Description: "🎯 START HERE - Build applications using 0perator's action system. Commands: 'list' (show all available actions), 'discover' (search for actions like 'web', 'database', 'auth'), 'execute' (run actions). Example: To build a SaaS app, discover relevant actions then execute them. Much faster than templates - actions complete in seconds, not minutes.",
+		Description: "Advanced tool for complex multi-step operations or discovering available actions. Use direct tools like create_web_app and setup_database instead when possible. Commands: 'list' (show all actions), 'discover' (search for actions), 'execute' (run action sequences).",
 	}, s.handleOperator)
 }
 
@@ -149,6 +149,11 @@ func (s *Server) handleOperatorDiscover(ctx context.Context, input OperatorInput
 }
 
 func (s *Server) handleOperatorExecute(ctx context.Context, input OperatorInput) (*mcp.CallToolResult, OperatorOutput, error) {
+	// Default to "action" type if not specified and name is provided
+	if input.Type == "" && input.Name != "" {
+		input.Type = OpTypeAction
+	}
+
 	switch input.Type {
 	case OpTypeAction:
 		if input.Name == "" {

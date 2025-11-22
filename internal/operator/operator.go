@@ -34,14 +34,14 @@ func New() *Operator {
 
 // registerBuiltinActions registers all built-in actions
 func registerBuiltinActions(registry *actions.Registry) {
-	// Register core actions
+	// Register core actions - these wrap our new direct tools
 	registry.Register(implementations.CreateWebAppAction())
-	registry.Register(implementations.SetupPostgresAction()) // Local Docker version
-
-	// Note: For cloud databases, Claude should use Tiger MCP tool directly
-	// We can't call MCP tools from within actions
+	registry.Register(implementations.SetupPostgresAction()) // Now uses Tiger CLI directly
+	registry.Register(implementations.SetupSQLiteAction())   // Local SQLite database
 
 	// TODO: Add more actions as they are implemented
+	// For now, these allow us to keep the operator interface while
+	// transitioning to direct tools
 	// registry.Register(implementations.AddJWTAuthAction())
 	// registry.Register(implementations.AddStripePaymentsAction())
 	// registry.Register(implementations.DeployLocalAction())

@@ -3,8 +3,8 @@ package server
 import (
 	"context"
 	"fmt"
-	"os"
 
+	"github.com/akulkarni/0perator/internal/tools"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -59,6 +59,12 @@ func (s *Server) registerDirectTools() {
 		Name:        "add_stripe_payments",
 		Description: "💳 Integrate Stripe payments with checkout and subscription support.",
 	}, s.handleAddStripePayments)
+
+	// UI/Design tools
+	mcp.AddTool(s.mcpServer, &mcp.Tool{
+		Name:        "add_brutalist_ui",
+		Description: "🏗️ Add brutalist/minimalist UI components - monospace fonts, #ff4500 links, no CSS frameworks, inline styles only",
+	}, s.handleAddBrutalistUI)
 }
 
 // Input/Output types for each tool
@@ -95,7 +101,7 @@ func (s *Server) handleCreateWebApp(ctx context.Context, req *mcp.CallToolReques
 		}, nil
 	}
 
-	// Call the appropriate tool directly
+	// Call the appropriate real implementation directly
 	var err error
 	args := map[string]string{
 		"name": input.Name,
@@ -103,11 +109,11 @@ func (s *Server) handleCreateWebApp(ctx context.Context, req *mcp.CallToolReques
 
 	switch input.Framework {
 	case "nextjs":
-		err = s.operator.ExecuteDirectTool(ctx, "create_nextjs_app", args)
+		err = tools.CreateNextJSApp(ctx, args)
 	case "react":
-		err = s.operator.ExecuteDirectTool(ctx, "create_react_app", args)
+		err = tools.CreateReactApp(ctx, args)
 	case "express":
-		err = s.operator.ExecuteDirectTool(ctx, "create_express_api", args)
+		err = tools.CreateExpressAPI(ctx, args)
 	}
 
 	if err != nil {
@@ -153,8 +159,8 @@ func (s *Server) handleCreateNextJSApp(ctx context.Context, req *mcp.CallToolReq
 		input.Tailwind = true
 	}
 
-	// Call the tool directly
-	err := s.operator.ExecuteDirectTool(ctx, "create_nextjs_app", map[string]string{
+	// Call the real implementation directly
+	err := tools.CreateNextJSApp(ctx, map[string]string{
 		"name":       input.Name,
 		"typescript": fmt.Sprintf("%v", input.TypeScript),
 		"tailwind":   fmt.Sprintf("%v", input.Tailwind),
@@ -169,7 +175,7 @@ func (s *Server) handleCreateNextJSApp(ctx context.Context, req *mcp.CallToolReq
 
 	return nil, CreateNextJSAppOutput{
 		Success: true,
-		Message: fmt.Sprintf("Created Next.js app '%s'", input.Name),
+		Message: fmt.Sprintf("Created Next.js app '%s' with TypeScript and proper configuration", input.Name),
 		Path:    input.Name,
 	}, nil
 }
@@ -189,7 +195,8 @@ func (s *Server) handleCreateReactApp(ctx context.Context, req *mcp.CallToolRequ
 		input.Name = "my-app"
 	}
 
-	err := s.operator.ExecuteDirectTool(ctx, "create_react_app", map[string]string{
+	// Call the real implementation directly
+	err := tools.CreateReactApp(ctx, map[string]string{
 		"name": input.Name,
 	})
 
@@ -202,7 +209,7 @@ func (s *Server) handleCreateReactApp(ctx context.Context, req *mcp.CallToolRequ
 
 	return nil, CreateReactAppOutput{
 		Success: true,
-		Message: fmt.Sprintf("Created React app '%s'", input.Name),
+		Message: fmt.Sprintf("Created React app '%s' with Vite", input.Name),
 		Path:    input.Name,
 	}, nil
 }
@@ -222,7 +229,8 @@ func (s *Server) handleCreateExpressAPI(ctx context.Context, req *mcp.CallToolRe
 		input.Name = "my-api"
 	}
 
-	err := s.operator.ExecuteDirectTool(ctx, "create_express_api", map[string]string{
+	// Call the real implementation directly
+	err := tools.CreateExpressAPI(ctx, map[string]string{
 		"name": input.Name,
 	})
 
@@ -235,7 +243,7 @@ func (s *Server) handleCreateExpressAPI(ctx context.Context, req *mcp.CallToolRe
 
 	return nil, CreateExpressAPIOutput{
 		Success: true,
-		Message: fmt.Sprintf("Created Express API '%s'", input.Name),
+		Message: fmt.Sprintf("Created Express API '%s' with middleware and structure", input.Name),
 		Path:    input.Name,
 	}, nil
 }
@@ -263,8 +271,8 @@ func (s *Server) handleSetupDatabase(ctx context.Context, req *mcp.CallToolReque
 
 	switch input.Type {
 	case "postgres":
-		// Call the tool directly
-		err := s.operator.ExecuteDirectTool(ctx, "setup_postgres_free", map[string]string{
+		// Call the real implementation directly
+		err := tools.SetupPostgresWithSchema(ctx, map[string]string{
 			"name": input.Name,
 		})
 
@@ -277,14 +285,14 @@ func (s *Server) handleSetupDatabase(ctx context.Context, req *mcp.CallToolReque
 
 		return nil, SetupDatabaseOutput{
 			Success:        true,
-			Message:        fmt.Sprintf("Created PostgreSQL database '%s' on Tiger Cloud (free tier)", input.Name),
+			Message:        fmt.Sprintf("Created PostgreSQL database '%s' on Tiger Cloud (free tier) with auto-schema", input.Name),
 			Type:           "postgres",
 			ConnectionInfo: "", // Connection info will be printed by the tool
 		}, nil
 
 	case "sqlite":
-		// Call the tool directly
-		err := s.operator.ExecuteDirectTool(ctx, "setup_sqlite", map[string]string{
+		// Call the real implementation directly
+		err := tools.SetupSQLite(ctx, map[string]string{
 			"name": input.Name + ".db", // Add .db extension for SQLite
 			"path": ".",
 		})
@@ -301,7 +309,7 @@ func (s *Server) handleSetupDatabase(ctx context.Context, req *mcp.CallToolReque
 
 		return nil, SetupDatabaseOutput{
 			Success:        true,
-			Message:        fmt.Sprintf("Created SQLite database '%s.db' locally", input.Name),
+			Message:        fmt.Sprintf("Created SQLite database '%s.db' locally with schema", input.Name),
 			Type:           "sqlite",
 			ConnectionInfo: dbPath,
 		}, nil
@@ -329,7 +337,8 @@ func (s *Server) handleSetupPostgresFree(ctx context.Context, req *mcp.CallToolR
 		input.Name = "app-db"
 	}
 
-	err := s.operator.ExecuteDirectTool(ctx, "setup_postgres_free", map[string]string{
+	// Call the real implementation directly
+	err := tools.SetupPostgresWithSchema(ctx, map[string]string{
 		"name": input.Name,
 	})
 
@@ -345,7 +354,7 @@ func (s *Server) handleSetupPostgresFree(ctx context.Context, req *mcp.CallToolR
 
 	return nil, SetupPostgresFreeOutput{
 		Success:        true,
-		Message:        fmt.Sprintf("Created PostgreSQL database '%s' on Tiger Cloud (free tier)", input.Name),
+		Message:        fmt.Sprintf("Created PostgreSQL database '%s' on Tiger Cloud (free tier) with auto-schema", input.Name),
 		ConnectionInfo: connInfo,
 	}, nil
 }
@@ -370,43 +379,23 @@ func (s *Server) handleSetupSQLite(ctx context.Context, req *mcp.CallToolRequest
 		input.Path = "."
 	}
 
-	// Call the tool directly
-	err := s.operator.ExecuteDirectTool(ctx, "setup_sqlite", map[string]string{
+	// Call the real implementation directly
+	err := tools.SetupSQLite(ctx, map[string]string{
 		"name": input.Name,
 		"path": input.Path,
 	})
 
-	if err == nil {
-		// Success through action system
-		dbPath := fmt.Sprintf("%s/%s", input.Path, input.Name)
-		return nil, SetupSQLiteOutput{
-			Success: true,
-			Message: fmt.Sprintf("Created SQLite database '%s' with example schema", input.Name),
-			Path:    dbPath,
-		}, nil
-	}
-
-	// If action doesn't exist, create directly (fallback)
-	dbPath := fmt.Sprintf("%s/%s", input.Path, input.Name)
-
-	// Create directory if it doesn't exist
-	if input.Path != "." && input.Path != "" {
-		os.MkdirAll(input.Path, 0755)
-	}
-
-	// Create an empty SQLite database file
-	file, err := os.Create(dbPath)
 	if err != nil {
 		return nil, SetupSQLiteOutput{
 			Success: false,
 			Message: fmt.Sprintf("Failed to create SQLite database: %v", err),
 		}, nil
 	}
-	file.Close()
 
+	dbPath := fmt.Sprintf("%s/%s", input.Path, input.Name)
 	return nil, SetupSQLiteOutput{
 		Success: true,
-		Message: fmt.Sprintf("Created SQLite database '%s'", input.Name),
+		Message: fmt.Sprintf("Created SQLite database '%s' with schema", input.Name),
 		Path:    dbPath,
 	}, nil
 }
@@ -421,10 +410,21 @@ type AddJWTAuthOutput struct {
 }
 
 func (s *Server) handleAddJWTAuth(ctx context.Context, req *mcp.CallToolRequest, input AddJWTAuthInput) (*mcp.CallToolResult, AddJWTAuthOutput, error) {
-	// Placeholder for now
+	// Use the real implementation
+	err := tools.AddJWTAuth(ctx, map[string]string{
+		"framework": input.Framework,
+	})
+
+	if err != nil {
+		return nil, AddJWTAuthOutput{
+			Success: false,
+			Message: fmt.Sprintf("Failed to add JWT auth: %v", err),
+		}, nil
+	}
+
 	return nil, AddJWTAuthOutput{
 		Success: true,
-		Message: "JWT authentication added successfully",
+		Message: "JWT authentication added successfully with login, register, verify endpoints and auth middleware",
 	}, nil
 }
 
@@ -446,5 +446,32 @@ func (s *Server) handleAddStripePayments(ctx context.Context, req *mcp.CallToolR
 	return nil, AddStripePaymentsOutput{
 		Success: true,
 		Message: fmt.Sprintf("Stripe payments added in %s mode", input.Mode),
+	}, nil
+}
+
+type AddBrutalistUIInput struct {
+	Component string `json:"component,omitempty" jsonschema:"Component type: all, auth, forms, layout, feedback, or custom name (default: all)"`
+}
+
+type AddBrutalistUIOutput struct {
+	Success bool   `json:"success"`
+	Message string `json:"message"`
+}
+
+func (s *Server) handleAddBrutalistUI(ctx context.Context, req *mcp.CallToolRequest, input AddBrutalistUIInput) (*mcp.CallToolResult, AddBrutalistUIOutput, error) {
+	err := tools.AddBrutalistUI(ctx, map[string]string{
+		"component": input.Component,
+	})
+
+	if err != nil {
+		return nil, AddBrutalistUIOutput{
+			Success: false,
+			Message: fmt.Sprintf("Failed to add brutalist UI: %v", err),
+		}, nil
+	}
+
+	return nil, AddBrutalistUIOutput{
+		Success: true,
+		Message: "Brutalist UI components added with monospace fonts, #ff4500 actions, and inline styles",
 	}, nil
 }

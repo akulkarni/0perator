@@ -5,8 +5,10 @@ inputs:
   auth: jwt = jwt
 
 steps:
-  - create_nextjs_app name={{app_name}} typescript=true tailwind=true
+  # Start database first (takes 2-3 minutes to provision)
   - setup_postgres_free name={{app_name}}_db
+  # Create web app while database provisions
+  - create_nextjs_app name={{app_name}} typescript=true tailwind=true
   - add_jwt_auth
   - add_stripe_payments mode=subscription
   - create_env_file template=saas

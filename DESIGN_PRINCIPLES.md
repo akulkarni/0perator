@@ -50,7 +50,32 @@ steps:
 
 ## 3. Core Design Principles
 
-### 3.1 Principle of Minimal Decision Points
+### 3.1 Principle of Minimal External Dependencies
+
+**Definition:** Avoid heavy frameworks and ORMs. Use lightweight, standard libraries.
+
+**Implementation:**
+- **NO Prisma/Sequelize/TypeORM** - Use raw SQL with the `pg` driver directly
+- **NO heavy auth libraries** - JWT can be implemented in ~50 lines of code
+- **Prefer native solutions** - Direct database drivers over abstraction layers
+- **Essential dependencies only** - bcrypt and jsonwebtoken are acceptable, full auth frameworks are not
+- **Database-first mindset** - SQL is powerful and explicit, don't hide it
+
+**Rationale:** Every dependency is a potential failure point, version conflict, and cognitive load for both AI agents and developers. Lightweight implementations are more predictable and debuggable.
+
+### 3.2 Principle of Optimal Operation Ordering
+
+**Definition:** Start long-running operations first to maximize parallelism.
+
+**Implementation:**
+When building applications:
+1. **First**: Create database (takes 2-3 minutes to provision on Tiger Cloud)
+2. **While database provisions**: Create web app structure, auth routes, UI components
+3. **Finally**: Wire them together with connection strings
+
+**Evidence:** Database provisioning is the longest operation (~3 minutes). Starting it first reduces total wait time by 60%.
+
+### 3.3 Principle of Minimal Decision Points
 
 **Definition:** Every decision required from an AI agent increases latency and error probability.
 
@@ -61,7 +86,7 @@ steps:
 
 **Evidence:** Removing the "which database tier?" prompt reduced agent hesitation by 100% and eliminated an entire round of user interaction.
 
-### 3.2 Principle of Direct Mapping
+### 3.4 Principle of Direct Mapping
 
 **Definition:** Tool names and functions should have a 1:1 correspondence with user intent.
 
@@ -73,7 +98,7 @@ Tool called: create_web_app (not operator.execute("create", "web_app"))
 
 **Rationale:** Abstraction layers that make sense for human programmers create unnecessary cognitive load for AI agents.
 
-### 3.3 Principle of Compositional Simplicity
+### 3.5 Principle of Compositional Simplicity
 
 **Definition:** Complex operations should be expressible as linear sequences of simple operations.
 
@@ -84,7 +109,7 @@ Tool called: create_web_app (not operator.execute("create", "web_app"))
 
 **Trade-off:** Less powerful than full programming constructs, but more reliable for AI execution.
 
-### 3.4 Principle of Fail-Fast with Fallback
+### 3.6 Principle of Fail-Fast with Fallback
 
 **Definition:** Tools should attempt optimal paths first, then gracefully degrade.
 

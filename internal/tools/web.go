@@ -10,6 +10,12 @@ import (
 
 // CreateNextJSApp creates a Next.js application with TypeScript and Tailwind
 func CreateNextJSApp(ctx context.Context, args map[string]string) error {
+	// Use the improved version with proper tsconfig and database setup
+	return CreateNextJSAppImproved(ctx, args)
+}
+
+// CreateNextJSApp_Original is the original implementation (kept for reference)
+func CreateNextJSApp_Original(ctx context.Context, args map[string]string) error {
 	name := args["name"]
 	if name == "" {
 		name = "my-app"
@@ -255,6 +261,12 @@ next-env.d.ts`
 
 // CreateReactApp creates a React application using Vite
 func CreateReactApp(ctx context.Context, args map[string]string) error {
+	// Use the improved version
+	return CreateReactAppImproved(ctx, args)
+}
+
+// CreateReactApp_Original is the original implementation (kept for reference)
+func CreateReactApp_Original(ctx context.Context, args map[string]string) error {
 	name := args["name"]
 	if name == "" {
 		name = "my-react-app"
@@ -413,6 +425,12 @@ export default App`
 
 // CreateExpressAPI creates an Express.js API
 func CreateExpressAPI(ctx context.Context, args map[string]string) error {
+	// Use the improved version
+	return CreateExpressAPIImproved(ctx, args)
+}
+
+// CreateExpressAPI_Original is the original implementation (kept for reference)
+func CreateExpressAPI_Original(ctx context.Context, args map[string]string) error {
 	name := args["name"]
 	if name == "" {
 		name = "my-api"

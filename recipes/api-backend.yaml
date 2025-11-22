@@ -5,8 +5,10 @@ inputs:
   db: postgres|sqlite = postgres
 
 steps:
-  - create_express_api name={{name}}
+  # Start database first (takes longer to provision)
   - setup_{{db}}_free name={{name}}_db
+  # Create API while database provisions
+  - create_express_api name={{name}}
   - add_jwt_middleware
   - add_swagger_docs
   - create_dockerfile type=node

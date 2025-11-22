@@ -31,11 +31,8 @@ func New() *Server {
 	// Register direct tools - these are what Claude sees
 	s.registerDirectTools()
 
-	// Register the operator tool (wrapper for complex operations)
+	// Register the operator tool (minimal wrapper for backward compatibility)
 	s.registerOperatorTool()
-
-	// Register prompts (keep for now, might be useful for other purposes)
-	s.registerPrompts()
 
 	return s
 }

@@ -182,3 +182,48 @@ inputs:
 
 	return nil
 }
+
+// Package-level helper functions for easy access
+
+var defaultLoader *Loader
+
+// getDefaultLoader returns the default loader, creating it if necessary
+func getDefaultLoader() *Loader {
+	if defaultLoader == nil {
+		// Look for recipes in common locations
+		possiblePaths := []string{
+			"recipes",
+			"../recipes",
+			"../../recipes",
+			filepath.Join(os.Getenv("HOME"), ".0perator", "recipes"),
+		}
+
+		var recipesDir string
+		for _, path := range possiblePaths {
+			if _, err := os.Stat(path); err == nil {
+				recipesDir = path
+				break
+			}
+		}
+
+		if recipesDir == "" {
+			recipesDir = "recipes" // Default to local recipes dir
+		}
+
+		defaultLoader = NewLoader(recipesDir)
+		if err := defaultLoader.LoadAll(); err != nil {
+			log.Printf("Warning: failed to load recipes: %v", err)
+		}
+	}
+	return defaultLoader
+}
+
+// Load loads a recipe by name using the default loader
+func Load(name string) (*Recipe, error) {
+	return getDefaultLoader().Get(name)
+}
+
+// List returns all recipe names using the default loader
+func List() ([]string, error) {
+	return getDefaultLoader().ListNames(), nil
+}

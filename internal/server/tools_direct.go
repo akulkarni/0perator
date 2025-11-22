@@ -95,11 +95,20 @@ func (s *Server) handleCreateWebApp(ctx context.Context, req *mcp.CallToolReques
 		}, nil
 	}
 
-	// Use the operator to execute the action
-	_, err := s.operator.ExecuteAction(ctx, "create_web_app", map[string]interface{}{
-		"framework": input.Framework,
-		"name":      input.Name,
-	})
+	// Call the appropriate tool directly
+	var err error
+	args := map[string]string{
+		"name": input.Name,
+	}
+
+	switch input.Framework {
+	case "nextjs":
+		err = s.operator.ExecuteDirectTool(ctx, "create_nextjs_app", args)
+	case "react":
+		err = s.operator.ExecuteDirectTool(ctx, "create_react_app", args)
+	case "express":
+		err = s.operator.ExecuteDirectTool(ctx, "create_express_api", args)
+	}
 
 	if err != nil {
 		return nil, CreateWebAppOutput{
@@ -144,12 +153,11 @@ func (s *Server) handleCreateNextJSApp(ctx context.Context, req *mcp.CallToolReq
 		input.Tailwind = true
 	}
 
-	// Use the operator to execute the action
-	_, err := s.operator.ExecuteAction(ctx, "create_web_app", map[string]interface{}{
-		"framework":  "nextjs",
+	// Call the tool directly
+	err := s.operator.ExecuteDirectTool(ctx, "create_nextjs_app", map[string]string{
 		"name":       input.Name,
-		"typescript": input.TypeScript,
-		"tailwind":   input.Tailwind,
+		"typescript": fmt.Sprintf("%v", input.TypeScript),
+		"tailwind":   fmt.Sprintf("%v", input.Tailwind),
 	})
 
 	if err != nil {
@@ -181,9 +189,8 @@ func (s *Server) handleCreateReactApp(ctx context.Context, req *mcp.CallToolRequ
 		input.Name = "my-app"
 	}
 
-	_, err := s.operator.ExecuteAction(ctx, "create_web_app", map[string]interface{}{
-		"framework": "react",
-		"name":      input.Name,
+	err := s.operator.ExecuteDirectTool(ctx, "create_react_app", map[string]string{
+		"name": input.Name,
 	})
 
 	if err != nil {
@@ -215,9 +222,8 @@ func (s *Server) handleCreateExpressAPI(ctx context.Context, req *mcp.CallToolRe
 		input.Name = "my-api"
 	}
 
-	_, err := s.operator.ExecuteAction(ctx, "create_web_app", map[string]interface{}{
-		"framework": "express",
-		"name":      input.Name,
+	err := s.operator.ExecuteDirectTool(ctx, "create_express_api", map[string]string{
+		"name": input.Name,
 	})
 
 	if err != nil {
@@ -257,10 +263,9 @@ func (s *Server) handleSetupDatabase(ctx context.Context, req *mcp.CallToolReque
 
 	switch input.Type {
 	case "postgres":
-		// Use the operator to execute the PostgreSQL setup
-		result, err := s.operator.ExecuteAction(ctx, "setup_postgres", map[string]interface{}{
+		// Call the tool directly
+		err := s.operator.ExecuteDirectTool(ctx, "setup_postgres_free", map[string]string{
 			"name": input.Name,
-			"tier": "free",
 		})
 
 		if err != nil {
@@ -270,24 +275,16 @@ func (s *Server) handleSetupDatabase(ctx context.Context, req *mcp.CallToolReque
 			}, nil
 		}
 
-		// Extract connection info if available
-		connInfo := ""
-		if result != nil && result.Outputs != nil {
-			if info, ok := result.Outputs["connection_string"].(string); ok {
-				connInfo = info
-			}
-		}
-
 		return nil, SetupDatabaseOutput{
 			Success:        true,
 			Message:        fmt.Sprintf("Created PostgreSQL database '%s' on Tiger Cloud (free tier)", input.Name),
 			Type:           "postgres",
-			ConnectionInfo: connInfo,
+			ConnectionInfo: "", // Connection info will be printed by the tool
 		}, nil
 
 	case "sqlite":
-		// Use the operator to execute SQLite setup
-		result, err := s.operator.ExecuteAction(ctx, "setup_sqlite", map[string]interface{}{
+		// Call the tool directly
+		err := s.operator.ExecuteDirectTool(ctx, "setup_sqlite", map[string]string{
 			"name": input.Name + ".db", // Add .db extension for SQLite
 			"path": ".",
 		})
@@ -299,13 +296,8 @@ func (s *Server) handleSetupDatabase(ctx context.Context, req *mcp.CallToolReque
 			}, nil
 		}
 
-		// Extract path info
-		dbPath := "database.db"
-		if result != nil && result.Outputs != nil {
-			if path, ok := result.Outputs["db_path"].(string); ok {
-				dbPath = path
-			}
-		}
+		// SQLite path
+		dbPath := input.Name + ".db"
 
 		return nil, SetupDatabaseOutput{
 			Success:        true,
@@ -337,9 +329,8 @@ func (s *Server) handleSetupPostgresFree(ctx context.Context, req *mcp.CallToolR
 		input.Name = "app-db"
 	}
 
-	result, err := s.operator.ExecuteAction(ctx, "setup_postgres", map[string]interface{}{
+	err := s.operator.ExecuteDirectTool(ctx, "setup_postgres_free", map[string]string{
 		"name": input.Name,
-		"tier": "free",
 	})
 
 	if err != nil {
@@ -349,13 +340,8 @@ func (s *Server) handleSetupPostgresFree(ctx context.Context, req *mcp.CallToolR
 		}, nil
 	}
 
-	// Extract connection info if available
+	// Connection info will be printed by the tool
 	connInfo := ""
-	if result != nil && result.Outputs != nil {
-		if info, ok := result.Outputs["connection_string"].(string); ok {
-			connInfo = info
-		}
-	}
 
 	return nil, SetupPostgresFreeOutput{
 		Success:        true,
@@ -384,8 +370,8 @@ func (s *Server) handleSetupSQLite(ctx context.Context, req *mcp.CallToolRequest
 		input.Path = "."
 	}
 
-	// First try using the operator/action system
-	_, err := s.operator.ExecuteAction(ctx, "setup_sqlite", map[string]interface{}{
+	// Call the tool directly
+	err := s.operator.ExecuteDirectTool(ctx, "setup_sqlite", map[string]string{
 		"name": input.Name,
 		"path": input.Path,
 	})

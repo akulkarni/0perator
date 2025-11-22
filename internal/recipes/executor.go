@@ -28,6 +28,24 @@ func (e *Executor) RegisterTool(name string, fn ToolFunc) {
 	e.tools[name] = fn
 }
 
+// Execute executes a recipe with user inputs (simplified interface)
+func (e *Executor) Execute(ctx context.Context, recipe *Recipe, userInputs map[string]string) error {
+	// Convert string inputs to interface{} for compatibility
+	inputs := make(map[string]interface{})
+	for k, v := range userInputs {
+		inputs[k] = v
+	}
+
+	results, err := e.ExecuteRecipe(ctx, recipe, inputs)
+
+	// Print results
+	for _, result := range results {
+		fmt.Println(result)
+	}
+
+	return err
+}
+
 // ExecuteRecipe executes a recipe with user inputs
 func (e *Executor) ExecuteRecipe(ctx context.Context, recipe *Recipe, userInputs map[string]interface{}) ([]string, error) {
 	results := []string{}

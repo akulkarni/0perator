@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"time"
 )
 
 // buildDevDependencies returns the appropriate dev dependencies based on options
@@ -682,11 +684,42 @@ next-env.d.ts
 		fmt.Printf("   - Tailwind CSS configured\n")
 	}
 	fmt.Printf("   - Environment variables template\n")
-	fmt.Printf("\nNext steps:\n")
-	fmt.Printf("1. cd %s\n", name)
-	fmt.Printf("2. npm install\n")
-	fmt.Printf("3. Run 'setup_database' to create PostgreSQL\n")
-	fmt.Printf("4. npm run dev\n")
+
+	// Auto-install dependencies
+	fmt.Printf("\n📦 Installing dependencies (this may take a moment)...\n")
+	installCmd := exec.CommandContext(ctx, "npm", "install", "--silent")
+	installCmd.Dir = projectPath
+	if _, err := installCmd.CombinedOutput(); err != nil {
+		fmt.Printf("⚠️  Failed to auto-install dependencies: %v\n", err)
+		fmt.Printf("   Run 'npm install' manually in %s\n", name)
+	} else {
+		fmt.Printf("✅ Dependencies installed successfully\n")
+	}
+
+	// Auto-start the development server in background
+	fmt.Printf("\n🚀 Starting development server...\n")
+	startCmd := exec.Command("npm", "run", "dev")
+	startCmd.Dir = projectPath
+
+	// Set up output pipes to show server output
+	startCmd.Stdout = os.Stdout
+	startCmd.Stderr = os.Stderr
+
+	// Start the server in background
+	if err := startCmd.Start(); err != nil {
+		fmt.Printf("⚠️  Failed to auto-start dev server: %v\n", err)
+		fmt.Printf("   Run 'npm run dev' manually in %s\n", name)
+	} else {
+		// Wait a moment for the server to initialize
+		time.Sleep(3 * time.Second)
+
+		fmt.Printf("\n🎉 Your app is running at http://localhost:3000\n")
+		fmt.Printf("   - Next.js app: %s\n", name)
+		fmt.Printf("   - Database: Will be configured when you run 'setup_database'\n")
+		fmt.Printf("   - Authentication: Ready to use\n")
+		fmt.Printf("\n📝 Note: The dev server is running in the background.\n")
+		fmt.Printf("   To stop it, use Ctrl+C or kill the npm process.\n")
+	}
 
 	return nil
 }

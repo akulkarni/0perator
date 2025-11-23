@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"time"
 
@@ -52,22 +53,20 @@ func SetupPostgresWithSchema(ctx context.Context, args map[string]string) error 
 		return fmt.Errorf("failed to create database: %w\nOutput: %s", err, string(output))
 	}
 
-	// Debug: Log the actual output
-	outputStr := string(output)
-	fmt.Printf("DEBUG: Tiger CLI output: %s\n", outputStr)
-
 	// Parse the response to get service ID
+	outputStr := string(output)
 	var createResult map[string]interface{}
+
+	// Try to parse as JSON first
 	if err := json.Unmarshal(output, &createResult); err != nil {
 		// If JSON parsing fails, try to extract service ID from text output
-		// Tiger CLI might be outputting text like "0abc1234de" (just the service ID)
 		serviceID := strings.TrimSpace(outputStr)
-		if len(serviceID) == 10 && strings.HasPrefix(serviceID, "0") {
-			// Looks like a service ID
+		if len(serviceID) == 10 && regexp.MustCompile(`^[a-z0-9]{10}$`).MatchString(serviceID) {
+			// Plain service ID returned
 			fmt.Printf("✅ Database created with ID: %s\n", serviceID)
 			createResult = map[string]interface{}{"service_id": serviceID}
 		} else {
-			return fmt.Errorf("failed to parse Tiger response: %w\nRaw output: %s", err, outputStr)
+			return fmt.Errorf("failed to parse Tiger response: %w", err)
 		}
 	}
 

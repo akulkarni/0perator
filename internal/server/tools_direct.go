@@ -22,16 +22,15 @@ func (s *Server) registerDirectTools() {
 		Description: "🚀 Create a Next.js app with TypeScript and Tailwind CSS. Fast setup for modern web applications.",
 	}, s.handleCreateNextJSApp)
 
-	// Commented out stub tools for now to make room for add_brutalist_ui
-	// mcp.AddTool(s.mcpServer, &mcp.Tool{
-	// 	Name:        "create_react_app",
-	// 	Description: "⚛️ Create a React app using Vite for lightning-fast development.",
-	// }, s.handleCreateReactApp)
+	mcp.AddTool(s.mcpServer, &mcp.Tool{
+		Name:        "create_react_app",
+		Description: "⚛️ Create a React app using Vite for lightning-fast development.",
+	}, s.handleCreateReactApp)
 
-	// mcp.AddTool(s.mcpServer, &mcp.Tool{
-	// 	Name:        "create_express_api",
-	// 	Description: "🔧 Create an Express.js API with basic structure and middleware.",
-	// }, s.handleCreateExpressAPI)
+	mcp.AddTool(s.mcpServer, &mcp.Tool{
+		Name:        "create_express_api",
+		Description: "🔧 Create an Express.js API with basic structure and middleware.",
+	}, s.handleCreateExpressAPI)
 
 	// Database tools
 	mcp.AddTool(s.mcpServer, &mcp.Tool{
@@ -55,11 +54,11 @@ func (s *Server) registerDirectTools() {
 		Description: "🔐 Add JWT authentication to your application with secure token handling.",
 	}, s.handleAddJWTAuth)
 
-	// Payment tools - commented out stub for now
-	// mcp.AddTool(s.mcpServer, &mcp.Tool{
-	// 	Name:        "add_stripe_payments",
-	// 	Description: "💳 Integrate Stripe payments with checkout and subscription support.",
-	// }, s.handleAddStripePayments)
+	// Payment tools
+	mcp.AddTool(s.mcpServer, &mcp.Tool{
+		Name:        "add_stripe_payments",
+		Description: "💳 Integrate Stripe payments with checkout and subscription support.",
+	}, s.handleAddStripePayments)
 
 	// UI/Design tools
 	mcp.AddTool(s.mcpServer, &mcp.Tool{
@@ -67,8 +66,24 @@ func (s *Server) registerDirectTools() {
 		Description: "🏗️ Add brutalist/minimalist UI components - monospace fonts, #ff4500 links, no CSS frameworks, inline styles only.",
 	}, s.handleAddBrutalistUI)
 
+	// Test tools to verify >10 tool support
+	mcp.AddTool(s.mcpServer, &mcp.Tool{
+		Name:        "test_tool_11",
+		Description: "🧪 Test tool #11 - Testing if tools beyond 10 are accessible",
+	}, s.handleTestTool)
+
+	mcp.AddTool(s.mcpServer, &mcp.Tool{
+		Name:        "test_tool_12",
+		Description: "🧪 Test tool #12 - Testing if tools beyond 10 are accessible",
+	}, s.handleTestTool)
+
+	mcp.AddTool(s.mcpServer, &mcp.Tool{
+		Name:        "test_tool_13",
+		Description: "🧪 Test tool #13 - Testing if tools beyond 10 are accessible",
+	}, s.handleTestTool)
+
 	// Debug: Print to stderr to confirm registration
-	// fmt.Fprintf(os.Stderr, "Debug: Registered add_brutalist_ui tool\n")
+	// fmt.Fprintf(os.Stderr, "Debug: Registered all tools including test tools\n")
 }
 
 // Input/Output types for each tool
@@ -477,5 +492,19 @@ func (s *Server) handleAddBrutalistUI(ctx context.Context, req *mcp.CallToolRequ
 	return nil, AddBrutalistUIOutput{
 		Success: true,
 		Message: "Brutalist UI components added with monospace fonts, #ff4500 actions, and inline styles",
+	}, nil
+}
+
+// Test tool handler
+type TestToolInput struct{}
+type TestToolOutput struct {
+	Success bool   `json:"success"`
+	Message string `json:"message"`
+}
+
+func (s *Server) handleTestTool(ctx context.Context, req *mcp.CallToolRequest, input TestToolInput) (*mcp.CallToolResult, TestToolOutput, error) {
+	return nil, TestToolOutput{
+		Success: true,
+		Message: "Test tool executed successfully! This tool is beyond the 10-tool display limit.",
 	}, nil
 }

@@ -130,13 +130,9 @@ func CreateNextJSAppImproved(ctx context.Context, args map[string]string) error 
 		return fmt.Errorf("failed to create tsconfig.json: %w", err)
 	}
 
-	// Create next.config.js
+	// Create next.config.js (Server Actions are now enabled by default)
 	nextConfigContent := `/** @type {import('next').NextConfig} */
-const nextConfig = {
-  experimental: {
-    serverActions: true,
-  },
-}
+const nextConfig = {}
 
 module.exports = nextConfig
 `
@@ -150,7 +146,7 @@ module.exports = nextConfig
 DATABASE_URL=
 
 # Next.js Configuration
-NEXT_PUBLIC_APP_NAME=${name}
+NEXT_PUBLIC_APP_NAME=` + name + `
 `
 	if err := os.WriteFile(filepath.Join(projectPath, ".env.local"), []byte(envContent), 0600); err != nil {
 		return fmt.Errorf("failed to create .env.local: %w", err)
@@ -167,6 +163,9 @@ if (process.env.DATABASE_URL) {
     max: 20,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 2000,
+    ssl: {
+      rejectUnauthorized: false // Required for Tiger Cloud
+    }
   });
 
   pool.on('error', (err) => {
@@ -197,6 +196,24 @@ export async function getClient() {
 
 	// Create database check script
 	checkDbScript := `const { Pool } = require('pg');
+const fs = require('fs');
+const path = require('path');
+
+// Load .env.local file
+const envPath = path.join(__dirname, '..', '.env.local');
+if (fs.existsSync(envPath)) {
+  const envContent = fs.readFileSync(envPath, 'utf8');
+  envContent.split('\\n').forEach(line => {
+    const match = line.match(/^([^#=]+)=(.*)$/);
+    if (match) {
+      const key = match[1].trim();
+      const value = match[2].trim();
+      if (!process.env[key]) {
+        process.env[key] = value;
+      }
+    }
+  });
+}
 
 async function checkDatabase() {
   if (!process.env.DATABASE_URL) {
@@ -208,6 +225,9 @@ async function checkDatabase() {
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     connectionTimeoutMillis: 5000,
+    ssl: {
+      rejectUnauthorized: false // Required for Tiger Cloud
+    }
   });
 
   try {
@@ -238,6 +258,24 @@ checkDatabase();
 
 	// Create database init script
 	initDbScript := `const { Pool } = require('pg');
+const fs = require('fs');
+const path = require('path');
+
+// Load .env.local file
+const envPath = path.join(__dirname, '..', '.env.local');
+if (fs.existsSync(envPath)) {
+  const envContent = fs.readFileSync(envPath, 'utf8');
+  envContent.split('\\n').forEach(line => {
+    const match = line.match(/^([^#=]+)=(.*)$/);
+    if (match) {
+      const key = match[1].trim();
+      const value = match[2].trim();
+      if (!process.env[key]) {
+        process.env[key] = value;
+      }
+    }
+  });
+}
 
 async function initDatabase() {
   if (!process.env.DATABASE_URL) {
@@ -247,6 +285,9 @@ async function initDatabase() {
 
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
+    ssl: {
+      rejectUnauthorized: false // Required for Tiger Cloud
+    }
   });
 
   try {
@@ -361,7 +402,7 @@ export default function Home() {
 
   return (
     <main style={{ padding: '2rem', fontFamily: 'monospace', maxWidth: '800px', margin: '0 auto' }}>
-      <h1 style={{ fontSize: '2rem', marginBottom: '2rem' }}>Welcome to ${name}!</h1>
+      <h1 style={{ fontSize: '2rem', marginBottom: '2rem' }}>Welcome to ` + name + `!</h1>
 
       <div style={{ padding: '1rem', background: '#f0f0f0', marginBottom: '2rem', borderRadius: '4px' }}>
         <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Database Status</h2>
@@ -429,7 +470,7 @@ export default function Home() {
   return (
     <main className="min-h-screen p-8">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-bold mb-8">Welcome to ${name}!</h1>
+        <h1 className="text-4xl font-bold mb-8">Welcome to ` + name + `!</h1>
 
         <div className="bg-white shadow rounded-lg p-6 mb-8">
           <h2 className="text-2xl font-semibold mb-4">Database Status</h2>
@@ -475,7 +516,7 @@ export default function Home() {
 		layoutContent = `import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: '${name}',
+  title: '` + name + `',
   description: 'Built with Next.js and PostgreSQL',
 }
 
@@ -500,7 +541,7 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: '${name}',
+  title: '` + name + `',
   description: 'Built with Next.js and PostgreSQL',
 }
 

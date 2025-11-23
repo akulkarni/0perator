@@ -57,17 +57,55 @@ func SetupPostgresWithSchema(ctx context.Context, args map[string]string) error 
 	outputStr := string(output)
 	var createResult map[string]interface{}
 
-	// Try to parse as JSON first
-	if err := json.Unmarshal(output, &createResult); err != nil {
-		// If JSON parsing fails, try to extract service ID from text output
-		serviceID := strings.TrimSpace(outputStr)
-		if len(serviceID) == 10 && regexp.MustCompile(`^[a-z0-9]{10}$`).MatchString(serviceID) {
-			// Plain service ID returned
+	// Tiger CLI often outputs decorated text before JSON. Look for JSON in the output.
+	jsonStart := strings.Index(outputStr, "{")
+	if jsonStart >= 0 {
+		jsonData := outputStr[jsonStart:]
+		if err := json.Unmarshal([]byte(jsonData), &createResult); err == nil {
+			// Successfully parsed JSON
+		} else {
+			// Try to extract service ID from decorated output
+			// Look for patterns like "Service ID: xxxxxxxx" or just a 10-char ID
+			if matches := regexp.MustCompile(`Service ID:\s*([a-z0-9]{10})`).FindStringSubmatch(outputStr); len(matches) > 1 {
+				serviceID := matches[1]
+				fmt.Printf("✅ Database created with ID: %s\n", serviceID)
+				createResult = map[string]interface{}{"service_id": serviceID}
+			} else {
+				// Try plain service ID
+				lines := strings.Split(outputStr, "\n")
+				for _, line := range lines {
+					trimmed := strings.TrimSpace(line)
+					if len(trimmed) == 10 && regexp.MustCompile(`^[a-z0-9]{10}$`).MatchString(trimmed) {
+						fmt.Printf("✅ Database created with ID: %s\n", trimmed)
+						createResult = map[string]interface{}{"service_id": trimmed}
+						break
+					}
+				}
+			}
+		}
+	} else {
+		// No JSON found, try to extract service ID from text
+		if matches := regexp.MustCompile(`Service ID:\s*([a-z0-9]{10})`).FindStringSubmatch(outputStr); len(matches) > 1 {
+			serviceID := matches[1]
 			fmt.Printf("✅ Database created with ID: %s\n", serviceID)
 			createResult = map[string]interface{}{"service_id": serviceID}
 		} else {
-			return fmt.Errorf("failed to parse Tiger response: %w", err)
+			// Try plain service ID
+			serviceID := strings.TrimSpace(outputStr)
+			if len(serviceID) == 10 && regexp.MustCompile(`^[a-z0-9]{10}$`).MatchString(serviceID) {
+				fmt.Printf("✅ Database created with ID: %s\n", serviceID)
+				createResult = map[string]interface{}{"service_id": serviceID}
+			}
 		}
+	}
+
+	if createResult == nil || createResult["service_id"] == nil {
+		// As a last resort, if the command didn't fail, assume success and extract any 10-char ID
+		if !strings.Contains(strings.ToLower(outputStr), "error") && !strings.Contains(strings.ToLower(outputStr), "failed") {
+			// Database was likely created, just need to find the ID
+			fmt.Printf("⚠️  Unexpected output format from Tiger CLI. Full output:\n%s\n", outputStr)
+		}
+		return fmt.Errorf("could not extract service ID from Tiger response")
 	}
 
 	serviceID, ok := createResult["service_id"].(string)
@@ -144,6 +182,9 @@ func SetupPostgresWithSchema(ctx context.Context, args map[string]string) error 
 	}
 
 	// Step 4: Generate .env.local content
+	// Remove ?sslmode=require from connection string as it causes issues with Node.js
+	cleanConnectionString := strings.Replace(connectionString, "?sslmode=require", "", 1)
+
 	envContent := fmt.Sprintf(`# Database Configuration
 DATABASE_URL=%s
 
@@ -157,7 +198,7 @@ DB_SSL=require
 
 # Tiger Cloud Service
 TIGER_SERVICE_ID=%s
-`, connectionString, serviceID, password, serviceID)
+`, cleanConnectionString, serviceID, password, serviceID)
 
 	// Write .env.local file
 	if err := os.WriteFile(".env.local", []byte(envContent), 0600); err != nil {

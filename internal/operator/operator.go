@@ -21,6 +21,44 @@ func New() *Operator {
 // This is mainly for backward compatibility with the operator pattern
 func (o *Operator) ExecuteDirectTool(ctx context.Context, toolName string, args map[string]string) error {
 	switch toolName {
+	case "create_web_app":
+		// Handle framework selection
+		framework := args["framework"]
+		if framework == "" {
+			framework = "nextjs"
+		}
+		switch framework {
+		case "nextjs":
+			return tools.CreateNextJSApp(ctx, args)
+		case "react":
+			return tools.CreateReactApp(ctx, args)
+		case "express":
+			return tools.CreateExpressAPI(ctx, args)
+		default:
+			return fmt.Errorf("unsupported framework: %s", framework)
+		}
+	case "setup_database":
+		// Handle database type selection
+		dbType := args["type"]
+		if dbType == "" {
+			dbType = "postgres"
+		}
+		switch dbType {
+		case "postgres":
+			return tools.SetupPostgresFree(ctx, args)
+		case "sqlite":
+			return tools.SetupSQLite(ctx, args)
+		default:
+			return fmt.Errorf("unsupported database type: %s", dbType)
+		}
+	case "add_brutalist_ui":
+		return tools.AddBrutalistUI(ctx, args)
+	case "add_jwt_auth":
+		return tools.AddJWTAuth(ctx, args)
+	case "add_stripe_payments":
+		// Stub - returns basic implementation
+		return fmt.Errorf("Stripe payments integration is not yet implemented")
+	// Keep old names for backward compatibility
 	case "create_nextjs_app":
 		return tools.CreateNextJSApp(ctx, args)
 	case "create_react_app":
@@ -31,13 +69,6 @@ func (o *Operator) ExecuteDirectTool(ctx context.Context, toolName string, args 
 		return tools.SetupPostgresFree(ctx, args)
 	case "setup_sqlite":
 		return tools.SetupSQLite(ctx, args)
-	case "add_brutalist_ui":
-		return tools.AddBrutalistUI(ctx, args)
-	case "add_jwt_auth":
-		return tools.AddJWTAuth(ctx, args)
-	case "add_stripe_payments":
-		// Stub - returns basic implementation
-		return fmt.Errorf("Stripe payments integration is not yet implemented")
 	default:
 		return fmt.Errorf("unknown tool: %s", toolName)
 	}
@@ -57,14 +88,11 @@ func (o *Operator) ExecuteRecipe(ctx context.Context, recipeName string, inputs 
 // ListTools returns available direct tools
 func (o *Operator) ListTools() []string {
 	return []string{
-		"create_nextjs_app",
-		// "create_react_app",     // Stub - commented out
-		// "create_express_api",   // Stub - commented out
-		"setup_postgres_free",
-		"setup_sqlite",
+		"create_web_app",       // Handles all frameworks
+		"setup_database",       // Handles postgres and sqlite
 		"add_brutalist_ui",
 		"add_jwt_auth",
-		// "add_stripe_payments",  // Stub - commented out
+		"add_stripe_payments",  // Stub but keeping for now
 	}
 }
 

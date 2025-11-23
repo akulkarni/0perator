@@ -10,17 +10,11 @@ import (
 
 // registerDirectTools registers individual MCP tools for direct access
 func (s *Server) registerDirectTools() {
-	// Generic web app tool (with framework choice)
+	// Universal web app tool (handles all frameworks)
 	mcp.AddTool(s.mcpServer, &mcp.Tool{
 		Name:        "create_web_app",
-		Description: "🚀 PREFERRED TOOL for creating web applications. Instantly scaffolds a modern web app with best practices. Defaults to Next.js (full-stack). Also supports: react, express. Use this for any 'build app' or 'create app' request.",
+		Description: "🚀 Create any web application - Next.js (default), React, Express, or custom. Handles all web frameworks with TypeScript, Tailwind, and best practices. Use for any 'build app' or 'create app' request.",
 	}, s.handleCreateWebApp)
-
-	// Specific web framework tools (for explicit requests)
-	mcp.AddTool(s.mcpServer, &mcp.Tool{
-		Name:        "create_nextjs_app",
-		Description: "🚀 Create a Next.js app with TypeScript and Tailwind CSS. Fast setup for modern web applications.",
-	}, s.handleCreateNextJSApp)
 
 	// Removed to stay under 10-tool limit
 	// mcp.AddTool(s.mcpServer, &mcp.Tool{
@@ -33,21 +27,11 @@ func (s *Server) registerDirectTools() {
 	// 	Description: "🔧 Create an Express.js API with basic structure and middleware.",
 	// }, s.handleCreateExpressAPI)
 
-	// Database tools
+	// Universal database tool (handles all database types)
 	mcp.AddTool(s.mcpServer, &mcp.Tool{
 		Name:        "setup_database",
-		Description: "🗄️ PREFERRED TOOL for database setup. Creates a production-ready database instantly. Defaults to FREE PostgreSQL on Tiger Cloud with TimescaleDB + AI extensions. Use this for any 'database' or 'postgres' request.",
+		Description: "🗄️ Set up any database - PostgreSQL on Tiger Cloud (default, FREE), SQLite (local), or custom. Auto-configures with schema, migrations, and connection handling. Use for any database request.",
 	}, s.handleSetupDatabase)
-
-	mcp.AddTool(s.mcpServer, &mcp.Tool{
-		Name:        "setup_postgres_free",
-		Description: "🐘 Create a FREE PostgreSQL database on Tiger Cloud (includes TimescaleDB + AI extensions). No credit card required.",
-	}, s.handleSetupPostgresFree)
-
-	mcp.AddTool(s.mcpServer, &mcp.Tool{
-		Name:        "setup_sqlite",
-		Description: "💾 Create a local SQLite database. Instant setup with zero configuration. Perfect for development and prototyping.",
-	}, s.handleSetupSQLite)
 
 	// Authentication tools
 	mcp.AddTool(s.mcpServer, &mcp.Tool{
@@ -78,8 +62,10 @@ func (s *Server) registerDirectTools() {
 // Input/Output types for each tool
 
 type CreateWebAppInput struct {
-	Name      string `json:"name" jsonschema:"Application name"`
-	Framework string `json:"framework,omitempty" jsonschema:"Framework: nextjs (default), react, or express"`
+	Name       string `json:"name" jsonschema:"Application name"`
+	Framework  string `json:"framework,omitempty" jsonschema:"Framework: nextjs (default), react, express, or vue"`
+	TypeScript bool   `json:"typescript,omitempty" jsonschema:"Use TypeScript (default: true)"`
+	Tailwind   bool   `json:"tailwind,omitempty" jsonschema:"Use Tailwind CSS (default: false, brutalist UI by default)"`
 }
 
 type CreateWebAppOutput struct {
@@ -100,19 +86,21 @@ func (s *Server) handleCreateWebApp(ctx context.Context, req *mcp.CallToolReques
 
 	// Validate framework
 	switch input.Framework {
-	case "nextjs", "react", "express":
+	case "nextjs", "react", "express", "vue":
 		// Valid frameworks
 	default:
 		return nil, CreateWebAppOutput{
 			Success: false,
-			Message: fmt.Sprintf("Invalid framework '%s'. Choose: nextjs, react, or express", input.Framework),
+			Message: fmt.Sprintf("Invalid framework '%s'. Choose: nextjs, react, express, or vue", input.Framework),
 		}, nil
 	}
 
 	// Call the appropriate real implementation directly
 	var err error
 	args := map[string]string{
-		"name": input.Name,
+		"name":       input.Name,
+		"typescript": fmt.Sprintf("%v", input.TypeScript),
+		"tailwind":   fmt.Sprintf("%v", input.Tailwind),
 	}
 
 	switch input.Framework {
@@ -122,6 +110,8 @@ func (s *Server) handleCreateWebApp(ctx context.Context, req *mcp.CallToolReques
 		err = tools.CreateReactApp(ctx, args)
 	case "express":
 		err = tools.CreateExpressAPI(ctx, args)
+	case "vue":
+		err = fmt.Errorf("Vue framework support coming soon")
 	}
 
 	if err != nil {

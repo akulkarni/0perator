@@ -32,6 +32,8 @@ func SetupPostgresWithSchema(ctx context.Context, args map[string]string) error 
 		"service", "create",
 		"--name", dbName,
 		"--cpu", "shared",
+		"--memory", "shared",
+		"--addons", "time-series",
 		"--no-wait",
 		"-o", "json",
 	}

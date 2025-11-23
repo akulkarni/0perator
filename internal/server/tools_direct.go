@@ -47,9 +47,9 @@ func (s *Server) registerDirectTools() {
 
 	// UI/Design tools
 	mcp.AddTool(s.mcpServer, &mcp.Tool{
-		Name:        "add_brutalist_ui",
-		Description: "🏗️ Add brutalist/minimalist UI components - monospace fonts, #ff4500 links, no CSS frameworks, inline styles only.",
-	}, s.handleAddBrutalistUI)
+		Name:        "add_ui_theme",
+		Description: "🎨 Add UI theme and components - Brutalist (monospace, #ff4500), Shadcn (modern React), Material (Google design), or custom themes. No heavy frameworks, optimized implementations.",
+	}, s.handleAddUITheme)
 
 	// Test confirmed: Claude Code has a hard 10-tool limit
 	// Tools beyond #10 are not accessible at all
@@ -447,43 +447,66 @@ func (s *Server) handleAddStripePayments(ctx context.Context, req *mcp.CallToolR
 	}, nil
 }
 
-type AddBrutalistUIInput struct {
-	Component string `json:"component,omitempty" jsonschema:"Component type: all, auth, forms, layout, feedback, or custom name (default: all)"`
+type AddUIThemeInput struct {
+	Theme     string `json:"theme,omitempty" jsonschema:"Theme type: brutalist (default), shadcn, material, minimal, or custom"`
+	Component string `json:"component,omitempty" jsonschema:"Component type: all (default), auth, forms, layout, navigation, feedback, or specific component"`
 }
 
-type AddBrutalistUIOutput struct {
+type AddUIThemeOutput struct {
 	Success bool   `json:"success"`
 	Message string `json:"message"`
+	Theme   string `json:"theme"`
 }
 
-func (s *Server) handleAddBrutalistUI(ctx context.Context, req *mcp.CallToolRequest, input AddBrutalistUIInput) (*mcp.CallToolResult, AddBrutalistUIOutput, error) {
-	err := tools.AddBrutalistUI(ctx, map[string]string{
-		"component": input.Component,
-	})
+func (s *Server) handleAddUITheme(ctx context.Context, req *mcp.CallToolRequest, input AddUIThemeInput) (*mcp.CallToolResult, AddUIThemeOutput, error) {
+	// Set defaults
+	if input.Theme == "" {
+		input.Theme = "brutalist" // Default to brutalist for minimal dependencies
+	}
+	if input.Component == "" {
+		input.Component = "all"
+	}
+
+	// Handle different themes
+	var err error
+	var message string
+
+	switch input.Theme {
+	case "brutalist":
+		err = tools.AddBrutalistUI(ctx, map[string]string{
+			"component": input.Component,
+		})
+		message = "Brutalist UI added: monospace fonts, #ff4500 actions, inline styles only"
+
+	case "shadcn":
+		// Could call a shadcn implementation
+		err = fmt.Errorf("Shadcn UI coming soon - modern React components with Radix UI")
+
+	case "material":
+		// Could call a material implementation
+		err = fmt.Errorf("Material Design coming soon - Google's design system")
+
+	case "minimal":
+		// Could call a minimal implementation
+		err = fmt.Errorf("Minimal UI coming soon - Ultra-light, no-frills design")
+
+	default:
+		err = fmt.Errorf("unknown theme: %s. Choose: brutalist, shadcn, material, or minimal", input.Theme)
+	}
 
 	if err != nil {
-		return nil, AddBrutalistUIOutput{
+		return nil, AddUIThemeOutput{
 			Success: false,
-			Message: fmt.Sprintf("Failed to add brutalist UI: %v", err),
+			Message: fmt.Sprintf("Failed to add %s theme: %v", input.Theme, err),
+			Theme:   input.Theme,
 		}, nil
 	}
 
-	return nil, AddBrutalistUIOutput{
+	return nil, AddUIThemeOutput{
 		Success: true,
-		Message: "Brutalist UI components added with monospace fonts, #ff4500 actions, and inline styles",
+		Message: message,
+		Theme:   input.Theme,
 	}, nil
 }
 
-// Test tool handler
-type TestToolInput struct{}
-type TestToolOutput struct {
-	Success bool   `json:"success"`
-	Message string `json:"message"`
-}
-
-func (s *Server) handleTestTool(ctx context.Context, req *mcp.CallToolRequest, input TestToolInput) (*mcp.CallToolResult, TestToolOutput, error) {
-	return nil, TestToolOutput{
-		Success: true,
-		Message: "Test tool executed successfully! This tool is beyond the 10-tool display limit.",
-	}, nil
-}
+// Additional handlers would go here

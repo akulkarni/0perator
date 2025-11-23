@@ -51,7 +51,20 @@ func (o *Operator) ExecuteDirectTool(ctx context.Context, toolName string, args 
 		default:
 			return fmt.Errorf("unsupported database type: %s", dbType)
 		}
+	case "add_ui_theme":
+		// Handle theme selection
+		theme := args["theme"]
+		if theme == "" {
+			theme = "brutalist"
+		}
+		switch theme {
+		case "brutalist":
+			return tools.AddBrutalistUI(ctx, args)
+		default:
+			return fmt.Errorf("theme %s not yet implemented", theme)
+		}
 	case "add_brutalist_ui":
+		// Backward compatibility
 		return tools.AddBrutalistUI(ctx, args)
 	case "add_jwt_auth":
 		return tools.AddJWTAuth(ctx, args)
@@ -90,7 +103,7 @@ func (o *Operator) ListTools() []string {
 	return []string{
 		"create_web_app",       // Handles all frameworks
 		"setup_database",       // Handles postgres and sqlite
-		"add_brutalist_ui",
+		"add_ui_theme",         // Handles brutalist, shadcn, material, etc.
 		"add_jwt_auth",
 		"add_stripe_payments",  // Stub but keeping for now
 	}

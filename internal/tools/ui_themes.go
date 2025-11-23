@@ -8,6 +8,27 @@ import (
 	"strings"
 )
 
+// AddUITheme adds a UI theme/design system to a project
+func AddUITheme(ctx context.Context, args map[string]string) error {
+	theme := args["theme"]
+	if theme == "" {
+		theme = "brutalist" // Default theme
+	}
+
+	switch theme {
+	case "brutalist":
+		return AddBrutalistUI(ctx, args)
+	case "shadcn":
+		return fmt.Errorf("Shadcn UI theme not yet implemented - modern React components coming soon")
+	case "material":
+		return fmt.Errorf("Material Design theme not yet implemented - Google's design system coming soon")
+	case "minimal":
+		return fmt.Errorf("Minimal UI theme not yet implemented - ultra-light design coming soon")
+	default:
+		return fmt.Errorf("unknown theme: %s. Available: brutalist, shadcn, material, minimal", theme)
+	}
+}
+
 // AddBrutalistUI adds brutalist/minimalist UI components and design system
 func AddBrutalistUI(ctx context.Context, args map[string]string) error {
 	componentType := args["component"]

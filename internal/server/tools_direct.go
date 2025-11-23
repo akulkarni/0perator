@@ -22,15 +22,16 @@ func (s *Server) registerDirectTools() {
 		Description: "🚀 Create a Next.js app with TypeScript and Tailwind CSS. Fast setup for modern web applications.",
 	}, s.handleCreateNextJSApp)
 
-	mcp.AddTool(s.mcpServer, &mcp.Tool{
-		Name:        "create_react_app",
-		Description: "⚛️ Create a React app using Vite for lightning-fast development.",
-	}, s.handleCreateReactApp)
+	// Removed to stay under 10-tool limit
+	// mcp.AddTool(s.mcpServer, &mcp.Tool{
+	// 	Name:        "create_react_app",
+	// 	Description: "⚛️ Create a React app using Vite for lightning-fast development.",
+	// }, s.handleCreateReactApp)
 
-	mcp.AddTool(s.mcpServer, &mcp.Tool{
-		Name:        "create_express_api",
-		Description: "🔧 Create an Express.js API with basic structure and middleware.",
-	}, s.handleCreateExpressAPI)
+	// mcp.AddTool(s.mcpServer, &mcp.Tool{
+	// 	Name:        "create_express_api",
+	// 	Description: "🔧 Create an Express.js API with basic structure and middleware.",
+	// }, s.handleCreateExpressAPI)
 
 	// Database tools
 	mcp.AddTool(s.mcpServer, &mcp.Tool{
@@ -66,21 +67,9 @@ func (s *Server) registerDirectTools() {
 		Description: "🏗️ Add brutalist/minimalist UI components - monospace fonts, #ff4500 links, no CSS frameworks, inline styles only.",
 	}, s.handleAddBrutalistUI)
 
-	// Test tools to verify >10 tool support
-	mcp.AddTool(s.mcpServer, &mcp.Tool{
-		Name:        "test_tool_11",
-		Description: "🧪 Test tool #11 - Testing if tools beyond 10 are accessible",
-	}, s.handleTestTool)
-
-	mcp.AddTool(s.mcpServer, &mcp.Tool{
-		Name:        "test_tool_12",
-		Description: "🧪 Test tool #12 - Testing if tools beyond 10 are accessible",
-	}, s.handleTestTool)
-
-	mcp.AddTool(s.mcpServer, &mcp.Tool{
-		Name:        "test_tool_13",
-		Description: "🧪 Test tool #13 - Testing if tools beyond 10 are accessible",
-	}, s.handleTestTool)
+	// Test confirmed: Claude Code has a hard 10-tool limit
+	// Tools beyond #10 are not accessible at all
+	// Removing test tools to stay under limit
 
 	// Debug: Print to stderr to confirm registration
 	// fmt.Fprintf(os.Stderr, "Debug: Registered all tools including test tools\n")

@@ -28,12 +28,13 @@ func SetupPostgresWithSchema(ctx context.Context, args map[string]string) error 
 	fmt.Printf("🚀 Creating PostgreSQL database '%s' on Tiger Cloud...\n", dbName)
 
 	// Step 1: Create the database using Tiger CLI
+	// For free tier, we need both time-series and ai addons
 	cmdArgs := []string{
 		"service", "create",
 		"--name", dbName,
 		"--cpu", "shared",
 		"--memory", "shared",
-		"--addons", "time-series",
+		"--addons", "time-series,ai",
 		"--no-wait",
 		"-o", "json",
 	}

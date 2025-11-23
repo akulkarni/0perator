@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // AddJWTAuth adds real JWT authentication to a Next.js or Express app
@@ -610,6 +611,392 @@ export function useAuth() {
 `
 	os.WriteFile(filepath.Join("lib", "auth", "useAuth.tsx"), []byte(authHookContent), 0644)
 
+	// Create LoginForm component
+	loginFormContent := `'use client';
+
+import { useState } from 'react';
+import { useAuth } from '@/lib/auth/useAuth';
+
+export default function LoginForm() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      await login(email, password);
+      // Auth context will handle redirect
+    } catch (err: any) {
+      setError(err.message || 'Login failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '400px' }}>
+      <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Login</h2>
+
+      {error && (
+        <div style={{ padding: '0.75rem', background: '#fee', color: '#c00', borderRadius: '4px' }}>
+          {error}
+        </div>
+      )}
+
+      <input
+        type="email"
+        placeholder="Email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        required
+        style={{
+          padding: '0.75rem',
+          border: '1px solid #ccc',
+          borderRadius: '4px',
+          fontSize: '1rem',
+          fontFamily: 'monospace'
+        }}
+      />
+
+      <input
+        type="password"
+        placeholder="Password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        required
+        style={{
+          padding: '0.75rem',
+          border: '1px solid #ccc',
+          borderRadius: '4px',
+          fontSize: '1rem',
+          fontFamily: 'monospace'
+        }}
+      />
+
+      <button
+        type="submit"
+        disabled={loading}
+        style={{
+          padding: '0.75rem',
+          background: loading ? '#ccc' : '#ff4500',
+          color: 'white',
+          border: 'none',
+          borderRadius: '4px',
+          fontSize: '1rem',
+          cursor: loading ? 'not-allowed' : 'pointer',
+          fontFamily: 'monospace'
+        }}
+      >
+        {loading ? 'Logging in...' : 'Login'}
+      </button>
+    </form>
+  );
+}
+`
+	os.WriteFile(filepath.Join("components", "auth", "LoginForm.tsx"), []byte(loginFormContent), 0644)
+
+	// Create RegisterForm component
+	registerFormContent := `'use client';
+
+import { useState } from 'react';
+import { useAuth } from '@/lib/auth/useAuth';
+
+export default function RegisterForm() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [name, setName] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { register } = useAuth();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      await register(email, password, name);
+      // Auth context will handle redirect
+    } catch (err: any) {
+      setError(err.message || 'Registration failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '400px' }}>
+      <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Register</h2>
+
+      {error && (
+        <div style={{ padding: '0.75rem', background: '#fee', color: '#c00', borderRadius: '4px' }}>
+          {error}
+        </div>
+      )}
+
+      <input
+        type="text"
+        placeholder="Name (optional)"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        style={{
+          padding: '0.75rem',
+          border: '1px solid #ccc',
+          borderRadius: '4px',
+          fontSize: '1rem',
+          fontFamily: 'monospace'
+        }}
+      />
+
+      <input
+        type="email"
+        placeholder="Email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        required
+        style={{
+          padding: '0.75rem',
+          border: '1px solid #ccc',
+          borderRadius: '4px',
+          fontSize: '1rem',
+          fontFamily: 'monospace'
+        }}
+      />
+
+      <input
+        type="password"
+        placeholder="Password (min 6 characters)"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        required
+        style={{
+          padding: '0.75rem',
+          border: '1px solid #ccc',
+          borderRadius: '4px',
+          fontSize: '1rem',
+          fontFamily: 'monospace'
+        }}
+      />
+
+      <input
+        type="password"
+        placeholder="Confirm Password"
+        value={confirmPassword}
+        onChange={(e) => setConfirmPassword(e.target.value)}
+        required
+        style={{
+          padding: '0.75rem',
+          border: '1px solid #ccc',
+          borderRadius: '4px',
+          fontSize: '1rem',
+          fontFamily: 'monospace'
+        }}
+      />
+
+      <button
+        type="submit"
+        disabled={loading}
+        style={{
+          padding: '0.75rem',
+          background: loading ? '#ccc' : '#ff4500',
+          color: 'white',
+          border: 'none',
+          borderRadius: '4px',
+          fontSize: '1rem',
+          cursor: loading ? 'not-allowed' : 'pointer',
+          fontFamily: 'monospace'
+        }}
+      >
+        {loading ? 'Creating account...' : 'Register'}
+      </button>
+    </form>
+  );
+}
+`
+	os.WriteFile(filepath.Join("components", "auth", "RegisterForm.tsx"), []byte(registerFormContent), 0644)
+
+	// Create AuthForms component that combines both
+	authFormsContent := `'use client';
+
+import { useState } from 'react';
+import LoginForm from './LoginForm';
+import RegisterForm from './RegisterForm';
+
+export default function AuthForms() {
+  const [mode, setMode] = useState<'login' | 'register'>('login');
+
+  return (
+    <div style={{ fontFamily: 'monospace' }}>
+      <div style={{ marginBottom: '2rem' }}>
+        <button
+          onClick={() => setMode('login')}
+          style={{
+            padding: '0.5rem 1rem',
+            background: mode === 'login' ? '#ff4500' : 'transparent',
+            color: mode === 'login' ? 'white' : '#ff4500',
+            border: '1px solid #ff4500',
+            borderRadius: '4px 0 0 4px',
+            cursor: 'pointer',
+            fontFamily: 'monospace'
+          }}
+        >
+          Login
+        </button>
+        <button
+          onClick={() => setMode('register')}
+          style={{
+            padding: '0.5rem 1rem',
+            background: mode === 'register' ? '#ff4500' : 'transparent',
+            color: mode === 'register' ? 'white' : '#ff4500',
+            border: '1px solid #ff4500',
+            borderRadius: '0 4px 4px 0',
+            marginLeft: '-1px',
+            cursor: 'pointer',
+            fontFamily: 'monospace'
+          }}
+        >
+          Register
+        </button>
+      </div>
+
+      {mode === 'login' ? <LoginForm /> : <RegisterForm />}
+    </div>
+  );
+}
+`
+	os.WriteFile(filepath.Join("components", "auth", "AuthForms.tsx"), []byte(authFormsContent), 0644)
+
+	// Create ProtectedRoute component
+	protectedRouteContent := `'use client';
+
+import { useAuth } from '@/lib/auth/useAuth';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+
+export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/');
+    }
+  }, [user, loading, router]);
+
+  if (loading) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center', fontFamily: 'monospace' }}>
+        Loading...
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
+
+  return <>{children}</>;
+}
+`
+	os.WriteFile(filepath.Join("components", "auth", "ProtectedRoute.tsx"), []byte(protectedRouteContent), 0644)
+
+	// Create an auth page that uses these components
+	authPageContent := `'use client';
+
+import { useAuth } from '@/lib/auth/useAuth';
+import AuthForms from '@/components/auth/AuthForms';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+
+export default function AuthPage() {
+  const { user, logout } = useAuth();
+  const router = useRouter();
+
+  // If already logged in, show user info and logout
+  if (user) {
+    return (
+      <main style={{ padding: '2rem', fontFamily: 'monospace', maxWidth: '800px', margin: '0 auto' }}>
+        <h1 style={{ fontSize: '2rem', marginBottom: '2rem' }}>Welcome!</h1>
+
+        <div style={{ padding: '1rem', background: '#f0f0f0', borderRadius: '4px', marginBottom: '2rem' }}>
+          <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>User Profile</h2>
+          <p><strong>Email:</strong> {user.email}</p>
+          {user.name && <p><strong>Name:</strong> {user.name}</p>}
+          <p><strong>ID:</strong> {user.id}</p>
+        </div>
+
+        <button
+          onClick={async () => {
+            await logout();
+            router.push('/');
+          }}
+          style={{
+            padding: '0.75rem 1.5rem',
+            background: '#ff4500',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            fontSize: '1rem',
+            cursor: 'pointer',
+            fontFamily: 'monospace'
+          }}
+        >
+          Logout
+        </button>
+      </main>
+    );
+  }
+
+  return (
+    <main style={{ padding: '2rem', fontFamily: 'monospace', maxWidth: '800px', margin: '0 auto' }}>
+      <h1 style={{ fontSize: '2rem', marginBottom: '2rem' }}>Authentication</h1>
+      <AuthForms />
+    </main>
+  );
+}
+`
+	os.WriteFile(filepath.Join("app", "auth", "page.tsx"), []byte(authPageContent), 0644)
+
+	// Update layout.tsx to wrap with AuthProvider
+	layoutPath := filepath.Join("app", "layout.tsx")
+	if layoutData, err := os.ReadFile(layoutPath); err == nil {
+		layoutStr := string(layoutData)
+		// Add import at the top
+		importLine := "import { AuthProvider } from '@/lib/auth/useAuth';\n"
+		if !contains(layoutStr, "AuthProvider") {
+			// Find the imports section and add our import
+			if idx := findSubstringIndex(layoutStr, "export default function"); idx > 0 {
+				layoutStr = layoutStr[:idx] + importLine + layoutStr[idx:]
+			}
+
+			// Wrap children with AuthProvider
+			layoutStr = strings.Replace(layoutStr,
+				"{children}",
+				"<AuthProvider>{children}</AuthProvider>",
+				1)
+
+			os.WriteFile(layoutPath, []byte(layoutStr), 0644)
+		}
+	}
+
 	// Update .env.local template
 	envAdditions := `
 # JWT Secrets (generate with: openssl rand -base64 32)
@@ -621,7 +1008,32 @@ JWT_REFRESH_SECRET=your-refresh-secret-key-change-in-production
 		os.WriteFile(".env.local", append(data, []byte(envAdditions)...), 0600)
 	}
 
-	fmt.Println("✅ JWT authentication added successfully!")
+	// Update the home page to include auth UI
+	homePagePath := filepath.Join("app", "page.tsx")
+	if homeData, err := os.ReadFile(homePagePath); err == nil {
+		homeStr := string(homeData)
+		if !contains(homeStr, "AuthForms") {
+			// Add import
+			importAuth := "import AuthForms from '@/components/auth/AuthForms';\nimport { useAuth } from '@/lib/auth/useAuth';\n"
+			if idx := findSubstringIndex(homeStr, "export default function"); idx > 0 {
+				homeStr = homeStr[:idx] + importAuth + homeStr[idx:]
+			}
+
+			// Add auth section before the closing main tag
+			authSection := `
+      <div style={{ marginTop: '2rem', padding: '1rem', background: '#f0f0f0', borderRadius: '4px' }}>
+        <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Authentication</h2>
+        <AuthForms />
+      </div>`
+			if idx := findSubstringIndex(homeStr, "</main>"); idx > 0 {
+				homeStr = homeStr[:idx] + authSection + "\n" + homeStr[idx:]
+			}
+
+			os.WriteFile(homePagePath, []byte(homeStr), 0644)
+		}
+	}
+
+	fmt.Println("✅ JWT authentication with UI added successfully!")
 	fmt.Println("\nFeatures added:")
 	fmt.Println("  - JWT token generation and verification")
 	fmt.Println("  - Secure password hashing with bcrypt")
@@ -633,6 +1045,13 @@ JWT_REFRESH_SECRET=your-refresh-secret-key-change-in-production
 	fmt.Println("  - useAuth React hook for client-side")
 	fmt.Println("  - Secure HTTP-only cookies")
 	fmt.Println("  - Refresh token support")
+	fmt.Println("\nUI Components added:")
+	fmt.Println("  - Login form with validation")
+	fmt.Println("  - Register form with password confirmation")
+	fmt.Println("  - Auth switcher component")
+	fmt.Println("  - Protected route wrapper")
+	fmt.Println("  - Auth UI on home page (/)")
+	fmt.Println("  - Dedicated auth page (/auth)")
 	fmt.Println("\nNext steps:")
 	fmt.Println("  1. Run: npm install jsonwebtoken bcryptjs cookie")
 	fmt.Println("  2. Run: npm install --save-dev @types/jsonwebtoken @types/bcryptjs")
@@ -661,4 +1080,13 @@ func findSubstring(s, substr string) bool {
 		}
 	}
 	return false
+}
+
+func findSubstringIndex(s, substr string) int {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return i
+		}
+	}
+	return -1
 }

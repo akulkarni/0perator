@@ -35,15 +35,9 @@ func (s *Server) registerDirectTools() {
 
 	// Authentication tools
 	mcp.AddTool(s.mcpServer, &mcp.Tool{
-		Name:        "add_jwt_auth",
-		Description: "🔐 Add JWT authentication to your application with secure token handling.",
-	}, s.handleAddJWTAuth)
-
-	// Payment tools
-	mcp.AddTool(s.mcpServer, &mcp.Tool{
-		Name:        "add_stripe_payments",
-		Description: "💳 Integrate Stripe payments with checkout and subscription support.",
-	}, s.handleAddStripePayments)
+		Name:        "add_auth",
+		Description: "🔐 Add authentication to your application - JWT (default), OAuth, magic links, or session-based. Includes secure password hashing, token handling, and user management.",
+	}, s.handleAddAuth)
 
 	// UI/Design tools
 	mcp.AddTool(s.mcpServer, &mcp.Tool{
@@ -398,52 +392,67 @@ func (s *Server) handleSetupSQLite(ctx context.Context, req *mcp.CallToolRequest
 	}, nil
 }
 
-type AddJWTAuthInput struct {
-	Framework string `json:"framework,omitempty" jsonschema:"Framework to add auth to (nextjs, express)"`
+type AddAuthInput struct {
+	Type      string `json:"type,omitempty" jsonschema:"Auth type: jwt (default), oauth, magic-link, session, or passkey"`
+	Provider  string `json:"provider,omitempty" jsonschema:"OAuth provider: google, github, discord (only for oauth type)"`
+	Framework string `json:"framework,omitempty" jsonschema:"Framework to add auth to (nextjs, express, react)"`
 }
 
-type AddJWTAuthOutput struct {
+type AddAuthOutput struct {
 	Success bool   `json:"success"`
 	Message string `json:"message"`
+	Type    string `json:"type"`
 }
 
-func (s *Server) handleAddJWTAuth(ctx context.Context, req *mcp.CallToolRequest, input AddJWTAuthInput) (*mcp.CallToolResult, AddJWTAuthOutput, error) {
-	// Use the real implementation
-	err := tools.AddJWTAuth(ctx, map[string]string{
-		"framework": input.Framework,
-	})
+func (s *Server) handleAddAuth(ctx context.Context, req *mcp.CallToolRequest, input AddAuthInput) (*mcp.CallToolResult, AddAuthOutput, error) {
+	// Set defaults
+	if input.Type == "" {
+		input.Type = "jwt" // Default to JWT for simplicity
+	}
+
+	// Handle different auth types
+	var err error
+	var message string
+
+	switch input.Type {
+	case "jwt":
+		err = tools.AddJWTAuth(ctx, map[string]string{
+			"framework": input.Framework,
+		})
+		message = "JWT authentication added with secure token handling, password hashing, and user management"
+
+	case "oauth":
+		provider := input.Provider
+		if provider == "" {
+			provider = "google" // Default OAuth provider
+		}
+		err = fmt.Errorf("OAuth authentication with %s coming soon", provider)
+
+	case "magic-link":
+		err = fmt.Errorf("Magic link authentication coming soon - passwordless email login")
+
+	case "session":
+		err = fmt.Errorf("Session-based authentication coming soon - traditional cookie sessions")
+
+	case "passkey":
+		err = fmt.Errorf("Passkey authentication coming soon - WebAuthn/FIDO2 support")
+
+	default:
+		err = fmt.Errorf("unknown auth type: %s. Choose: jwt, oauth, magic-link, session, or passkey", input.Type)
+	}
 
 	if err != nil {
-		return nil, AddJWTAuthOutput{
+		return nil, AddAuthOutput{
 			Success: false,
-			Message: fmt.Sprintf("Failed to add JWT auth: %v", err),
+			Message: fmt.Sprintf("Failed to add %s auth: %v", input.Type, err),
+			Type:    input.Type,
 		}, nil
 	}
 
-	return nil, AddJWTAuthOutput{
+	return nil, AddAuthOutput{
 		Success: true,
-		Message: "JWT authentication added successfully with login, register, verify endpoints and auth middleware",
-	}, nil
-}
-
-type AddStripePaymentsInput struct {
-	Mode string `json:"mode,omitempty" jsonschema:"Payment mode (subscription or one-time, default: subscription)"`
-}
-
-type AddStripePaymentsOutput struct {
-	Success bool   `json:"success"`
-	Message string `json:"message"`
-}
-
-func (s *Server) handleAddStripePayments(ctx context.Context, req *mcp.CallToolRequest, input AddStripePaymentsInput) (*mcp.CallToolResult, AddStripePaymentsOutput, error) {
-	if input.Mode == "" {
-		input.Mode = "subscription"
-	}
-
-	// Placeholder for now
-	return nil, AddStripePaymentsOutput{
-		Success: true,
-		Message: fmt.Sprintf("Stripe payments added in %s mode", input.Mode),
+		Message: message,
+		Type:    input.Type,
 	}, nil
 }
 

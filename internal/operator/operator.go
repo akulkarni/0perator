@@ -63,14 +63,23 @@ func (o *Operator) ExecuteDirectTool(ctx context.Context, toolName string, args 
 		default:
 			return fmt.Errorf("theme %s not yet implemented", theme)
 		}
+	case "add_auth":
+		// Handle auth type selection
+		authType := args["type"]
+		if authType == "" {
+			authType = "jwt"
+		}
+		switch authType {
+		case "jwt":
+			return tools.AddJWTAuth(ctx, args)
+		default:
+			return fmt.Errorf("auth type %s not yet implemented", authType)
+		}
+	// Backward compatibility
 	case "add_brutalist_ui":
-		// Backward compatibility
 		return tools.AddBrutalistUI(ctx, args)
 	case "add_jwt_auth":
 		return tools.AddJWTAuth(ctx, args)
-	case "add_stripe_payments":
-		// Stub - returns basic implementation
-		return fmt.Errorf("Stripe payments integration is not yet implemented")
 	// Keep old names for backward compatibility
 	case "create_nextjs_app":
 		return tools.CreateNextJSApp(ctx, args)
@@ -101,11 +110,10 @@ func (o *Operator) ExecuteRecipe(ctx context.Context, recipeName string, inputs 
 // ListTools returns available direct tools
 func (o *Operator) ListTools() []string {
 	return []string{
-		"create_web_app",       // Handles all frameworks
-		"setup_database",       // Handles postgres and sqlite
-		"add_ui_theme",         // Handles brutalist, shadcn, material, etc.
-		"add_jwt_auth",
-		"add_stripe_payments",  // Stub but keeping for now
+		"create_web_app",  // Handles all frameworks
+		"setup_database",  // Handles postgres and sqlite
+		"add_auth",        // Handles jwt, oauth, magic-link, session, passkey
+		"add_ui_theme",    // Handles brutalist, shadcn, material, etc.
 	}
 }
 

@@ -7,7 +7,7 @@ import (
 	"github.com/akulkarni/0perator/internal/cli"
 )
 
-const version = "2.0.0"
+const version = "2.0.1"
 
 func main() {
 	if len(os.Args) < 2 {

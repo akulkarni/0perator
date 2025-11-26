@@ -21,7 +21,7 @@ const (
 // ideConfigPaths maps IDE clients to their MCP config file paths
 // Paths with ~ will be expanded to user's home directory
 var ideConfigPaths = map[IDEClient]string{
-	ClaudeCode: "~/.claude.json",
+	ClaudeCode: "~/.config/claude/mcp.json",
 	Cursor:     "~/.cursor/mcp.json",
 	Windsurf:   "~/.windsurf/mcp.json",
 }
@@ -124,10 +124,7 @@ func Install0peratorMCP(client IDEClient) error {
 
 	config.MCPServers["0perator"] = MCPServer{
 		Command: operatorPath,
-		Args:    []string{"mcp", "start"},
-		Env: map[string]string{
-			"OPERATOR_CONFIG": filepath.Join(os.Getenv("HOME"), ".config", "0perator", "config.json"),
-		},
+		Args:    []string{},
 	}
 
 	// Write back to file with pretty formatting

@@ -7,7 +7,7 @@ import (
 	"github.com/akulkarni/0perator/internal/cli"
 )
 
-const version = "2.0.1"
+const version = "2.0.2"
 
 func main() {
 	if len(os.Args) < 2 {
@@ -21,6 +21,11 @@ func main() {
 		fmt.Printf("0perator %s\n", version)
 	case "init":
 		if err := cli.Init(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+	case "uninstall":
+		if err := cli.Uninstall(); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
@@ -49,12 +54,14 @@ Usage:
   0perator [command]
 
 Commands:
-  init      Configure IDEs with MCP servers
-  mcp       Start the MCP server (default if no command)
-  version   Print version information
-  help      Show this help message
+  init        Configure IDEs with MCP servers
+  uninstall   Remove 0perator and MCP configurations
+  mcp         Start the MCP server (default if no command)
+  version     Print version information
+  help        Show this help message
 
 Examples:
   0perator init       # Set up your IDE
+  0perator uninstall  # Remove 0perator
   0perator            # Start MCP server (for IDE use)`)
 }

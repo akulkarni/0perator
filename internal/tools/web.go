@@ -482,14 +482,13 @@ export async function POST() {
 	// Create main page - brutalist by default, Tailwind if requested
 	var pageContent string
 	if brutalist && !tailwind {
-		// Brutalist app-like layout with sidebar and dashboard
+		// Simple brutalist starter template
 		pageContent = `'use client';
 
 import { useState, useEffect } from 'react';
 
 export default function Home() {
-  const [dbStatus, setDbStatus] = useState<'checking' | 'connected' | 'error'>('checking');
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [dbStatus, setDbStatus] = useState<'checking' | 'connected' | 'not-configured' | 'error'>('checking');
 
   useEffect(() => {
     checkDatabase();
@@ -498,193 +497,131 @@ export default function Home() {
   const checkDatabase = async () => {
     try {
       const response = await fetch('/api/init-db', { method: 'POST' });
-      setDbStatus(response.ok ? 'connected' : 'error');
-    } catch {
+      if (response.ok) {
+        setDbStatus('connected');
+      } else {
+        setDbStatus('not-configured');
+      }
+    } catch (error) {
       setDbStatus('error');
     }
   };
 
-  const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: '◻' },
-    { id: 'projects', label: 'Projects', icon: '▤' },
-    { id: 'settings', label: 'Settings', icon: '⚙' },
-  ];
-
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'monospace' }}>
-      {/* Sidebar */}
-      <aside style={{
-        width: '220px',
-        background: '#1a1a1a',
-        color: '#fff',
-        padding: '1.5rem 0',
-        display: 'flex',
-        flexDirection: 'column'
+    <main style={{
+      maxWidth: '800px',
+      margin: '0 auto',
+      padding: '2rem',
+      fontFamily: 'monospace'
+    }}>
+      <h1 style={{
+        fontSize: '2.5rem',
+        marginBottom: '1rem',
+        fontWeight: 'bold'
       }}>
-        <div style={{ padding: '0 1.5rem', marginBottom: '2rem' }}>
-          <h1 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#ff4500' }}>` + name + `</h1>
-        </div>
+        Welcome to ` + name + `
+      </h1>
 
-        <nav style={{ flex: 1 }}>
-          {navItems.map(item => (
-            <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              style={{
-                width: '100%',
-                padding: '0.75rem 1.5rem',
-                background: activeTab === item.id ? '#333' : 'transparent',
-                border: 'none',
-                borderLeft: activeTab === item.id ? '3px solid #ff4500' : '3px solid transparent',
-                color: activeTab === item.id ? '#fff' : '#888',
-                textAlign: 'left',
-                cursor: 'pointer',
-                fontFamily: 'monospace',
-                fontSize: '0.9rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem'
-              }}
-            >
-              <span>{item.icon}</span>
-              {item.label}
-            </button>
-          ))}
-        </nav>
+      <p style={{
+        fontSize: '1rem',
+        marginBottom: '2rem',
+        color: '#666'
+      }}>
+        Your Next.js application is ready. Edit this page in <code style={{
+          background: '#f0f0f0',
+          padding: '0.25rem 0.5rem',
+          borderRadius: '3px'
+        }}>app/page.tsx</code>
+      </p>
 
-        <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #333', fontSize: '0.75rem', color: '#666' }}>
-          {dbStatus === 'connected' && <span style={{ color: '#4ade80' }}>● Connected</span>}
-          {dbStatus === 'checking' && <span style={{ color: '#facc15' }}>● Connecting...</span>}
-          {dbStatus === 'error' && <span style={{ color: '#f87171' }}>● Disconnected</span>}
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main style={{ flex: 1, background: '#f5f5f5' }}>
-        {/* Header */}
-        <header style={{
-          background: '#fff',
-          padding: '1rem 2rem',
-          borderBottom: '1px solid #e5e5e5',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
+      <div style={{
+        border: '2px solid #1a1a1a',
+        padding: '1.5rem',
+        marginBottom: '1.5rem',
+        background: '#fff'
+      }}>
+        <h2 style={{
+          fontSize: '1.25rem',
+          marginBottom: '1rem',
+          fontWeight: 'bold'
         }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', textTransform: 'capitalize' }}>
-            {activeTab}
-          </h2>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <button style={{
-              padding: '0.5rem 1rem',
-              background: '#ff4500',
-              color: '#fff',
-              border: 'none',
-              fontFamily: 'monospace',
-              cursor: 'pointer'
-            }}>
-              + New
-            </button>
-            <div style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '50%',
-              background: '#1a1a1a',
-              color: '#fff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '0.875rem'
-            }}>
-              U
-            </div>
+          Database Status
+        </h2>
+        {dbStatus === 'checking' && (
+          <p style={{ color: '#666' }}>⏳ Checking database connection...</p>
+        )}
+        {dbStatus === 'connected' && (
+          <p style={{ color: '#22c55e' }}>✓ PostgreSQL database connected</p>
+        )}
+        {dbStatus === 'not-configured' && (
+          <div>
+            <p style={{ color: '#f59e0b', marginBottom: '0.5rem' }}>⚠ Database not configured</p>
+            <p style={{ fontSize: '0.875rem', color: '#666' }}>
+              Run <code style={{
+                background: '#f0f0f0',
+                padding: '0.25rem 0.5rem',
+                borderRadius: '3px'
+              }}>setup_database</code> to create a PostgreSQL database
+            </p>
           </div>
-        </header>
+        )}
+        {dbStatus === 'error' && (
+          <p style={{ color: '#ef4444' }}>✗ Database connection error</p>
+        )}
+      </div>
 
-        {/* Dashboard Content */}
-        <div style={{ padding: '2rem' }}>
-          {activeTab === 'dashboard' && (
-            <>
-              {/* Stats Grid */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: '1.5rem',
-                marginBottom: '2rem'
-              }}>
-                {[
-                  { label: 'Total Projects', value: '0', change: '+0%' },
-                  { label: 'Active Tasks', value: '0', change: '+0%' },
-                  { label: 'Team Members', value: '1', change: '' },
-                ].map((stat, i) => (
-                  <div key={i} style={{
-                    background: '#fff',
-                    padding: '1.5rem',
-                    border: '2px solid #1a1a1a'
-                  }}>
-                    <div style={{ fontSize: '0.75rem', color: '#666', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
-                      {stat.label}
-                    </div>
-                    <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>{stat.value}</div>
-                    {stat.change && <div style={{ fontSize: '0.75rem', color: '#4ade80' }}>{stat.change}</div>}
-                  </div>
-                ))}
-              </div>
-
-              {/* Recent Activity */}
-              <div style={{ background: '#fff', border: '2px solid #1a1a1a', padding: '1.5rem' }}>
-                <h3 style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: '1rem' }}>Recent Activity</h3>
-                <div style={{ color: '#666', textAlign: 'center', padding: '2rem' }}>
-                  No activity yet. Create your first project to get started.
-                </div>
-              </div>
-            </>
-          )}
-
-          {activeTab === 'projects' && (
-            <div style={{ background: '#fff', border: '2px solid #1a1a1a', padding: '1.5rem' }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: '1rem' }}>Projects</h3>
-              <div style={{ color: '#666', textAlign: 'center', padding: '2rem' }}>
-                No projects yet. Click "+ New" to create one.
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'settings' && (
-            <div style={{ background: '#fff', border: '2px solid #1a1a1a', padding: '1.5rem' }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: '1rem' }}>Settings</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div>
-                  <label style={{ fontSize: '0.75rem', color: '#666', textTransform: 'uppercase' }}>App Name</label>
-                  <input
-                    type="text"
-                    defaultValue="` + name + `"
-                    style={{
-                      display: 'block',
-                      width: '100%',
-                      padding: '0.5rem',
-                      marginTop: '0.25rem',
-                      border: '2px solid #1a1a1a',
-                      fontFamily: 'monospace'
-                    }}
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.75rem', color: '#666', textTransform: 'uppercase' }}>Database Status</label>
-                  <div style={{
-                    padding: '0.5rem',
-                    marginTop: '0.25rem',
-                    background: dbStatus === 'connected' ? '#dcfce7' : '#fef2f2',
-                    border: '2px solid ' + (dbStatus === 'connected' ? '#4ade80' : '#f87171')
-                  }}>
-                    {dbStatus === 'connected' ? '✓ Connected to PostgreSQL' : '✗ Not connected'}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </main>
-    </div>
+      <div style={{
+        border: '2px solid #1a1a1a',
+        padding: '1.5rem',
+        background: '#fff'
+      }}>
+        <h2 style={{
+          fontSize: '1.25rem',
+          marginBottom: '1rem',
+          fontWeight: 'bold'
+        }}>
+          Next Steps
+        </h2>
+        <ul style={{
+          listStyle: 'none',
+          padding: 0,
+          margin: 0
+        }}>
+          <li style={{ marginBottom: '0.75rem' }}>
+            <span style={{ color: '#ff4500', marginRight: '0.5rem' }}>→</span>
+            Edit <code style={{
+              background: '#f0f0f0',
+              padding: '0.25rem 0.5rem',
+              borderRadius: '3px'
+            }}>app/page.tsx</code> to customize this page
+          </li>
+          <li style={{ marginBottom: '0.75rem' }}>
+            <span style={{ color: '#ff4500', marginRight: '0.5rem' }}>→</span>
+            Add routes in <code style={{
+              background: '#f0f0f0',
+              padding: '0.25rem 0.5rem',
+              borderRadius: '3px'
+            }}>app/</code> directory
+          </li>
+          <li style={{ marginBottom: '0.75rem' }}>
+            <span style={{ color: '#ff4500', marginRight: '0.5rem' }}>→</span>
+            Use <code style={{
+              background: '#f0f0f0',
+              padding: '0.25rem 0.5rem',
+              borderRadius: '3px'
+            }}>lib/db.ts</code> for database queries
+          </li>
+          <li>
+            <span style={{ color: '#ff4500', marginRight: '0.5rem' }}>→</span>
+            Check <code style={{
+              background: '#f0f0f0',
+              padding: '0.25rem 0.5rem',
+              borderRadius: '3px'
+            }}>.env.local</code> for configuration
+          </li>
+        </ul>
+      </div>
+    </main>
   );
 }
 `

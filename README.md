@@ -38,9 +38,10 @@ Everything just works. No manual steps. No configuration. No waiting.
 
 ```
 🚀 create_web_app   - Create Next.js/React/Express apps (auto-installs & starts!)
-🗄️  setup_database  - PostgreSQL or SQLite with auto-schema
+🗄️  setup_database  - Tiger Cloud PostgreSQL with auto-schema and verification
 🔐 add_auth        - Complete auth system with UI (login/register forms)
 🎨 add_ui_theme    - Brutalist, Shadcn, Material UI themes
+🌐 open_app        - Open app in browser when everything is ready
 👤 operator        - Execute recipes and complex workflows
 ```
 
@@ -126,12 +127,14 @@ When you run `create_web_app`:
 
 We've eliminated all the friction:
 
-- **Tiger CLI Output Parsing** - Handles emoji-decorated output properly
-- **Auto .env Loading** - Database scripts load environment automatically
+- **Tiger CLI JSON Parsing** - Correctly parses flat JSON responses from Tiger CLI
+- **Database Connection Verification** - Verifies app can actually connect, auto-restarts dev server if needed
+- **Auto .env Loading** - Database credentials written to .env.local and loaded automatically
 - **SSL Configuration** - Works perfectly with Tiger Cloud
-- **Template Variables** - No more ${name} runtime errors
-- **Next.js Config** - Uses modern defaults, no deprecation warnings
-- **Complete Auth UI** - Not just APIs, but actual forms users can use
+- **Auth Dependencies** - Auto-installs jsonwebtoken, bcryptjs, cookie (no manual npm install)
+- **Next.js 15 + React 19** - Uses latest versions with modern defaults
+- **Complete Auth UI** - Not just APIs, but actual login/register forms users can interact with
+- **App-like Dashboard** - Real navigation sidebar, stats cards, professional layout
 
 ## Project Structure
 
@@ -139,15 +142,16 @@ We've eliminated all the friction:
 0perator/
 ├── internal/
 │   ├── tools/              # Direct tool implementations
-│   │   ├── web_improved.go # Next.js with auto-start
-│   │   ├── database_improved.go # Tiger with auto-schema
+│   │   ├── web.go          # Next.js with auto-start, app-like dashboard
+│   │   ├── database.go     # Tiger Cloud PostgreSQL with verification
 │   │   ├── auth.go         # Complete auth with UI
 │   │   └── ui_themes.go    # Brutalist & more themes
 │   ├── operator/           # Tool orchestration
 │   ├── server/             # MCP server
 │   │   └── tools_direct.go # Tool registrations
 │   └── recipes/            # Complex workflows
-└── cmd/0perator/           # Entry point
+├── cmd/0perator/           # Main entry point
+└── cmd/0perator-mcp/       # Dedicated MCP server entry point
 ```
 
 ## Development

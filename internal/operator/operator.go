@@ -38,19 +38,7 @@ func (o *Operator) ExecuteDirectTool(ctx context.Context, toolName string, args 
 			return fmt.Errorf("unsupported framework: %s", framework)
 		}
 	case "setup_database":
-		// Handle database type selection
-		dbType := args["type"]
-		if dbType == "" {
-			dbType = "postgres"
-		}
-		switch dbType {
-		case "postgres":
-			return tools.SetupPostgresFree(ctx, args)
-		case "sqlite":
-			return tools.SetupSQLite(ctx, args)
-		default:
-			return fmt.Errorf("unsupported database type: %s", dbType)
-		}
+		return tools.SetupPostgresWithSchema(ctx, args)
 	case "add_ui_theme":
 		// Handle theme selection
 		theme := args["theme"]
@@ -87,10 +75,8 @@ func (o *Operator) ExecuteDirectTool(ctx context.Context, toolName string, args 
 		return tools.CreateReactApp(ctx, args)
 	case "create_express_api":
 		return tools.CreateExpressAPI(ctx, args)
-	case "setup_postgres_free":
-		return tools.SetupPostgresFree(ctx, args)
-	case "setup_sqlite":
-		return tools.SetupSQLite(ctx, args)
+	case "setup_postgres_free", "setup_postgres":
+		return tools.SetupPostgresWithSchema(ctx, args)
 	default:
 		return fmt.Errorf("unknown tool: %s", toolName)
 	}
@@ -111,7 +97,7 @@ func (o *Operator) ExecuteRecipe(ctx context.Context, recipeName string, inputs 
 func (o *Operator) ListTools() []string {
 	return []string{
 		"create_web_app",  // Handles all frameworks
-		"setup_database",  // Handles postgres and sqlite
+		"setup_database",  // PostgreSQL on Tiger Cloud (free)
 		"add_auth",        // Handles jwt, oauth, magic-link, session, passkey
 		"add_ui_theme",    // Handles brutalist, shadcn, material, etc.
 	}

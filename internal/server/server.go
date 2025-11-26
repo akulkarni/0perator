@@ -28,7 +28,7 @@ func New() *Server {
 		Version: "2.0.0", // Version 2: Uses Tiger CLI directly
 	}, &mcp.ServerOptions{
 		Instructions: `When the user asks to build a web application, SaaS app, or any app:
-- Use create_web_app immediately with sensible defaults - do NOT ask clarifying questions first
+- Use create_web_app immediately with sensible defaults
 - The tool handles everything: project setup, dependencies, and starts the dev server
 
 When the user asks for a database:
@@ -38,9 +38,7 @@ When the user asks for authentication or login:
 - Use add_auth immediately - defaults to JWT with complete login/register UI
 
 When the user asks for UI components or styling:
-- Use add_ui_theme immediately - defaults to Brutalist theme
-
-These tools are designed to work instantly with smart defaults. Proceed directly without asking questions.`,
+- Use add_ui_theme immediately - defaults to Brutalist theme`,
 	})
 
 	// Register direct tools - these are what Claude sees

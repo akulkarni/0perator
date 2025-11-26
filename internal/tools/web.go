@@ -4,27 +4,86 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
+	"strings"
 	"time"
 )
 
-// openBrowser opens the specified URL in the default browser
-func openBrowser(url string) {
-	var cmd *exec.Cmd
-	switch runtime.GOOS {
-	case "darwin":
-		cmd = exec.Command("open", url)
-	case "linux":
-		cmd = exec.Command("xdg-open", url)
-	case "windows":
-		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", url)
-	default:
-		return
+// OpenBrowser opens the given URL in the default browser
+func OpenBrowser(url string) error {
+	cmd := exec.Command("open", url)
+	return cmd.Start()
+}
+
+// waitForServer waits for a server to be ready at the given URL
+func waitForServer(url string, timeout time.Duration) bool {
+	client := &http.Client{Timeout: 500 * time.Millisecond}
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		resp, err := client.Get(url)
+		if err == nil {
+			resp.Body.Close()
+			return true
+		}
+		time.Sleep(300 * time.Millisecond)
 	}
-	cmd.Start()
+	return false
+}
+
+// findAppDirectory finds the nearest directory containing package.json
+// It searches the current directory and immediate subdirectories
+func findAppDirectory() string {
+	// First check current directory
+	if _, err := os.Stat("package.json"); err == nil {
+		return "."
+	}
+
+	// Check immediate subdirectories for package.json
+	entries, err := os.ReadDir(".")
+	if err != nil {
+		return ""
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() && !strings.HasPrefix(entry.Name(), ".") {
+			pkgPath := filepath.Join(entry.Name(), "package.json")
+			if _, err := os.Stat(pkgPath); err == nil {
+				return entry.Name()
+			}
+		}
+	}
+
+	return ""
+}
+
+// findBun returns the path to the bun executable, checking common locations
+func findBun() string {
+	// First check if bun is in PATH
+	if path, err := exec.LookPath("bun"); err == nil {
+		return path
+	}
+
+	// Check common installation locations
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+
+	// Check ~/.bun/bin/bun (official install location)
+	bunPath := filepath.Join(homeDir, ".bun", "bin", "bun")
+	if _, err := os.Stat(bunPath); err == nil {
+		return bunPath
+	}
+
+	// Check /usr/local/bin/bun
+	if _, err := os.Stat("/usr/local/bin/bun"); err == nil {
+		return "/usr/local/bin/bun"
+	}
+
+	return ""
 }
 
 // buildDevDependencies returns the appropriate dev dependencies based on options
@@ -92,13 +151,13 @@ func CreateNextJSApp(ctx context.Context, args map[string]string) error {
 		"version": "0.1.0",
 		"private": true,
 		"scripts": map[string]string{
-			"dev":        "npm run db:check && next dev",
+			"dev":        "next dev",
 			"build":      "next build",
 			"start":      "next start",
 			"lint":       "next lint",
-			"db:check":   "node scripts/check-db.js",
-			"db:init":    "node scripts/init-db.js",
-			"db:migrate": "node scripts/migrate.js",
+			"db:check":   "bun scripts/check-db.js || node scripts/check-db.js",
+			"db:init":    "bun scripts/init-db.js || node scripts/init-db.js",
+			"db:migrate": "bun scripts/migrate.js || node scripts/migrate.js",
 		},
 		"dependencies": map[string]string{
 			"next":      "^15.0.0",
@@ -369,10 +428,10 @@ initDatabase();
 
 	// Create API route for database initialization (app/api/init-db/route.ts)
 	initApiContent := `import { NextResponse } from 'next/server';
-import pool from '@/lib/db';
+import { query } from '@/lib/db';
 
 export async function POST() {
-  if (!pool) {
+  if (!process.env.DATABASE_URL) {
     return NextResponse.json(
       { error: 'Database not configured' },
       { status: 500 }
@@ -381,7 +440,7 @@ export async function POST() {
 
   try {
     // Check if tables already exist
-    const checkResult = await pool.query(
+    const checkResult = await query(
       "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'users'"
     );
 
@@ -394,7 +453,7 @@ export async function POST() {
 
     // Schema is created by the database setup tool
     // This is just a fallback
-    await pool.query(` + "`" + `
+    await query(` + "`" + `
       CREATE TABLE IF NOT EXISTS users (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         email VARCHAR(255) UNIQUE NOT NULL,
@@ -423,13 +482,14 @@ export async function POST() {
 	// Create main page - brutalist by default, Tailwind if requested
 	var pageContent string
 	if brutalist && !tailwind {
-		// Brutalist version with inline styles and monospace font
+		// Brutalist app-like layout with sidebar and dashboard
 		pageContent = `'use client';
 
 import { useState, useEffect } from 'react';
 
 export default function Home() {
-  const [dbStatus, setDbStatus] = useState<'checking' | 'connected' | 'not-configured' | 'error'>('checking');
+  const [dbStatus, setDbStatus] = useState<'checking' | 'connected' | 'error'>('checking');
+  const [activeTab, setActiveTab] = useState('dashboard');
 
   useEffect(() => {
     checkDatabase();
@@ -438,54 +498,193 @@ export default function Home() {
   const checkDatabase = async () => {
     try {
       const response = await fetch('/api/init-db', { method: 'POST' });
-      if (response.ok) {
-        setDbStatus('connected');
-      } else {
-        setDbStatus('not-configured');
-      }
-    } catch (error) {
+      setDbStatus(response.ok ? 'connected' : 'error');
+    } catch {
       setDbStatus('error');
     }
   };
 
+  const navItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: '◻' },
+    { id: 'projects', label: 'Projects', icon: '▤' },
+    { id: 'settings', label: 'Settings', icon: '⚙' },
+  ];
+
   return (
-    <main style={{ padding: '2rem', fontFamily: 'monospace', maxWidth: '800px', margin: '0 auto' }}>
-      <h1 style={{ fontSize: '2rem', marginBottom: '2rem' }}>Welcome to ` + name + `!</h1>
+    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'monospace' }}>
+      {/* Sidebar */}
+      <aside style={{
+        width: '220px',
+        background: '#1a1a1a',
+        color: '#fff',
+        padding: '1.5rem 0',
+        display: 'flex',
+        flexDirection: 'column'
+      }}>
+        <div style={{ padding: '0 1.5rem', marginBottom: '2rem' }}>
+          <h1 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#ff4500' }}>` + name + `</h1>
+        </div>
 
-      <div style={{ padding: '1rem', background: '#f0f0f0', marginBottom: '2rem', borderRadius: '4px' }}>
-        <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Database Status</h2>
-        {dbStatus === 'checking' && (
-          <p>Checking database connection...</p>
-        )}
-        {dbStatus === 'connected' && (
-          <p style={{ color: 'green' }}>✅ Database connected and ready!</p>
-        )}
-        {dbStatus === 'not-configured' && (
-          <div style={{ color: '#ff4500' }}>
-            <p>⚠️ Database not configured</p>
-            <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>Run 'setup_database' to create a PostgreSQL database</p>
+        <nav style={{ flex: 1 }}>
+          {navItems.map(item => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              style={{
+                width: '100%',
+                padding: '0.75rem 1.5rem',
+                background: activeTab === item.id ? '#333' : 'transparent',
+                border: 'none',
+                borderLeft: activeTab === item.id ? '3px solid #ff4500' : '3px solid transparent',
+                color: activeTab === item.id ? '#fff' : '#888',
+                textAlign: 'left',
+                cursor: 'pointer',
+                fontFamily: 'monospace',
+                fontSize: '0.9rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem'
+              }}
+            >
+              <span>{item.icon}</span>
+              {item.label}
+            </button>
+          ))}
+        </nav>
+
+        <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #333', fontSize: '0.75rem', color: '#666' }}>
+          {dbStatus === 'connected' && <span style={{ color: '#4ade80' }}>● Connected</span>}
+          {dbStatus === 'checking' && <span style={{ color: '#facc15' }}>● Connecting...</span>}
+          {dbStatus === 'error' && <span style={{ color: '#f87171' }}>● Disconnected</span>}
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main style={{ flex: 1, background: '#f5f5f5' }}>
+        {/* Header */}
+        <header style={{
+          background: '#fff',
+          padding: '1rem 2rem',
+          borderBottom: '1px solid #e5e5e5',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', textTransform: 'capitalize' }}>
+            {activeTab}
+          </h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <button style={{
+              padding: '0.5rem 1rem',
+              background: '#ff4500',
+              color: '#fff',
+              border: 'none',
+              fontFamily: 'monospace',
+              cursor: 'pointer'
+            }}>
+              + New
+            </button>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              background: '#1a1a1a',
+              color: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '0.875rem'
+            }}>
+              U
+            </div>
           </div>
-        )}
-        {dbStatus === 'error' && (
-          <p style={{ color: '#ff4500' }}>❌ Database connection error</p>
-        )}
-      </div>
+        </header>
 
-      <div style={{ padding: '1rem', background: '#f0f0f0', borderRadius: '4px' }}>
-        <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Getting Started</h2>
-        <ol style={{ lineHeight: '1.8' }}>
-          <li>Set up your database with 'setup_database'</li>
-          <li>Start developing with 'npm run dev'</li>
-          <li>Build for production with 'npm run build'</li>
-        </ol>
-      </div>
+        {/* Dashboard Content */}
+        <div style={{ padding: '2rem' }}>
+          {activeTab === 'dashboard' && (
+            <>
+              {/* Stats Grid */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '1.5rem',
+                marginBottom: '2rem'
+              }}>
+                {[
+                  { label: 'Total Projects', value: '0', change: '+0%' },
+                  { label: 'Active Tasks', value: '0', change: '+0%' },
+                  { label: 'Team Members', value: '1', change: '' },
+                ].map((stat, i) => (
+                  <div key={i} style={{
+                    background: '#fff',
+                    padding: '1.5rem',
+                    border: '2px solid #1a1a1a'
+                  }}>
+                    <div style={{ fontSize: '0.75rem', color: '#666', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+                      {stat.label}
+                    </div>
+                    <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>{stat.value}</div>
+                    {stat.change && <div style={{ fontSize: '0.75rem', color: '#4ade80' }}>{stat.change}</div>}
+                  </div>
+                ))}
+              </div>
 
-      <div style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: '1px solid #ccc' }}>
-        <a href="https://github.com/akulkarni/0perator" style={{ color: '#ff4500', textDecoration: 'underline' }}>
-          Built with 0perator
-        </a>
-      </div>
-    </main>
+              {/* Recent Activity */}
+              <div style={{ background: '#fff', border: '2px solid #1a1a1a', padding: '1.5rem' }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: '1rem' }}>Recent Activity</h3>
+                <div style={{ color: '#666', textAlign: 'center', padding: '2rem' }}>
+                  No activity yet. Create your first project to get started.
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeTab === 'projects' && (
+            <div style={{ background: '#fff', border: '2px solid #1a1a1a', padding: '1.5rem' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: '1rem' }}>Projects</h3>
+              <div style={{ color: '#666', textAlign: 'center', padding: '2rem' }}>
+                No projects yet. Click "+ New" to create one.
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'settings' && (
+            <div style={{ background: '#fff', border: '2px solid #1a1a1a', padding: '1.5rem' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: '1rem' }}>Settings</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div>
+                  <label style={{ fontSize: '0.75rem', color: '#666', textTransform: 'uppercase' }}>App Name</label>
+                  <input
+                    type="text"
+                    defaultValue="` + name + `"
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      padding: '0.5rem',
+                      marginTop: '0.25rem',
+                      border: '2px solid #1a1a1a',
+                      fontFamily: 'monospace'
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.75rem', color: '#666', textTransform: 'uppercase' }}>Database Status</label>
+                  <div style={{
+                    padding: '0.5rem',
+                    marginTop: '0.25rem',
+                    background: dbStatus === 'connected' ? '#dcfce7' : '#fef2f2',
+                    border: '2px solid ' + (dbStatus === 'connected' ? '#4ade80' : '#f87171')
+                  }}>
+                    {dbStatus === 'connected' ? '✓ Connected to PostgreSQL' : '✗ Not connected'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
   );
 }
 `
@@ -731,46 +930,63 @@ next-env.d.ts
 	}
 	fmt.Printf("   - Environment variables template\n")
 
-	// Auto-install dependencies
-	fmt.Printf("\n📦 Installing dependencies (this may take a moment)...\n")
-	installCmd := exec.CommandContext(ctx, "npm", "install", "--silent")
-	installCmd.Dir = projectPath
-	if _, err := installCmd.CombinedOutput(); err != nil {
-		fmt.Printf("⚠️  Failed to auto-install dependencies: %v\n", err)
-		fmt.Printf("   Run 'npm install' manually in %s\n", name)
+	// Auto-install dependencies using Bun (5-10x faster than npm)
+	bunPath := findBun()
+	if bunPath != "" {
+		fmt.Printf("\n📦 Installing dependencies with Bun...\n")
+		installCmd := exec.CommandContext(ctx, bunPath, "install")
+		installCmd.Dir = projectPath
+		if _, err := installCmd.CombinedOutput(); err != nil {
+			fmt.Printf("⚠️  Bun install failed, falling back to npm...\n")
+			installCmd = exec.CommandContext(ctx, "npm", "install", "--silent")
+			installCmd.Dir = projectPath
+			if _, err := installCmd.CombinedOutput(); err != nil {
+				fmt.Printf("⚠️  Failed to install dependencies: %v\n", err)
+				fmt.Printf("   Run 'bun install' or 'npm install' manually in %s\n", name)
+			} else {
+				fmt.Printf("✅ Dependencies installed successfully (npm)\n")
+			}
+		} else {
+			fmt.Printf("✅ Dependencies installed successfully (bun)\n")
+		}
 	} else {
-		fmt.Printf("✅ Dependencies installed successfully\n")
+		fmt.Printf("\n📦 Installing dependencies with npm...\n")
+		installCmd := exec.CommandContext(ctx, "npm", "install", "--silent")
+		installCmd.Dir = projectPath
+		if _, err := installCmd.CombinedOutput(); err != nil {
+			fmt.Printf("⚠️  Failed to install dependencies: %v\n", err)
+			fmt.Printf("   Run 'npm install' manually in %s\n", name)
+		} else {
+			fmt.Printf("✅ Dependencies installed successfully\n")
+		}
 	}
 
-	// Auto-start the development server in background
-	fmt.Printf("\n🚀 Starting development server...\n")
-	startCmd := exec.Command("npm", "run", "dev")
-	startCmd.Dir = projectPath
-
-	// Set up output pipes to show server output
-	startCmd.Stdout = os.Stdout
-	startCmd.Stderr = os.Stderr
-
-	// Start the server in background
-	if err := startCmd.Start(); err != nil {
-		fmt.Printf("⚠️  Failed to auto-start dev server: %v\n", err)
-		fmt.Printf("   Run 'npm run dev' manually in %s\n", name)
+	// Start dev server in background
+	fmt.Printf("\n🚀 Starting dev server...\n")
+	var devCmd *exec.Cmd
+	if bunPath != "" {
+		devCmd = exec.Command(bunPath, "run", "dev")
 	} else {
-		// Wait a moment for the server to initialize
-		time.Sleep(3 * time.Second)
-
-		// Try to open browser automatically
-		url := "http://localhost:3000"
-		fmt.Printf("\n🌐 Opening %s in your browser...\n", url)
-		openBrowser(url)
-
-		fmt.Printf("\n🎉 Your app is running at %s\n", url)
-		fmt.Printf("   - Next.js app: %s\n", name)
-		fmt.Printf("   - Database: Will be configured when you run 'setup_database'\n")
-		fmt.Printf("   - Authentication: Ready to use\n")
-		fmt.Printf("\n📝 Note: The dev server is running in the background.\n")
-		fmt.Printf("   To stop it, use Ctrl+C or kill the npm process.\n")
+		devCmd = exec.Command("npm", "run", "dev")
 	}
+	devCmd.Dir = projectPath
+	devCmd.Stdout = nil
+	devCmd.Stderr = nil
+	if err := devCmd.Start(); err != nil {
+		fmt.Printf("⚠️  Failed to start dev server: %v\n", err)
+		fmt.Printf("   Run 'bun run dev' manually in %s\n", name)
+		return nil
+	}
+
+	// Wait for server to be ready
+	serverURL := "http://localhost:3000"
+	if waitForServer(serverURL, 15*time.Second) {
+		fmt.Printf("✅ Dev server ready at %s\n", serverURL)
+	} else {
+		fmt.Printf("⚠️  Dev server starting at %s (may take a moment)\n", serverURL)
+	}
+
+	fmt.Printf("\n🎉 Next.js app '%s' created\n", name)
 
 	return nil
 }
@@ -947,34 +1163,63 @@ dist/
 
 	fmt.Printf("✅ Created React app '%s' with Vite\n", name)
 
-	// Auto-install dependencies
-	fmt.Printf("\n📦 Installing dependencies...\n")
-	installCmd := exec.CommandContext(ctx, "npm", "install", "--silent")
-	installCmd.Dir = projectPath
-	if _, err := installCmd.CombinedOutput(); err != nil {
-		fmt.Printf("⚠️  Failed to auto-install dependencies: %v\n", err)
-		fmt.Printf("   Run 'npm install' manually in %s\n", name)
+	// Auto-install dependencies using Bun if available
+	bunPath := findBun()
+	if bunPath != "" {
+		fmt.Printf("\n📦 Installing dependencies with Bun...\n")
+		installCmd := exec.CommandContext(ctx, bunPath, "install")
+		installCmd.Dir = projectPath
+		if _, err := installCmd.CombinedOutput(); err != nil {
+			fmt.Printf("⚠️  Bun install failed, falling back to npm...\n")
+			installCmd = exec.CommandContext(ctx, "npm", "install", "--silent")
+			installCmd.Dir = projectPath
+			if _, err := installCmd.CombinedOutput(); err != nil {
+				fmt.Printf("⚠️  Failed to install dependencies: %v\n", err)
+				fmt.Printf("   Run 'bun install' or 'npm install' manually in %s\n", name)
+			} else {
+				fmt.Printf("✅ Dependencies installed successfully (npm)\n")
+			}
+		} else {
+			fmt.Printf("✅ Dependencies installed successfully (bun)\n")
+		}
 	} else {
-		fmt.Printf("✅ Dependencies installed successfully\n")
+		fmt.Printf("\n📦 Installing dependencies with npm...\n")
+		installCmd := exec.CommandContext(ctx, "npm", "install", "--silent")
+		installCmd.Dir = projectPath
+		if _, err := installCmd.CombinedOutput(); err != nil {
+			fmt.Printf("⚠️  Failed to install dependencies: %v\n", err)
+			fmt.Printf("   Run 'npm install' manually in %s\n", name)
+		} else {
+			fmt.Printf("✅ Dependencies installed successfully\n")
+		}
 	}
 
-	// Auto-start the development server
-	fmt.Printf("\n🚀 Starting development server...\n")
-	startCmd := exec.Command("npm", "run", "dev")
-	startCmd.Dir = projectPath
-	startCmd.Stdout = os.Stdout
-	startCmd.Stderr = os.Stderr
-
-	if err := startCmd.Start(); err != nil {
-		fmt.Printf("⚠️  Failed to auto-start dev server: %v\n", err)
-		fmt.Printf("   Run 'npm run dev' manually in %s\n", name)
+	// Start dev server in background
+	fmt.Printf("\n🚀 Starting dev server...\n")
+	var devCmd *exec.Cmd
+	if bunPath != "" {
+		devCmd = exec.Command(bunPath, "run", "dev")
 	} else {
-		time.Sleep(2 * time.Second)
-		url := "http://localhost:5173"
-		fmt.Printf("\n🌐 Opening %s in your browser...\n", url)
-		openBrowser(url)
-		fmt.Printf("\n🎉 Your app is running at %s\n", url)
+		devCmd = exec.Command("npm", "run", "dev")
 	}
+	devCmd.Dir = projectPath
+	devCmd.Stdout = nil
+	devCmd.Stderr = nil
+	if err := devCmd.Start(); err != nil {
+		fmt.Printf("⚠️  Failed to start dev server: %v\n", err)
+		fmt.Printf("   Run 'bun run dev' manually in %s\n", name)
+		return nil
+	}
+
+	// Wait for server to be ready
+	serverURL := "http://localhost:5173"
+	if waitForServer(serverURL, 15*time.Second) {
+		fmt.Printf("✅ Dev server ready at %s\n", serverURL)
+	} else {
+		fmt.Printf("⚠️  Dev server starting at %s (may take a moment)\n", serverURL)
+	}
+
+	fmt.Printf("\n🎉 React app '%s' created\n", name)
 
 	return nil
 }
@@ -1092,31 +1337,63 @@ build/`
 
 	fmt.Printf("✅ Created Express API '%s'\n", name)
 
-	// Auto-install dependencies
-	fmt.Printf("\n📦 Installing dependencies...\n")
-	installCmd := exec.CommandContext(ctx, "npm", "install", "--silent")
-	installCmd.Dir = projectPath
-	if _, err := installCmd.CombinedOutput(); err != nil {
-		fmt.Printf("⚠️  Failed to auto-install dependencies: %v\n", err)
-		fmt.Printf("   Run 'npm install' manually in %s\n", name)
+	// Auto-install dependencies using Bun if available
+	bunPath := findBun()
+	if bunPath != "" {
+		fmt.Printf("\n📦 Installing dependencies with Bun...\n")
+		installCmd := exec.CommandContext(ctx, bunPath, "install")
+		installCmd.Dir = projectPath
+		if _, err := installCmd.CombinedOutput(); err != nil {
+			fmt.Printf("⚠️  Bun install failed, falling back to npm...\n")
+			installCmd = exec.CommandContext(ctx, "npm", "install", "--silent")
+			installCmd.Dir = projectPath
+			if _, err := installCmd.CombinedOutput(); err != nil {
+				fmt.Printf("⚠️  Failed to install dependencies: %v\n", err)
+				fmt.Printf("   Run 'bun install' or 'npm install' manually in %s\n", name)
+			} else {
+				fmt.Printf("✅ Dependencies installed successfully (npm)\n")
+			}
+		} else {
+			fmt.Printf("✅ Dependencies installed successfully (bun)\n")
+		}
 	} else {
-		fmt.Printf("✅ Dependencies installed successfully\n")
+		fmt.Printf("\n📦 Installing dependencies with npm...\n")
+		installCmd := exec.CommandContext(ctx, "npm", "install", "--silent")
+		installCmd.Dir = projectPath
+		if _, err := installCmd.CombinedOutput(); err != nil {
+			fmt.Printf("⚠️  Failed to install dependencies: %v\n", err)
+			fmt.Printf("   Run 'npm install' manually in %s\n", name)
+		} else {
+			fmt.Printf("✅ Dependencies installed successfully\n")
+		}
 	}
 
-	// Auto-start the development server
-	fmt.Printf("\n🚀 Starting development server...\n")
-	startCmd := exec.Command("npm", "run", "dev")
-	startCmd.Dir = projectPath
-	startCmd.Stdout = os.Stdout
-	startCmd.Stderr = os.Stderr
-
-	if err := startCmd.Start(); err != nil {
-		fmt.Printf("⚠️  Failed to auto-start dev server: %v\n", err)
-		fmt.Printf("   Run 'npm run dev' manually in %s\n", name)
+	// Start dev server in background
+	fmt.Printf("\n🚀 Starting dev server...\n")
+	var devCmd *exec.Cmd
+	if bunPath != "" {
+		devCmd = exec.Command(bunPath, "run", "dev")
 	} else {
-		time.Sleep(2 * time.Second)
-		fmt.Printf("\n🎉 Your API is running at http://localhost:3000\n")
+		devCmd = exec.Command("npm", "run", "dev")
 	}
+	devCmd.Dir = projectPath
+	devCmd.Stdout = nil
+	devCmd.Stderr = nil
+	if err := devCmd.Start(); err != nil {
+		fmt.Printf("⚠️  Failed to start dev server: %v\n", err)
+		fmt.Printf("   Run 'bun run dev' manually in %s\n", name)
+		return nil
+	}
+
+	// Wait for server to be ready
+	serverURL := "http://localhost:3000"
+	if waitForServer(serverURL, 15*time.Second) {
+		fmt.Printf("✅ Dev server ready at %s\n", serverURL)
+	} else {
+		fmt.Printf("⚠️  Dev server starting at %s (may take a moment)\n", serverURL)
+	}
+
+	fmt.Printf("\n🎉 Express API '%s' created\n", name)
 
 	return nil
 }

@@ -29,6 +29,31 @@ func AddUITheme(ctx context.Context, args map[string]string) error {
 	}
 }
 
+// findUIAppDir finds the nearest directory containing package.json
+func findUIAppDir() string {
+	// First check current directory
+	if _, err := os.Stat("package.json"); err == nil {
+		return "."
+	}
+
+	// Check immediate subdirectories for package.json
+	entries, err := os.ReadDir(".")
+	if err != nil {
+		return "."
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() && !strings.HasPrefix(entry.Name(), ".") {
+			pkgPath := filepath.Join(entry.Name(), "package.json")
+			if _, err := os.Stat(pkgPath); err == nil {
+				return entry.Name()
+			}
+		}
+	}
+
+	return "."
+}
+
 // AddBrutalistUI adds brutalist/minimalist UI components and design system
 func AddBrutalistUI(ctx context.Context, args map[string]string) error {
 	componentType := args["component"]
@@ -36,9 +61,15 @@ func AddBrutalistUI(ctx context.Context, args map[string]string) error {
 		componentType = "all"
 	}
 
+	// Find the app directory
+	appDir := findUIAppDir()
+	if appDir != "." {
+		fmt.Printf("📁 Found app directory: %s\n", appDir)
+	}
+
 	fmt.Println("🏗️  Adding Brutalist UI design system...")
 
-	// Create directories
+	// Create directories in app directory
 	dirs := []string{
 		"components/brutalist",
 		"lib/brutalist",
@@ -46,30 +77,30 @@ func AddBrutalistUI(ctx context.Context, args map[string]string) error {
 	}
 
 	for _, dir := range dirs {
-		os.MkdirAll(dir, 0755)
+		os.MkdirAll(filepath.Join(appDir, dir), 0755)
 	}
 
 	// Create the design system configuration
-	createDesignSystem()
+	createDesignSystem(appDir)
 
 	// Create components based on request
 	switch componentType {
 	case "auth":
-		createAuthComponents()
+		createAuthComponents(appDir)
 	case "forms":
-		createFormComponents()
+		createFormComponents(appDir)
 	case "layout":
-		createLayoutComponents()
+		createLayoutComponents(appDir)
 	case "feedback":
-		createFeedbackComponents()
+		createFeedbackComponents(appDir)
 	case "all":
-		createAuthComponents()
-		createFormComponents()
-		createLayoutComponents()
-		createFeedbackComponents()
-		createDesignSystemDoc()
+		createAuthComponents(appDir)
+		createFormComponents(appDir)
+		createLayoutComponents(appDir)
+		createFeedbackComponents(appDir)
+		createDesignSystemDoc(appDir)
 	default:
-		createCustomComponent(componentType)
+		createCustomComponent(componentType, appDir)
 	}
 
 	fmt.Println("✅ Brutalist UI components added!")
@@ -84,7 +115,7 @@ func AddBrutalistUI(ctx context.Context, args map[string]string) error {
 	return nil
 }
 
-func createDesignSystem() {
+func createDesignSystem(appDir string) {
 	// Create the core design system
 	designSystemContent := `// Brutalist Design System
 // No CSS frameworks, inline styles only, monospace everything
@@ -199,10 +230,10 @@ export const components = {
   message: brutal.styles.messageBox
 };
 `
-	os.WriteFile(filepath.Join("lib", "brutalist", "design.js"), []byte(designSystemContent), 0644)
+	os.WriteFile(filepath.Join(appDir, "lib", "brutalist", "design.js"), []byte(designSystemContent), 0644)
 }
 
-func createAuthComponents() {
+func createAuthComponents(appDir string) {
 	// Login component
 	loginContent := `'use client';
 
@@ -282,7 +313,7 @@ export default function BrutalistLogin({ onSubmit, onSignUpClick }) {
   );
 }
 `
-	os.WriteFile(filepath.Join("components", "brutalist", "Login.jsx"), []byte(loginContent), 0644)
+	os.WriteFile(filepath.Join(appDir, "components", "brutalist", "Login.jsx"), []byte(loginContent), 0644)
 
 	// Register component
 	registerContent := `'use client';
@@ -404,10 +435,10 @@ export default function BrutalistRegister({ onSubmit, onLoginClick }) {
   );
 }
 `
-	os.WriteFile(filepath.Join("components", "brutalist", "Register.jsx"), []byte(registerContent), 0644)
+	os.WriteFile(filepath.Join(appDir, "components", "brutalist", "Register.jsx"), []byte(registerContent), 0644)
 }
 
-func createFormComponents() {
+func createFormComponents(appDir string) {
 	// Generic form builder
 	formBuilderContent := `'use client';
 
@@ -511,10 +542,10 @@ export function BrutalistTextarea({ label, error, ...props }) {
   );
 }
 `
-	os.WriteFile(filepath.Join("components", "brutalist", "Forms.jsx"), []byte(formBuilderContent), 0644)
+	os.WriteFile(filepath.Join(appDir, "components", "brutalist", "Forms.jsx"), []byte(formBuilderContent), 0644)
 }
 
-func createLayoutComponents() {
+func createLayoutComponents(appDir string) {
 	layoutContent := `'use client';
 
 import { brutal } from '@/lib/brutalist/design';
@@ -649,10 +680,10 @@ export function BrutalistModal({ isOpen, onClose, children }) {
   );
 }
 `
-	os.WriteFile(filepath.Join("components", "brutalist", "Layout.jsx"), []byte(layoutContent), 0644)
+	os.WriteFile(filepath.Join(appDir, "components", "brutalist", "Layout.jsx"), []byte(layoutContent), 0644)
 }
 
-func createFeedbackComponents() {
+func createFeedbackComponents(appDir string) {
 	feedbackContent := `'use client';
 
 import { brutal } from '@/lib/brutalist/design';
@@ -776,10 +807,10 @@ export function BrutalistBadge({ children, color = '#ff4500' }) {
   );
 }
 `
-	os.WriteFile(filepath.Join("components", "brutalist", "Feedback.jsx"), []byte(feedbackContent), 0644)
+	os.WriteFile(filepath.Join(appDir, "components", "brutalist", "Feedback.jsx"), []byte(feedbackContent), 0644)
 }
 
-func createDesignSystemDoc() {
+func createDesignSystemDoc(appDir string) {
 	docContent := `# Brutalist UI Components
 
 ## Design Philosophy
@@ -919,10 +950,10 @@ While the system is intentionally rigid, you can:
 
 Remember: This is not "ugly on purpose" but "honest about what it is" - functional interfaces with zero pretense.
 `
-	os.WriteFile(filepath.Join("components", "brutalist", "README.md"), []byte(docContent), 0644)
+	os.WriteFile(filepath.Join(appDir, "components", "brutalist", "README.md"), []byte(docContent), 0644)
 }
 
-func createCustomComponent(name string) {
+func createCustomComponent(name string, appDir string) {
 	// Generate a custom component based on the name
 	componentName := strings.Title(strings.ToLower(name))
 
@@ -941,7 +972,7 @@ export default function Brutalist%s({ children, ...props }) {
 `, componentName, componentName)
 
 	filename := fmt.Sprintf("Brutalist%s.jsx", componentName)
-	os.WriteFile(filepath.Join("components", "brutalist", filename), []byte(customContent), 0644)
+	os.WriteFile(filepath.Join(appDir, "components", "brutalist", filename), []byte(customContent), 0644)
 
 	fmt.Printf("Created custom component: %s\n", filename)
 }

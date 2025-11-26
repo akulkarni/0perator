@@ -4,20 +4,69 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 )
 
+// findAuthBunPath returns the path to the bun executable
+func findAuthBunPath() string {
+	if path, err := exec.LookPath("bun"); err == nil {
+		return path
+	}
+	homeDir, _ := os.UserHomeDir()
+	bunPath := filepath.Join(homeDir, ".bun", "bin", "bun")
+	if _, err := os.Stat(bunPath); err == nil {
+		return bunPath
+	}
+	return ""
+}
+
+// findAuthAppDir finds the nearest directory containing package.json
+func findAuthAppDir() string {
+	// First check current directory
+	if _, err := os.Stat("package.json"); err == nil {
+		return "."
+	}
+
+	// Check immediate subdirectories for package.json
+	entries, err := os.ReadDir(".")
+	if err != nil {
+		return "."
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() && !strings.HasPrefix(entry.Name(), ".") {
+			pkgPath := filepath.Join(entry.Name(), "package.json")
+			if _, err := os.Stat(pkgPath); err == nil {
+				return entry.Name()
+			}
+		}
+	}
+
+	return "."
+}
+
 // AddJWTAuth adds real JWT authentication to a Next.js or Express app
 func AddJWTAuth(ctx context.Context, args map[string]string) error {
 	framework := args["framework"]
+
+	// Find the app directory
+	appDir := findAuthAppDir()
+	if appDir != "." {
+		fmt.Printf("📁 Found app directory: %s\n", appDir)
+	}
+
 	if framework == "" {
 		// Try to detect framework
-		if _, err := os.Stat("next.config.js"); err == nil {
+		nextConfigPath := filepath.Join(appDir, "next.config.js")
+		pkgJsonPath := filepath.Join(appDir, "package.json")
+
+		if _, err := os.Stat(nextConfigPath); err == nil {
 			framework = "nextjs"
-		} else if _, err := os.Stat("package.json"); err == nil {
+		} else if _, err := os.Stat(pkgJsonPath); err == nil {
 			// Check package.json for express
-			data, _ := os.ReadFile("package.json")
+			data, _ := os.ReadFile(pkgJsonPath)
 			if string(data) != "" && (contains(string(data), "express")) {
 				framework = "express"
 			} else {
@@ -30,33 +79,56 @@ func AddJWTAuth(ctx context.Context, args map[string]string) error {
 	case "express":
 		return addJWTAuthExpress(ctx, args)
 	default:
-		return addJWTAuthNextJS(ctx, args)
+		return addJWTAuthNextJS(ctx, args, appDir)
 	}
 }
 
-func addJWTAuthNextJS(ctx context.Context, args map[string]string) error {
+func addJWTAuthNextJS(ctx context.Context, args map[string]string, appDir string) error {
 	fmt.Println("🔐 Adding JWT authentication to Next.js app...")
 
-	// Create auth directories
+	// Create auth directories in the app directory
 	dirs := []string{
 		"app/api/auth",
 		"app/api/auth/login",
 		"app/api/auth/register",
 		"app/api/auth/verify",
 		"app/api/auth/refresh",
+		"app/auth",
 		"lib/auth",
 		"components/auth",
 		"middleware",
 	}
 
 	for _, dir := range dirs {
-		os.MkdirAll(dir, 0755)
+		os.MkdirAll(filepath.Join(appDir, dir), 0755)
 	}
 
 	// Install dependencies
 	fmt.Println("📦 Installing JWT dependencies...")
-	installCmd := "npm install jsonwebtoken bcryptjs cookie && npm install --save-dev @types/jsonwebtoken @types/bcryptjs"
-	fmt.Printf("   Run: %s\n", installCmd)
+	bunPath := findAuthBunPath()
+	if bunPath != "" {
+		installCmd := exec.CommandContext(ctx, bunPath, "add", "jsonwebtoken", "bcryptjs", "cookie")
+		installCmd.Dir = appDir
+		if _, err := installCmd.CombinedOutput(); err != nil {
+			fmt.Printf("⚠️  Bun install failed: %v\n", err)
+		}
+		// Dev dependencies
+		devCmd := exec.CommandContext(ctx, bunPath, "add", "-d", "@types/jsonwebtoken", "@types/bcryptjs")
+		devCmd.Dir = appDir
+		devCmd.CombinedOutput()
+		fmt.Println("✅ Dependencies installed (bun)")
+	} else {
+		installCmd := exec.CommandContext(ctx, "npm", "install", "jsonwebtoken", "bcryptjs", "cookie")
+		installCmd.Dir = appDir
+		if _, err := installCmd.CombinedOutput(); err != nil {
+			fmt.Printf("⚠️  npm install failed: %v\n", err)
+		}
+		// Dev dependencies
+		devCmd := exec.CommandContext(ctx, "npm", "install", "--save-dev", "@types/jsonwebtoken", "@types/bcryptjs")
+		devCmd.Dir = appDir
+		devCmd.CombinedOutput()
+		fmt.Println("✅ Dependencies installed (npm)")
+	}
 
 	// Create JWT utilities (lib/auth/jwt.ts)
 	jwtUtilContent := `import jwt from 'jsonwebtoken';
@@ -130,7 +202,7 @@ export async function clearAuthCookies() {
   cookieStore.delete('refresh-token');
 }
 `
-	os.WriteFile(filepath.Join("lib", "auth", "jwt.ts"), []byte(jwtUtilContent), 0644)
+	os.WriteFile(filepath.Join(appDir, "lib", "auth", "jwt.ts"), []byte(jwtUtilContent), 0644)
 
 	// Create password utilities (lib/auth/password.ts)
 	passwordUtilContent := `import bcrypt from 'bcryptjs';
@@ -168,7 +240,7 @@ export function validateEmail(email: string): boolean {
   return emailRegex.test(email);
 }
 `
-	os.WriteFile(filepath.Join("lib", "auth", "password.ts"), []byte(passwordUtilContent), 0644)
+	os.WriteFile(filepath.Join(appDir, "lib", "auth", "password.ts"), []byte(passwordUtilContent), 0644)
 
 	// Create auth middleware (lib/auth/middleware.ts)
 	middlewareContent := `import { NextRequest, NextResponse } from 'next/server';
@@ -226,11 +298,11 @@ export async function withAuth(
   );
 }
 `
-	os.WriteFile(filepath.Join("lib", "auth", "middleware.ts"), []byte(middlewareContent), 0644)
+	os.WriteFile(filepath.Join(appDir, "lib", "auth", "middleware.ts"), []byte(middlewareContent), 0644)
 
 	// Create login API route (app/api/auth/login/route.ts)
 	loginRouteContent := `import { NextRequest, NextResponse } from 'next/server';
-import pool from '@/lib/db';
+import { query } from '@/lib/db';
 import { verifyPassword, validateEmail } from '@/lib/auth/password';
 import { generateTokens, setAuthCookies } from '@/lib/auth/jwt';
 
@@ -253,7 +325,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!pool) {
+    if (!process.env.DATABASE_URL) {
       return NextResponse.json(
         { error: 'Database not configured' },
         { status: 500 }
@@ -261,7 +333,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Find user
-    const result = await pool.query(
+    const result = await query(
       'SELECT id, email, password_hash, name FROM users WHERE email = $1',
       [email]
     );
@@ -326,11 +398,11 @@ export async function POST(request: NextRequest) {
   }
 }
 `
-	os.WriteFile(filepath.Join("app", "api", "auth", "login", "route.ts"), []byte(loginRouteContent), 0644)
+	os.WriteFile(filepath.Join(appDir, "app", "api", "auth", "login", "route.ts"), []byte(loginRouteContent), 0644)
 
 	// Create register API route (app/api/auth/register/route.ts)
 	registerRouteContent := `import { NextRequest, NextResponse } from 'next/server';
-import pool from '@/lib/db';
+import { query } from '@/lib/db';
 import { hashPassword, validatePassword, validateEmail } from '@/lib/auth/password';
 import { generateTokens } from '@/lib/auth/jwt';
 
@@ -361,7 +433,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!pool) {
+    if (!process.env.DATABASE_URL) {
       return NextResponse.json(
         { error: 'Database not configured' },
         { status: 500 }
@@ -369,7 +441,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user exists
-    const existingUser = await pool.query(
+    const existingUser = await query(
       'SELECT id FROM users WHERE email = $1',
       [email]
     );
@@ -385,7 +457,7 @@ export async function POST(request: NextRequest) {
     const passwordHash = await hashPassword(password);
 
     // Create user
-    const result = await pool.query(
+    const result = await query(
       'INSERT INTO users (email, password_hash, name) VALUES ($1, $2, $3) RETURNING id, email, name',
       [email, passwordHash, name || null]
     );
@@ -434,12 +506,12 @@ export async function POST(request: NextRequest) {
   }
 }
 `
-	os.WriteFile(filepath.Join("app", "api", "auth", "register", "route.ts"), []byte(registerRouteContent), 0644)
+	os.WriteFile(filepath.Join(appDir, "app", "api", "auth", "register", "route.ts"), []byte(registerRouteContent), 0644)
 
 	// Create verify API route (app/api/auth/verify/route.ts)
 	verifyRouteContent := `import { NextRequest, NextResponse } from 'next/server';
 import { verifyAccessToken } from '@/lib/auth/jwt';
-import pool from '@/lib/db';
+import { query } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
@@ -462,7 +534,7 @@ export async function GET(request: NextRequest) {
 
     // Get user details
     if (pool) {
-      const result = await pool.query(
+      const result = await query(
         'SELECT id, email, name FROM users WHERE id = $1',
         [payload.userId]
       );
@@ -491,7 +563,7 @@ export async function GET(request: NextRequest) {
   }
 }
 `
-	os.WriteFile(filepath.Join("app", "api", "auth", "verify", "route.ts"), []byte(verifyRouteContent), 0644)
+	os.WriteFile(filepath.Join(appDir, "app", "api", "auth", "verify", "route.ts"), []byte(verifyRouteContent), 0644)
 
 	// Create logout route
 	logoutRouteContent := `import { NextRequest, NextResponse } from 'next/server';
@@ -509,7 +581,7 @@ export async function POST(request: NextRequest) {
   return response;
 }
 `
-	os.WriteFile(filepath.Join("app", "api", "auth", "logout", "route.ts"), []byte(logoutRouteContent), 0644)
+	os.WriteFile(filepath.Join(appDir, "app", "api", "auth", "logout", "route.ts"), []byte(logoutRouteContent), 0644)
 
 	// Create auth context/hook (lib/auth/useAuth.tsx)
 	authHookContent := `'use client';
@@ -609,7 +681,7 @@ export function useAuth() {
   return context;
 }
 `
-	os.WriteFile(filepath.Join("lib", "auth", "useAuth.tsx"), []byte(authHookContent), 0644)
+	os.WriteFile(filepath.Join(appDir, "lib", "auth", "useAuth.tsx"), []byte(authHookContent), 0644)
 
 	// Create LoginForm component - Brutalist light mode
 	loginFormContent := `'use client';
@@ -756,7 +828,7 @@ export default function LoginForm({ onSwitch }: { onSwitch?: () => void }) {
   );
 }
 `
-	os.WriteFile(filepath.Join("components", "auth", "LoginForm.tsx"), []byte(loginFormContent), 0644)
+	os.WriteFile(filepath.Join(appDir, "components", "auth", "LoginForm.tsx"), []byte(loginFormContent), 0644)
 
 	// Create RegisterForm component - Brutalist light mode
 	registerFormContent := `'use client';
@@ -923,7 +995,7 @@ export default function RegisterForm({ onSwitch }: { onSwitch?: () => void }) {
   );
 }
 `
-	os.WriteFile(filepath.Join("components", "auth", "RegisterForm.tsx"), []byte(registerFormContent), 0644)
+	os.WriteFile(filepath.Join(appDir, "components", "auth", "RegisterForm.tsx"), []byte(registerFormContent), 0644)
 
 	// Create AuthForms component that combines both
 	authFormsContent := `'use client';
@@ -974,7 +1046,7 @@ export default function AuthForms() {
   );
 }
 `
-	os.WriteFile(filepath.Join("components", "auth", "AuthForms.tsx"), []byte(authFormsContent), 0644)
+	os.WriteFile(filepath.Join(appDir, "components", "auth", "AuthForms.tsx"), []byte(authFormsContent), 0644)
 
 	// Create ProtectedRoute component
 	protectedRouteContent := `'use client';
@@ -1008,7 +1080,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   return <>{children}</>;
 }
 `
-	os.WriteFile(filepath.Join("components", "auth", "ProtectedRoute.tsx"), []byte(protectedRouteContent), 0644)
+	os.WriteFile(filepath.Join(appDir, "components", "auth", "ProtectedRoute.tsx"), []byte(protectedRouteContent), 0644)
 
 	// Create an auth page that uses these components
 	authPageContent := `'use client';
@@ -1065,10 +1137,10 @@ export default function AuthPage() {
   );
 }
 `
-	os.WriteFile(filepath.Join("app", "auth", "page.tsx"), []byte(authPageContent), 0644)
+	os.WriteFile(filepath.Join(appDir, "app", "auth", "page.tsx"), []byte(authPageContent), 0644)
 
 	// Update layout.tsx to wrap with AuthProvider
-	layoutPath := filepath.Join("app", "layout.tsx")
+	layoutPath := filepath.Join(appDir, "app", "layout.tsx")
 	if layoutData, err := os.ReadFile(layoutPath); err == nil {
 		layoutStr := string(layoutData)
 		// Add import at the top
@@ -1096,12 +1168,13 @@ JWT_SECRET=your-secret-key-change-in-production
 JWT_REFRESH_SECRET=your-refresh-secret-key-change-in-production
 `
 
-	if data, err := os.ReadFile(".env.local"); err == nil {
-		os.WriteFile(".env.local", append(data, []byte(envAdditions)...), 0600)
+	envPath := filepath.Join(appDir, ".env.local")
+	if data, err := os.ReadFile(envPath); err == nil {
+		os.WriteFile(envPath, append(data, []byte(envAdditions)...), 0600)
 	}
 
 	// Update the home page to include auth UI
-	homePagePath := filepath.Join("app", "page.tsx")
+	homePagePath := filepath.Join(appDir, "app", "page.tsx")
 	if homeData, err := os.ReadFile(homePagePath); err == nil {
 		homeStr := string(homeData)
 		if !contains(homeStr, "AuthForms") {

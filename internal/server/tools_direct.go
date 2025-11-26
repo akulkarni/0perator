@@ -13,7 +13,7 @@ func (s *Server) registerDirectTools() {
 	// Universal web app tool (handles all frameworks)
 	mcp.AddTool(s.mcpServer, &mcp.Tool{
 		Name:        "create_web_app",
-		Description: "🚀 Create any web application - Next.js (default), React, Express, or custom. Handles all web frameworks with TypeScript, Tailwind, and best practices. Use for any 'build app' or 'create app' request. **IMPORTANT:** Do not ask clarifying questions - just call this tool with a name parameter. Smart defaults handle everything.",
+		Description: "🚀 Create any web application - Next.js (default), React, Express, or custom. Handles all web frameworks with TypeScript, Tailwind, and best practices. Use for any 'build app' or 'create app' request.",
 	}, s.handleCreateWebApp)
 
 	// Removed to stay under 10-tool limit
@@ -30,7 +30,7 @@ func (s *Server) registerDirectTools() {
 	// Universal database tool (handles all database types)
 	mcp.AddTool(s.mcpServer, &mcp.Tool{
 		Name:        "setup_database",
-		Description: "🗄️ Set up any database - PostgreSQL on Tiger Cloud (default, FREE), SQLite (local), or custom. Auto-configures with schema, migrations, and connection handling. Use for any database request.",
+		Description: "🗄️ Set up any database - PostgreSQL on Tiger Cloud (default, FREE). Auto-configures with schema, migrations, and connection handling. Use for any database request.",
 	}, s.handleSetupDatabase)
 
 	// Authentication tools
@@ -44,6 +44,12 @@ func (s *Server) registerDirectTools() {
 		Name:        "add_ui_theme",
 		Description: "🎨 Add UI theme and components - Brutalist (monospace, #ff4500), Shadcn (modern React), Material (Google design), or custom themes. No heavy frameworks, optimized implementations.",
 	}, s.handleAddUITheme)
+
+	// Open app in browser - call this after all setup is complete
+	mcp.AddTool(s.mcpServer, &mcp.Tool{
+		Name:        "open_app",
+		Description: "🌐 Open the app in browser. Call this AFTER all setup (database, auth, UI) is complete to show the user their running app.",
+	}, s.handleOpenApp)
 
 	// Test confirmed: Claude Code has a hard 10-tool limit
 	// Tools beyond #10 are not accessible at all
@@ -242,7 +248,7 @@ func (s *Server) handleCreateExpressAPI(ctx context.Context, req *mcp.CallToolRe
 
 type SetupDatabaseInput struct {
 	Name string `json:"name,omitempty" jsonschema:"Database name (default: app-db)"`
-	Type string `json:"type,omitempty" jsonschema:"Database type: postgres (default), sqlite"`
+	Type string `json:"type,omitempty" jsonschema:"Database type: postgres (default)"`
 }
 
 type SetupDatabaseOutput struct {
@@ -282,34 +288,10 @@ func (s *Server) handleSetupDatabase(ctx context.Context, req *mcp.CallToolReque
 			ConnectionInfo: "", // Connection info will be printed by the tool
 		}, nil
 
-	case "sqlite":
-		// Call the real implementation directly
-		err := tools.SetupSQLite(ctx, map[string]string{
-			"name": input.Name + ".db", // Add .db extension for SQLite
-			"path": ".",
-		})
-
-		if err != nil {
-			return nil, SetupDatabaseOutput{
-				Success: false,
-				Message: err.Error(),
-			}, nil
-		}
-
-		// SQLite path
-		dbPath := input.Name + ".db"
-
-		return nil, SetupDatabaseOutput{
-			Success:        true,
-			Message:        fmt.Sprintf("Created SQLite database '%s.db' locally with schema", input.Name),
-			Type:           "sqlite",
-			ConnectionInfo: dbPath,
-		}, nil
-
 	default:
 		return nil, SetupDatabaseOutput{
 			Success: false,
-			Message: fmt.Sprintf("Database type '%s' not supported. Choose 'postgres' or 'sqlite'.", input.Type),
+			Message: fmt.Sprintf("Database type '%s' not supported. Use 'postgres' (default).", input.Type),
 		}, nil
 	}
 }
@@ -348,47 +330,6 @@ func (s *Server) handleSetupPostgresFree(ctx context.Context, req *mcp.CallToolR
 		Success:        true,
 		Message:        fmt.Sprintf("Created PostgreSQL database '%s' on Tiger Cloud (free tier) with auto-schema", input.Name),
 		ConnectionInfo: connInfo,
-	}, nil
-}
-
-type SetupSQLiteInput struct {
-	Name string `json:"name,omitempty" jsonschema:"Database filename (default: database.db)"`
-	Path string `json:"path,omitempty" jsonschema:"Directory path (default: current directory)"`
-}
-
-type SetupSQLiteOutput struct {
-	Success bool   `json:"success"`
-	Message string `json:"message"`
-	Path    string `json:"path"`
-}
-
-func (s *Server) handleSetupSQLite(ctx context.Context, req *mcp.CallToolRequest, input SetupSQLiteInput) (*mcp.CallToolResult, SetupSQLiteOutput, error) {
-	// Set defaults
-	if input.Name == "" {
-		input.Name = "database.db"
-	}
-	if input.Path == "" {
-		input.Path = "."
-	}
-
-	// Call the real implementation directly
-	err := tools.SetupSQLite(ctx, map[string]string{
-		"name": input.Name,
-		"path": input.Path,
-	})
-
-	if err != nil {
-		return nil, SetupSQLiteOutput{
-			Success: false,
-			Message: fmt.Sprintf("Failed to create SQLite database: %v", err),
-		}, nil
-	}
-
-	dbPath := fmt.Sprintf("%s/%s", input.Path, input.Name)
-	return nil, SetupSQLiteOutput{
-		Success: true,
-		Message: fmt.Sprintf("Created SQLite database '%s' with schema", input.Name),
-		Path:    dbPath,
 	}, nil
 }
 
@@ -515,6 +456,38 @@ func (s *Server) handleAddUITheme(ctx context.Context, req *mcp.CallToolRequest,
 		Success: true,
 		Message: message,
 		Theme:   input.Theme,
+	}, nil
+}
+
+type OpenAppInput struct {
+	URL string `json:"url,omitempty" jsonschema:"URL to open (default: http://localhost:3000)"`
+}
+
+type OpenAppOutput struct {
+	Success bool   `json:"success"`
+	Message string `json:"message"`
+	URL     string `json:"url"`
+}
+
+func (s *Server) handleOpenApp(ctx context.Context, req *mcp.CallToolRequest, input OpenAppInput) (*mcp.CallToolResult, OpenAppOutput, error) {
+	url := input.URL
+	if url == "" {
+		url = "http://localhost:3000"
+	}
+
+	err := tools.OpenBrowser(url)
+	if err != nil {
+		return nil, OpenAppOutput{
+			Success: false,
+			Message: fmt.Sprintf("Failed to open browser: %v", err),
+			URL:     url,
+		}, nil
+	}
+
+	return nil, OpenAppOutput{
+		Success: true,
+		Message: fmt.Sprintf("Opened %s in browser", url),
+		URL:     url,
 	}, nil
 }
 

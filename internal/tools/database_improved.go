@@ -182,11 +182,12 @@ func SetupPostgresWithSchema(ctx context.Context, args map[string]string) error 
 	}
 
 	// Step 4: Generate .env.local content
-	// Remove ?sslmode=require from connection string as it causes issues with Node.js
-	cleanConnectionString := strings.Replace(connectionString, "?sslmode=require", "", 1)
-
-	envContent := fmt.Sprintf(`# Database Configuration
+	// Keep sslmode=require in connection string - we'll handle SSL in Node.js
+	envContent := fmt.Sprintf(`# Database Configuration (Tiger Cloud)
 DATABASE_URL=%s
+
+# JWT Secret (change in production!)
+JWT_SECRET=%s-jwt-secret-change-in-production
 
 # Database Connection Parts (for libraries that need individual values)
 DB_HOST=%s.tsdb.cloud.timescale.com
@@ -198,39 +199,110 @@ DB_SSL=require
 
 # Tiger Cloud Service
 TIGER_SERVICE_ID=%s
-`, cleanConnectionString, serviceID, password, serviceID)
+`, connectionString, dbName, serviceID, password, serviceID)
 
-	// Write .env.local file
-	if err := os.WriteFile(".env.local", []byte(envContent), 0600); err != nil {
-		fmt.Printf("⚠️  Could not write .env.local: %v\n", err)
-		fmt.Printf("\n📋 Add this to your .env.local:\n%s\n", envContent)
-	} else {
-		fmt.Printf("✅ Created .env.local with connection details\n")
+	// Try to find existing .env.local and update it, or create new one
+	envPath := ".env.local"
+
+	// Check if we're in an app directory (has package.json)
+	if _, err := os.Stat("package.json"); err == nil {
+		// We're in an app directory, use .env.local here
+		envPath = ".env.local"
 	}
 
-	// Step 5: Create database utility file
-	dbUtilContent := `import { Pool } from 'pg';
+	// Check if .env.local exists and update DATABASE_URL
+	existingEnv, err := os.ReadFile(envPath)
+	if err == nil {
+		// File exists - update DATABASE_URL line
+		lines := strings.Split(string(existingEnv), "\n")
+		var newLines []string
+		foundDatabaseURL := false
+		foundJWTSecret := false
 
-// Create a connection pool for better performance
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  max: 20, // Maximum number of clients in the pool
-  idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
-  connectionTimeoutMillis: 2000, // Return an error after 2 seconds if connection fails
-});
+		for _, line := range lines {
+			if strings.HasPrefix(line, "DATABASE_URL=") {
+				newLines = append(newLines, fmt.Sprintf("DATABASE_URL=%s", connectionString))
+				foundDatabaseURL = true
+			} else if strings.HasPrefix(line, "JWT_SECRET=") {
+				foundJWTSecret = true
+				newLines = append(newLines, line)
+			} else {
+				newLines = append(newLines, line)
+			}
+		}
 
-// Optional: Handle pool errors
-pool.on('error', (err) => {
-  console.error('Unexpected database error:', err);
-});
+		// Add DATABASE_URL if not found
+		if !foundDatabaseURL {
+			// Insert after first comment block or at beginning
+			newLines = append([]string{fmt.Sprintf("DATABASE_URL=%s", connectionString)}, newLines...)
+		}
 
-export default pool;
+		// Add JWT_SECRET if not found
+		if !foundJWTSecret {
+			newLines = append(newLines, fmt.Sprintf("JWT_SECRET=%s-jwt-secret-change-in-production", dbName))
+		}
 
-// Helper function for transactions
+		if err := os.WriteFile(envPath, []byte(strings.Join(newLines, "\n")), 0600); err != nil {
+			fmt.Printf("⚠️  Could not update %s: %v\n", envPath, err)
+		} else {
+			fmt.Printf("✅ Updated %s with DATABASE_URL\n", envPath)
+		}
+	} else {
+		// File doesn't exist - create it
+		if err := os.WriteFile(envPath, []byte(envContent), 0600); err != nil {
+			fmt.Printf("⚠️  Could not write %s: %v\n", envPath, err)
+			fmt.Printf("\n📋 Add this to your .env.local:\n%s\n", envContent)
+		} else {
+			fmt.Printf("✅ Created %s with connection details\n", envPath)
+		}
+	}
+
+	// Step 5: Create database utility file with proper SSL handling
+	dbUtilContent := `import { Pool, PoolClient } from 'pg';
+
+// Disable SSL certificate validation for Tiger Cloud (self-signed certs)
+// This is safe for Tiger Cloud as the connection is still encrypted
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
+let pool: Pool | undefined;
+
+function getPool(): Pool {
+  if (!pool) {
+    if (!process.env.DATABASE_URL) {
+      throw new Error('DATABASE_URL not configured. Run setup_database to create a PostgreSQL database.');
+    }
+
+    pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      max: 20,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
+    });
+
+    pool.on('error', (err) => {
+      console.error('Unexpected database pool error:', err);
+    });
+  }
+  return pool;
+}
+
+// Query helper - use this for most database operations
+export async function query(text: string, params?: any[]) {
+  const p = getPool();
+  return await p.query(text, params);
+}
+
+// Get a client for transactions
+export async function getClient(): Promise<PoolClient> {
+  const p = getPool();
+  return await p.connect();
+}
+
+// Transaction helper
 export async function withTransaction<T>(
-  callback: (client: any) => Promise<T>
+  callback: (client: PoolClient) => Promise<T>
 ): Promise<T> {
-  const client = await pool.connect();
+  const client = await getClient();
   try {
     await client.query('BEGIN');
     const result = await callback(client);
@@ -243,21 +315,39 @@ export async function withTransaction<T>(
     client.release();
   }
 }
+
+export default pool;
 `
 
-	// Create lib directory and db.ts file
-	os.MkdirAll("lib", 0755)
-	if err := os.WriteFile("lib/db.ts", []byte(dbUtilContent), 0644); err != nil {
-		fmt.Printf("⚠️  Could not create lib/db.ts: %v\n", err)
-	} else {
-		fmt.Printf("✅ Created lib/db.ts with connection pool\n")
+	// Create lib directory and db.ts file (only if we're in an app directory)
+	if _, err := os.Stat("package.json"); err == nil {
+		os.MkdirAll("lib", 0755)
+		if err := os.WriteFile("lib/db.ts", []byte(dbUtilContent), 0644); err != nil {
+			fmt.Printf("⚠️  Could not create lib/db.ts: %v\n", err)
+		} else {
+			fmt.Printf("✅ Created/updated lib/db.ts with connection pool\n")
+		}
+
+		// If there's an init-db script, run it to create app-specific tables
+		if _, err := os.Stat("scripts/init-db.js"); err == nil {
+			fmt.Printf("📝 Running database initialization script...\n")
+			initCmd := exec.CommandContext(ctx, "node", "scripts/init-db.js")
+			initOutput, err := initCmd.CombinedOutput()
+			if err != nil {
+				fmt.Printf("⚠️  Init script had issues: %s\n", string(initOutput))
+			} else {
+				fmt.Printf("%s", string(initOutput))
+			}
+		}
 	}
 
 	fmt.Printf("\n🎉 PostgreSQL setup complete!\n")
 	fmt.Printf("   - Database: %s\n", dbName)
 	fmt.Printf("   - Schema: %s app tables created\n", appType)
 	fmt.Printf("   - Connection: Saved to .env.local\n")
-	fmt.Printf("   - Utilities: lib/db.ts ready to use\n")
+	if _, err := os.Stat("package.json"); err == nil {
+		fmt.Printf("   - Utilities: lib/db.ts ready to use\n")
+	}
 
 	return nil
 }

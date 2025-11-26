@@ -611,13 +611,80 @@ export function useAuth() {
 `
 	os.WriteFile(filepath.Join("lib", "auth", "useAuth.tsx"), []byte(authHookContent), 0644)
 
-	// Create LoginForm component
+	// Create LoginForm component - Brutalist light mode
 	loginFormContent := `'use client';
 
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth/useAuth';
 
-export default function LoginForm() {
+// Brutalist light mode colors
+const styles = {
+  container: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '1rem',
+    maxWidth: '400px',
+    padding: '2rem',
+    background: '#ffffff',
+    border: '2px solid #000000',
+    fontFamily: 'monospace',
+  },
+  heading: {
+    fontSize: '1.5rem',
+    marginBottom: '0.5rem',
+    color: '#000000',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.05em',
+  },
+  error: {
+    padding: '0.75rem',
+    background: '#fff0f0',
+    color: '#cc0000',
+    border: '1px solid #cc0000',
+  },
+  label: {
+    fontSize: '0.75rem',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.1em',
+    color: '#666666',
+    marginBottom: '0.25rem',
+  },
+  input: {
+    padding: '0.75rem',
+    border: '2px solid #000000',
+    background: '#ffffff',
+    fontSize: '1rem',
+    fontFamily: 'monospace',
+    color: '#000000',
+  },
+  button: {
+    padding: '0.75rem',
+    background: '#ff4500',
+    color: '#ffffff',
+    border: 'none',
+    fontSize: '1rem',
+    cursor: 'pointer',
+    fontFamily: 'monospace',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.05em',
+    fontWeight: 'bold',
+  },
+  buttonDisabled: {
+    background: '#cccccc',
+    cursor: 'not-allowed',
+  },
+  link: {
+    color: '#ff4500',
+    textDecoration: 'underline',
+    cursor: 'pointer',
+    background: 'none',
+    border: 'none',
+    fontFamily: 'monospace',
+    fontSize: '0.9rem',
+  },
+};
+
+export default function LoginForm({ onSwitch }: { onSwitch?: () => void }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -631,7 +698,6 @@ export default function LoginForm() {
 
     try {
       await login(email, password);
-      // Auth context will handle redirect
     } catch (err: any) {
       setError(err.message || 'Login failed');
     } finally {
@@ -640,77 +706,136 @@ export default function LoginForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '400px' }}>
-      <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Login</h2>
+    <form onSubmit={handleSubmit} style={styles.container}>
+      <h2 style={styles.heading}>Login</h2>
+      <p style={{ color: '#666666', marginTop: 0 }}>Sign in to your account.</p>
 
-      {error && (
-        <div style={{ padding: '0.75rem', background: '#fee', color: '#c00', borderRadius: '4px' }}>
-          {error}
-        </div>
-      )}
+      {error && <div style={styles.error}>{error}</div>}
 
-      <input
-        type="email"
-        placeholder="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        required
-        style={{
-          padding: '0.75rem',
-          border: '1px solid #ccc',
-          borderRadius: '4px',
-          fontSize: '1rem',
-          fontFamily: 'monospace'
-        }}
-      />
+      <div>
+        <label style={styles.label}>Email</label>
+        <input
+          type="email"
+          placeholder="you@example.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          style={styles.input}
+        />
+      </div>
 
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        required
-        style={{
-          padding: '0.75rem',
-          border: '1px solid #ccc',
-          borderRadius: '4px',
-          fontSize: '1rem',
-          fontFamily: 'monospace'
-        }}
-      />
+      <div>
+        <label style={styles.label}>Password</label>
+        <input
+          type="password"
+          placeholder="••••••••"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          style={styles.input}
+        />
+      </div>
 
       <button
         type="submit"
         disabled={loading}
-        style={{
-          padding: '0.75rem',
-          background: loading ? '#ccc' : '#ff4500',
-          color: 'white',
-          border: 'none',
-          borderRadius: '4px',
-          fontSize: '1rem',
-          cursor: loading ? 'not-allowed' : 'pointer',
-          fontFamily: 'monospace'
-        }}
+        style={{ ...styles.button, ...(loading ? styles.buttonDisabled : {}) }}
       >
-        {loading ? 'Logging in...' : 'Login'}
+        {loading ? 'Signing in...' : 'Sign In →'}
       </button>
+
+      {onSwitch && (
+        <p style={{ textAlign: 'center', color: '#666666' }}>
+          Don't have an account?{' '}
+          <button type="button" onClick={onSwitch} style={styles.link}>
+            Sign up
+          </button>
+        </p>
+      )}
     </form>
   );
 }
 `
 	os.WriteFile(filepath.Join("components", "auth", "LoginForm.tsx"), []byte(loginFormContent), 0644)
 
-	// Create RegisterForm component
+	// Create RegisterForm component - Brutalist light mode
 	registerFormContent := `'use client';
 
 import { useState } from 'react';
 import { useAuth } from '@/lib/auth/useAuth';
 
-export default function RegisterForm() {
+// Brutalist light mode colors
+const styles = {
+  container: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '1rem',
+    maxWidth: '400px',
+    padding: '2rem',
+    background: '#ffffff',
+    border: '2px solid #000000',
+    fontFamily: 'monospace',
+  },
+  heading: {
+    fontSize: '1.5rem',
+    marginBottom: '0.5rem',
+    color: '#000000',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.05em',
+  },
+  error: {
+    padding: '0.75rem',
+    background: '#fff0f0',
+    color: '#cc0000',
+    border: '1px solid #cc0000',
+  },
+  label: {
+    fontSize: '0.75rem',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.1em',
+    color: '#666666',
+    marginBottom: '0.25rem',
+  },
+  input: {
+    padding: '0.75rem',
+    border: '2px solid #000000',
+    background: '#ffffff',
+    fontSize: '1rem',
+    fontFamily: 'monospace',
+    color: '#000000',
+    width: '100%',
+    boxSizing: 'border-box' as const,
+  },
+  button: {
+    padding: '0.75rem',
+    background: '#ff4500',
+    color: '#ffffff',
+    border: 'none',
+    fontSize: '1rem',
+    cursor: 'pointer',
+    fontFamily: 'monospace',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.05em',
+    fontWeight: 'bold',
+  },
+  buttonDisabled: {
+    background: '#cccccc',
+    cursor: 'not-allowed',
+  },
+  link: {
+    color: '#ff4500',
+    textDecoration: 'underline',
+    cursor: 'pointer',
+    background: 'none',
+    border: 'none',
+    fontFamily: 'monospace',
+    fontSize: '0.9rem',
+  },
+};
+
+export default function RegisterForm({ onSwitch }: { onSwitch?: () => void }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -719,11 +844,6 @@ export default function RegisterForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
 
     if (password.length < 6) {
       setError('Password must be at least 6 characters');
@@ -734,7 +854,6 @@ export default function RegisterForm() {
 
     try {
       await register(email, password, name);
-      // Auth context will handle redirect
     } catch (err: any) {
       setError(err.message || 'Registration failed');
     } finally {
@@ -743,90 +862,63 @@ export default function RegisterForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '400px' }}>
-      <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Register</h2>
+    <form onSubmit={handleSubmit} style={styles.container}>
+      <h2 style={styles.heading}>Sign Up</h2>
+      <p style={{ color: '#666666', marginTop: 0 }}>Create your account.</p>
 
-      {error && (
-        <div style={{ padding: '0.75rem', background: '#fee', color: '#c00', borderRadius: '4px' }}>
-          {error}
-        </div>
-      )}
+      {error && <div style={styles.error}>{error}</div>}
 
-      <input
-        type="text"
-        placeholder="Name (optional)"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        style={{
-          padding: '0.75rem',
-          border: '1px solid #ccc',
-          borderRadius: '4px',
-          fontSize: '1rem',
-          fontFamily: 'monospace'
-        }}
-      />
+      <div>
+        <label style={styles.label}>Name</label>
+        <input
+          type="text"
+          placeholder="Your name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          style={styles.input}
+        />
+      </div>
 
-      <input
-        type="email"
-        placeholder="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        required
-        style={{
-          padding: '0.75rem',
-          border: '1px solid #ccc',
-          borderRadius: '4px',
-          fontSize: '1rem',
-          fontFamily: 'monospace'
-        }}
-      />
+      <div>
+        <label style={styles.label}>Email</label>
+        <input
+          type="email"
+          placeholder="you@example.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          style={styles.input}
+        />
+      </div>
 
-      <input
-        type="password"
-        placeholder="Password (min 6 characters)"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        required
-        style={{
-          padding: '0.75rem',
-          border: '1px solid #ccc',
-          borderRadius: '4px',
-          fontSize: '1rem',
-          fontFamily: 'monospace'
-        }}
-      />
-
-      <input
-        type="password"
-        placeholder="Confirm Password"
-        value={confirmPassword}
-        onChange={(e) => setConfirmPassword(e.target.value)}
-        required
-        style={{
-          padding: '0.75rem',
-          border: '1px solid #ccc',
-          borderRadius: '4px',
-          fontSize: '1rem',
-          fontFamily: 'monospace'
-        }}
-      />
+      <div>
+        <label style={styles.label}>Password</label>
+        <input
+          type="password"
+          placeholder="••••••••"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          style={styles.input}
+        />
+      </div>
 
       <button
         type="submit"
         disabled={loading}
-        style={{
-          padding: '0.75rem',
-          background: loading ? '#ccc' : '#ff4500',
-          color: 'white',
-          border: 'none',
-          borderRadius: '4px',
-          fontSize: '1rem',
-          cursor: loading ? 'not-allowed' : 'pointer',
-          fontFamily: 'monospace'
-        }}
+        style={{ ...styles.button, ...(loading ? styles.buttonDisabled : {}) }}
       >
-        {loading ? 'Creating account...' : 'Register'}
+        {loading ? 'Creating account...' : 'Create Account →'}
       </button>
+
+      {onSwitch && (
+        <p style={{ textAlign: 'center', color: '#666666' }}>
+          Already have an account?{' '}
+          <button type="button" onClick={onSwitch} style={styles.link}>
+            Login
+          </button>
+        </p>
+      )}
     </form>
   );
 }

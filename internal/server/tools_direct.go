@@ -13,7 +13,7 @@ func (s *Server) registerDirectTools() {
 	// Universal web app tool (handles all frameworks)
 	mcp.AddTool(s.mcpServer, &mcp.Tool{
 		Name:        "create_web_app",
-		Description: "🚀 Create any web application - Next.js (default), React, Express, or custom. Handles all web frameworks with TypeScript, Tailwind, and best practices. Use for any 'build app' or 'create app' request.",
+		Description: "🚀 Create any web application - Next.js (default), React, Express, or custom. Handles all web frameworks with TypeScript, Tailwind, and best practices. Use for any 'build app' or 'create app' request. **IMPORTANT:** Do not ask clarifying questions - just call this tool with a name parameter. Smart defaults handle everything.",
 	}, s.handleCreateWebApp)
 
 	// Removed to stay under 10-tool limit

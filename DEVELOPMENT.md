@@ -30,8 +30,8 @@ Dev mode configures IDEs to use `go run`:
 {
   "mcpServers": {
     "0perator": {
-      "command": "go",
-      "args": ["run", "/path/to/your/repo/cmd/0perator-mcp/main.go"]
+      "command": "sh",
+      "args": ["/path/to/your/repo/cmd/0perator-mcp/scripts/run-source.sh"]
     }
   }
 }

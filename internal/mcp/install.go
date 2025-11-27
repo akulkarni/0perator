@@ -124,13 +124,13 @@ func Install0peratorMCP(client IDEClient, options Install0peratorMCPOptions) err
 		if err != nil {
 			return fmt.Errorf("failed to get current working directory: %w", err)
 		}
-		mainPath := filepath.Join(cwd, "cmd", "0perator-mcp", "main.go")
-		if _, err := os.Stat(mainPath); err != nil {
-			return fmt.Errorf("dev mode requires running from the 0perator repository root (expected %s)", mainPath)
+		scriptPath := filepath.Join(cwd, "scripts", "run-source.sh")
+		if _, err := os.Stat(scriptPath); err != nil {
+			return fmt.Errorf("dev mode requires running from the 0perator repository root (expected %s)", scriptPath)
 		}
 		server = MCPServer{
-			Command: "go",
-			Args:    []string{"run", mainPath},
+			Command: "sh",
+			Args:    []string{scriptPath},
 		}
 	} else {
 		// Get the full path to the 0perator binary

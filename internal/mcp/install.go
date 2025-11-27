@@ -21,7 +21,7 @@ const (
 // ideConfigPaths maps IDE clients to their MCP config file paths
 // Paths with ~ will be expanded to user's home directory
 var ideConfigPaths = map[IDEClient]string{
-	ClaudeCode: "~/.config/claude/mcp.json",
+	ClaudeCode: "~/.claude.json",
 	Cursor:     "~/.cursor/mcp.json",
 	Windsurf:   "~/.windsurf/mcp.json",
 }
@@ -75,8 +75,13 @@ func InstallTigerMCP(client IDEClient) error {
 	return nil
 }
 
+// Install0peratorMCPOptions contains options for Install0peratorMCP
+type Install0peratorMCPOptions struct {
+	DevMode bool // Use 'go run' instead of compiled binary
+}
+
 // Install0peratorMCP adds 0perator MCP server to the IDE's config file
-func Install0peratorMCP(client IDEClient) error {
+func Install0peratorMCP(client IDEClient, options Install0peratorMCPOptions) error {
 
 	configPath, err := getConfigPath(client)
 	if err != nil {
@@ -112,20 +117,38 @@ func Install0peratorMCP(client IDEClient) error {
 		config.MCPServers = make(map[string]MCPServer)
 	}
 
-	// Get the full path to the 0perator binary
-	operatorPath, err := exec.LookPath("0perator")
-	if err != nil {
-		// If not in PATH, use the current executable path
-		operatorPath, err = os.Executable()
+	var server MCPServer
+	if options.DevMode {
+		// In dev mode, use 'go run' with the project directory
+		cwd, err := os.Getwd()
 		if err != nil {
-			return fmt.Errorf("failed to determine 0perator binary path: %w", err)
+			return fmt.Errorf("failed to get current working directory: %w", err)
+		}
+		mainPath := filepath.Join(cwd, "cmd", "0perator-mcp", "main.go")
+		if _, err := os.Stat(mainPath); err != nil {
+			return fmt.Errorf("dev mode requires running from the 0perator repository root (expected %s)", mainPath)
+		}
+		server = MCPServer{
+			Command: "go",
+			Args:    []string{"run", mainPath},
+		}
+	} else {
+		// Get the full path to the 0perator binary
+		operatorPath, err := exec.LookPath("0perator")
+		if err != nil {
+			// If not in PATH, use the current executable path
+			operatorPath, err = os.Executable()
+			if err != nil {
+				return fmt.Errorf("failed to determine 0perator binary path: %w", err)
+			}
+		}
+		server = MCPServer{
+			Command: operatorPath,
+			Args:    []string{},
 		}
 	}
 
-	config.MCPServers["0perator"] = MCPServer{
-		Command: operatorPath,
-		Args:    []string{},
-	}
+	config.MCPServers["0perator"] = server
 
 	// Write back to file with pretty formatting
 	updatedData, err := json.MarshalIndent(config, "", "  ")
@@ -141,7 +164,7 @@ func Install0peratorMCP(client IDEClient) error {
 }
 
 // InstallBoth installs both Tiger and 0perator MCP servers for the given IDE
-func InstallBoth(client IDEClient) error {
+func InstallBoth(client IDEClient, options Install0peratorMCPOptions) error {
 	// Check if Tiger MCP config already exists
 	configPath, err := getConfigPath(client)
 	if err != nil {
@@ -166,7 +189,7 @@ func InstallBoth(client IDEClient) error {
 	}
 
 	// Add 0perator to the config file
-	if err := Install0peratorMCP(client); err != nil {
+	if err := Install0peratorMCP(client, options); err != nil {
 		return err
 	}
 

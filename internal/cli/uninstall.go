@@ -145,7 +145,7 @@ func getIDEConfigPath(client mcp.IDEClient) (string, error) {
 	var path string
 	switch client {
 	case mcp.ClaudeCode:
-		path = "~/.config/claude/mcp.json"
+		path = "~/.claude.json"
 	case mcp.Cursor:
 		path = "~/.cursor/mcp.json"
 	case mcp.Windsurf:

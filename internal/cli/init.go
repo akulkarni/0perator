@@ -11,11 +11,21 @@ import (
 	"github.com/akulkarni/0perator/internal/mcp"
 )
 
+// InitOptions contains options for the Init command
+type InitOptions struct {
+	DevMode bool // Use 'go run' instead of compiled binary for 0perator MCP
+}
+
 // Init initializes 0perator by installing tiger-cli and configuring MCP servers
-func Init() error {
+func Init(options InitOptions) error {
 	startTime := time.Now()
 
 	printBanner()
+
+	if options.DevMode {
+		fmt.Println(accent("  [DEV MODE]") + " Using 'go run' for 0perator MCP")
+		fmt.Println()
+	}
 
 	// Check and install tiger-cli
 	if err := ensureTigerCLI(); err != nil {
@@ -34,12 +44,12 @@ func Init() error {
 	}
 
 	// Install MCP servers for each selected IDE
-	if err := installMCPServers(selectedIDEs); err != nil {
+	if err := installMCPServers(selectedIDEs, options.DevMode); err != nil {
 		return err
 	}
 
 	totalTime := time.Since(startTime)
-	printSuccess(selectedIDEs, totalTime)
+	printSuccess(selectedIDEs, totalTime, options.DevMode)
 	return nil
 }
 
@@ -212,7 +222,7 @@ func selectIDEs() ([]mcp.IDEClient, error) {
 	return selected, nil
 }
 
-func installMCPServers(ides []mcp.IDEClient) error {
+func installMCPServers(ides []mcp.IDEClient, devMode bool) error {
 	fmt.Println()
 	fmt.Println(accent("[4/4]") + " Installing MCP servers...")
 	fmt.Println()
@@ -244,7 +254,8 @@ func installMCPServers(ides []mcp.IDEClient) error {
 		// Install 0perator MCP
 		opStart := time.Now()
 
-		if err := mcp.Install0peratorMCP(ide); err != nil {
+		opts := mcp.Install0peratorMCPOptions{DevMode: devMode}
+		if err := mcp.Install0peratorMCP(ide, opts); err != nil {
 			fmt.Printf("    %s 0perator MCP (%.1fs)\n", accent("✗"), time.Since(opStart).Seconds())
 			return fmt.Errorf("failed to install 0perator MCP for %s: %w", ide, err)
 		}
@@ -257,14 +268,18 @@ func installMCPServers(ides []mcp.IDEClient) error {
 	return nil
 }
 
-func printSuccess(ides []mcp.IDEClient, totalTime time.Duration) {
+func printSuccess(ides []mcp.IDEClient, totalTime time.Duration, devMode bool) {
 	fmt.Println("──────────────────────────────────────────────────")
 	fmt.Println("  " + accent(fmt.Sprintf("✨ All set! (%.1fs)", totalTime.Seconds())))
 	fmt.Println("──────────────────────────────────────────────────")
 	fmt.Println()
 	fmt.Println("  Each IDE now has:")
 	fmt.Println("    • Tiger MCP (database, docs, best practices)")
-	fmt.Println("    • 0perator MCP (app scaffolding, deployment)")
+	if devMode {
+		fmt.Println("    • 0perator MCP (dev mode: using 'go run')")
+	} else {
+		fmt.Println("    • 0perator MCP (app scaffolding, deployment)")
+	}
 	fmt.Println()
 	fmt.Println("  Next: Restart your IDE and try")
 	fmt.Println("        \"Create a task management app\"")

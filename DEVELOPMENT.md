@@ -69,8 +69,7 @@ This runs the prompt through Claude Code SDK with the MCP server and saves resul
 
 ### Options
 
-- `--mcp` - Use the MCP server (runs `scripts/run-source.sh` by default)
-- `--mcp-server <path>` - Use a custom MCP server
+- `--no-mcp` - Disable MCP servers (enabled by default: 0perator, tiger)
 - `--no-structured-prompt` - Disable the structured prompt that asks for `<summary>`, `<feedback>`, `<response>` tags
 
 ### Output files

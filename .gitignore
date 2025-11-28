@@ -29,3 +29,6 @@ go.work
 
 # OS
 .DS_Store
+
+# Eval results
+eval/results*/

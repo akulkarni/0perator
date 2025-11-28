@@ -17,11 +17,11 @@ import time
 from typing import Dict, List, Optional, Tuple, Any
 
 try:
-    from claude_code_sdk import ClaudeSDKClient, ClaudeCodeOptions
+    from claude_agent_sdk import ClaudeSDKClient, ClaudeAgentOptions
     import asyncio
 except ImportError:
-    print("Error: Claude Code SDK not installed.")
-    print("Install with: uv add claude-code-sdk")
+    print("Error: Claude Agent SDK not installed.")
+    print("Install with: uv add claude-agent-sdk")
     print("Also ensure Node.js 18+ is installed and run: npm install -g @anthropic-ai/claude-code")
     sys.exit(1)
 
@@ -65,16 +65,16 @@ class ConversationTracker:
         return "".join(self.full_conversation)
 
 
-def create_mcp_config(mcp_server_path: str, server_name: str = "mcp-server", env_vars: Optional[Dict[str, str]] = None) -> dict:
-    """Create MCP server configuration."""
-    if env_vars is None:
-        env_vars = {}
-
+def create_default_mcp_config(operator_server_path: str) -> dict:
+    """Create default MCP server configuration with 0perator and tiger servers."""
     return {
-        server_name: {
-            "command": mcp_server_path,
-            "args": [],
-            "env": env_vars
+        "0perator": {
+            "command": operator_server_path,
+            "args": []
+        },
+        "tiger": {
+            "command": os.path.expanduser("~/.local/bin/tiger"),
+            "args": ["mcp", "start"]
         }
     }
 
@@ -83,8 +83,6 @@ async def generate_with_sdk(
     prompt_content: str,
     use_mcp: bool = False,
     mcp_server_path: Optional[str] = None,
-    mcp_server_name: str = "mcp-server",
-    mcp_env_vars: Optional[Dict[str, str]] = None,
     use_structured_prompt: bool = True
 ) -> Tuple[str, ConversationTracker]:
     """Generate content using Claude Code SDK."""
@@ -96,9 +94,9 @@ async def generate_with_sdk(
         if use_mcp:
             if not mcp_server_path or not os.path.exists(mcp_server_path):
                 raise ValueError(f"MCP server not found at: {mcp_server_path}")
-            
-            print(f"Configuring MCP server '{mcp_server_name}'...")
-            mcp_servers = create_mcp_config(mcp_server_path, mcp_server_name, mcp_env_vars)
+
+            print(f"Configuring MCP servers (0perator, tiger)...")
+            mcp_servers = create_default_mcp_config(mcp_server_path)
             
         
         # Configure Claude SDK options
@@ -139,10 +137,11 @@ DO NOT open the generated application in the browser always skip that step.
         else:
             system_prompt = None
 
-        options = ClaudeCodeOptions(
+        options = ClaudeAgentOptions(
             system_prompt=system_prompt,
             mcp_servers=mcp_servers,
-            permission_mode="bypassPermissions"  # Bypass permission checks for MCP tools
+            permission_mode="bypassPermissions",  # Bypass permission checks for MCP tools
+            setting_sources=[]  # Don't load user/project config for isolation
         )
         
         # Initialize Claude SDK client
@@ -304,21 +303,13 @@ async def main_async():
 Examples:
   %(prog)s prompt.md
   %(prog)s prompt.md results/
-  %(prog)s --mcp --mcp-server my-server.js prompt.md
-  %(prog)s --mcp --mcp-server-name my-server prompt.md
-  %(prog)s --mcp --mcp-env API_KEY=abc123 --mcp-env DEBUG=true prompt.md
+  %(prog)s --no-mcp prompt.md
   %(prog)s --no-structured-prompt prompt.md
         """
     )
 
-    parser.add_argument('--mcp', action='store_true',
-                       help='Use MCP server')
-    parser.add_argument('--mcp-server', type=str,
-                       help='Path to MCP server JS file (defaults to mcp-server/index.js)')
-    parser.add_argument('--mcp-server-name', type=str, default='mcp-server',
-                       help='Name for the MCP server (default: mcp-server)')
-    parser.add_argument('--mcp-env', type=str, action='append',
-                       help='Environment variable for MCP server in KEY=VALUE format (can be used multiple times)')
+    parser.add_argument('--no-mcp', action='store_true',
+                       help='Disable MCP servers (enabled by default: 0perator, tiger)')
     parser.add_argument('--no-structured-prompt', action='store_true',
                        help='Disable structured prompt with summary/feedback tags (use default Claude behavior)')
     parser.add_argument('prompt_file',
@@ -333,28 +324,12 @@ Examples:
         print(f"Error: Prompt file '{args.prompt_file}' not found")
         sys.exit(1)
     
-    # Get MCP server path and configuration if needed
+    # Get MCP server path if needed
     mcp_server_path = None
-    mcp_server_name = args.mcp_server_name
-
-    # Parse environment variables
-    mcp_env_vars = {}
-    if args.mcp_env:
-        for env_var in args.mcp_env:
-            if '=' not in env_var:
-                print(f"Error: Invalid environment variable format '{env_var}'. Expected KEY=VALUE")
-                sys.exit(1)
-            key, value = env_var.split('=', 1)
-            mcp_env_vars[key] = value
-    
-    if args.mcp:
-        if args.mcp_server:
-            # Use provided MCP server path
-            mcp_server_path = args.mcp_server
-        else:
-            # Use default path: scripts/run-source.sh
-            script_dir = os.path.dirname(os.path.abspath(__file__))
-            mcp_server_path = os.path.join(script_dir, '..', 'scripts', 'run-source.sh')
+    if not args.no_mcp:
+        # Default path: scripts/run-source.sh
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        mcp_server_path = os.path.join(script_dir, '..', 'scripts', 'run-source.sh')
 
         if not os.path.exists(mcp_server_path):
             print(f"Error: MCP server not found at {mcp_server_path}")
@@ -384,10 +359,8 @@ Examples:
             # Generate content using SDK
             generated_content, tracker = await generate_with_sdk(
                 prompt_content,
-                args.mcp,
+                not args.no_mcp,
                 mcp_server_path,
-                mcp_server_name,
-                mcp_env_vars,
                 use_structured_prompt=not args.no_structured_prompt
             )
 

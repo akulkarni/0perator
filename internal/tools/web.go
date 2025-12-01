@@ -8,8 +8,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"time"
+
+	"github.com/akulkarni/0perator/internal/templates"
 )
 
 // OpenBrowser opens the given URL in the default browser
@@ -31,32 +32,6 @@ func waitForServer(url string, timeout time.Duration) bool {
 		time.Sleep(300 * time.Millisecond)
 	}
 	return false
-}
-
-// findAppDirectory finds the nearest directory containing package.json
-// It searches the current directory and immediate subdirectories
-func findAppDirectory() string {
-	// First check current directory
-	if _, err := os.Stat("package.json"); err == nil {
-		return "."
-	}
-
-	// Check immediate subdirectories for package.json
-	entries, err := os.ReadDir(".")
-	if err != nil {
-		return ""
-	}
-
-	for _, entry := range entries {
-		if entry.IsDir() && !strings.HasPrefix(entry.Name(), ".") {
-			pkgPath := filepath.Join(entry.Name(), "package.json")
-			if _, err := os.Stat(pkgPath); err == nil {
-				return entry.Name()
-			}
-		}
-	}
-
-	return ""
 }
 
 // findBun returns the path to the bun executable, checking common locations
@@ -127,25 +102,12 @@ func CreateNextJSApp(ctx context.Context, args map[string]string) error {
 		return fmt.Errorf("directory %s already exists", projectPath)
 	}
 
-	// Create directory structure
-	dirs := []string{
-		projectPath,
-		filepath.Join(projectPath, "app"),
-		filepath.Join(projectPath, "app", "api"),
-		filepath.Join(projectPath, "app", "api", "init-db"),
-		filepath.Join(projectPath, "public"),
-		filepath.Join(projectPath, "components"),
-		filepath.Join(projectPath, "lib"),
-		filepath.Join(projectPath, "scripts"),
+	// Create project directory
+	if err := os.MkdirAll(projectPath, 0755); err != nil {
+		return fmt.Errorf("failed to create directory %s: %w", projectPath, err)
 	}
 
-	for _, dir := range dirs {
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			return fmt.Errorf("failed to create directory %s: %w", dir, err)
-		}
-	}
-
-	// Create enhanced package.json with database scripts
+	// Create package.json with database scripts (dynamic, kept in code)
 	packageJSON := map[string]interface{}{
 		"name":    name,
 		"version": "0.1.0",
@@ -173,686 +135,23 @@ func CreateNextJSApp(ctx context.Context, args map[string]string) error {
 		return fmt.Errorf("failed to create package.json: %w", err)
 	}
 
-	// Create proper tsconfig.json with path aliases
-	tsconfigContent := `{
-  "compilerOptions": {
-    "target": "es5",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "preserve",
-    "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
-    "paths": {
-      "@/*": ["./*"],
-      "@/components/*": ["./components/*"],
-      "@/lib/*": ["./lib/*"],
-      "@/app/*": ["./app/*"]
-    }
-  },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
-}
-`
-	if err := os.WriteFile(filepath.Join(projectPath, "tsconfig.json"), []byte(tsconfigContent), 0644); err != nil {
-		return fmt.Errorf("failed to create tsconfig.json: %w", err)
+	// Template data for variable substitution
+	data := templates.TemplateData{Name: name}
+
+	// Copy base templates (shared across all variants)
+	if err := templates.WriteDir("web/nextjs/base", projectPath, data); err != nil {
+		return fmt.Errorf("failed to write base templates: %w", err)
 	}
 
-	// Create next.config.js with SSL workaround for Tiger Cloud
-	nextConfigContent := `/** @type {import('next').NextConfig} */
-
-// Disable SSL certificate validation for Tiger Cloud (self-signed certs)
-// This must be set before any database connections are made
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-
-const nextConfig = {}
-
-module.exports = nextConfig
-`
-	if err := os.WriteFile(filepath.Join(projectPath, "next.config.js"), []byte(nextConfigContent), 0644); err != nil {
-		return fmt.Errorf("failed to create next.config.js: %w", err)
-	}
-
-	// Create .env.local template
-	envContent := `# Database Configuration
-# This will be populated when you run 'setup_database'
-DATABASE_URL=
-
-# Next.js Configuration
-NEXT_PUBLIC_APP_NAME=` + name + `
-`
-	if err := os.WriteFile(filepath.Join(projectPath, ".env.local"), []byte(envContent), 0600); err != nil {
-		return fmt.Errorf("failed to create .env.local: %w", err)
-	}
-
-	// Create database utility lib/db.ts with proper SSL handling for Tiger Cloud
-	dbUtilContent := `import { Pool, PoolClient } from 'pg';
-
-// Disable SSL certificate validation for Tiger Cloud (self-signed certs)
-// This is safe for Tiger Cloud as the connection is still encrypted
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-
-let pool: Pool | undefined;
-
-function getPool(): Pool {
-  if (!pool) {
-    if (!process.env.DATABASE_URL) {
-      throw new Error('DATABASE_URL not configured. Run setup_database to create a PostgreSQL database.');
-    }
-
-    pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      max: 20,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 5000,
-    });
-
-    pool.on('error', (err) => {
-      console.error('Unexpected database pool error:', err);
-    });
-  }
-  return pool;
-}
-
-// Query helper - use this for most database operations
-export async function query(text: string, params?: any[]) {
-  const p = getPool();
-  return await p.query(text, params);
-}
-
-// Get a client for transactions
-export async function getClient(): Promise<PoolClient> {
-  const p = getPool();
-  return await p.connect();
-}
-
-// Transaction helper
-export async function withTransaction<T>(
-  callback: (client: PoolClient) => Promise<T>
-): Promise<T> {
-  const client = await getClient();
-  try {
-    await client.query('BEGIN');
-    const result = await callback(client);
-    await client.query('COMMIT');
-    return result;
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    client.release();
-  }
-}
-
-export default pool;
-`
-	if err := os.WriteFile(filepath.Join(projectPath, "lib", "db.ts"), []byte(dbUtilContent), 0644); err != nil {
-		return fmt.Errorf("failed to create lib/db.ts: %w", err)
-	}
-
-	// Create database check script
-	checkDbScript := `const { Pool } = require('pg');
-const fs = require('fs');
-const path = require('path');
-
-// Disable SSL certificate validation for Tiger Cloud
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-
-// Load .env.local file
-const envPath = path.join(__dirname, '..', '.env.local');
-if (fs.existsSync(envPath)) {
-  const envContent = fs.readFileSync(envPath, 'utf8');
-  envContent.split('\n').forEach(line => {
-    const match = line.match(/^([^#=]+)=(.*)$/);
-    if (match) {
-      const key = match[1].trim();
-      const value = match[2].trim();
-      if (!process.env[key]) {
-        process.env[key] = value;
-      }
-    }
-  });
-}
-
-async function checkDatabase() {
-  if (!process.env.DATABASE_URL) {
-    console.log('⚠️  DATABASE_URL not configured in .env.local');
-    console.log('   Run "setup_database" to create a PostgreSQL database');
-    return;
-  }
-
-  const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    connectionTimeoutMillis: 5000,
-  });
-
-  try {
-    await pool.query('SELECT 1');
-    console.log('✅ Database connected');
-
-    // Check if tables exist
-    const result = await pool.query(
-      "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public'"
-    );
-
-    if (result.rows[0].count === '0') {
-      console.log('⚠️  No tables found. Run "npm run db:init" to create tables');
-    }
-  } catch (error) {
-    console.log('❌ Database connection failed:', error.message);
-    console.log('   Check your DATABASE_URL in .env.local');
-  } finally {
-    await pool.end();
-  }
-}
-
-checkDatabase();
-`
-	if err := os.WriteFile(filepath.Join(projectPath, "scripts", "check-db.js"), []byte(checkDbScript), 0644); err != nil {
-		return fmt.Errorf("failed to create scripts/check-db.js: %w", err)
-	}
-
-	// Create database init script
-	initDbScript := `const { Pool } = require('pg');
-const fs = require('fs');
-const path = require('path');
-
-// Disable SSL certificate validation for Tiger Cloud
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-
-// Load .env.local file
-const envPath = path.join(__dirname, '..', '.env.local');
-if (fs.existsSync(envPath)) {
-  const envContent = fs.readFileSync(envPath, 'utf8');
-  envContent.split('\n').forEach(line => {
-    const match = line.match(/^([^#=]+)=(.*)$/);
-    if (match) {
-      const key = match[1].trim();
-      const value = match[2].trim();
-      if (!process.env[key]) {
-        process.env[key] = value;
-      }
-    }
-  });
-}
-
-async function initDatabase() {
-  if (!process.env.DATABASE_URL) {
-    console.error('DATABASE_URL not set in .env.local');
-    process.exit(1);
-  }
-
-  const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-  });
-
-  try {
-    console.log('Initializing database schema...');
-
-    // This schema will be created by the PostgreSQL setup tool
-    // but we include a fallback here
-    await pool.query(` + "`" + `
-      CREATE TABLE IF NOT EXISTS users (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        email VARCHAR(255) UNIQUE NOT NULL,
-        name VARCHAR(255),
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      )
-    ` + "`" + `);
-
-    console.log('✅ Database initialized successfully');
-  } catch (error) {
-    console.error('Failed to initialize database:', error);
-    process.exit(1);
-  } finally {
-    await pool.end();
-  }
-}
-
-initDatabase();
-`
-	if err := os.WriteFile(filepath.Join(projectPath, "scripts", "init-db.js"), []byte(initDbScript), 0644); err != nil {
-		return fmt.Errorf("failed to create scripts/init-db.js: %w", err)
-	}
-
-	// Create API route for database initialization (app/api/init-db/route.ts)
-	initApiContent := `import { NextResponse } from 'next/server';
-import { query } from '@/lib/db';
-
-export async function POST() {
-  if (!process.env.DATABASE_URL) {
-    return NextResponse.json(
-      { error: 'Database not configured' },
-      { status: 500 }
-    );
-  }
-
-  try {
-    // Check if tables already exist
-    const checkResult = await query(
-      "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'users'"
-    );
-
-    if (checkResult.rows[0].count > 0) {
-      return NextResponse.json({
-        message: 'Database already initialized',
-        tables: ['users', 'sessions', 'posts']
-      });
-    }
-
-    // Schema is created by the database setup tool
-    // This is just a fallback
-    await query(` + "`" + `
-      CREATE TABLE IF NOT EXISTS users (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        email VARCHAR(255) UNIQUE NOT NULL,
-        name VARCHAR(255),
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      )
-    ` + "`" + `);
-
-    return NextResponse.json({
-      message: 'Database initialized successfully',
-      tables: ['users']
-    });
-  } catch (error) {
-    console.error('Database init error:', error);
-    return NextResponse.json(
-      { error: 'Failed to initialize database' },
-      { status: 500 }
-    );
-  }
-}
-`
-	if err := os.WriteFile(filepath.Join(projectPath, "app", "api", "init-db", "route.ts"), []byte(initApiContent), 0644); err != nil {
-		return fmt.Errorf("failed to create app/api/init-db/route.ts: %w", err)
-	}
-
-	// Create main page - brutalist by default, Tailwind if requested
-	var pageContent string
+	// Copy variant templates (brutalist or tailwind)
 	if brutalist && !tailwind {
-		// Simple brutalist starter template
-		pageContent = `'use client';
-
-import { useState, useEffect } from 'react';
-
-export default function Home() {
-  const [dbStatus, setDbStatus] = useState<'checking' | 'connected' | 'not-configured' | 'error'>('checking');
-
-  useEffect(() => {
-    checkDatabase();
-  }, []);
-
-  const checkDatabase = async () => {
-    try {
-      const response = await fetch('/api/init-db', { method: 'POST' });
-      if (response.ok) {
-        setDbStatus('connected');
-      } else {
-        setDbStatus('not-configured');
-      }
-    } catch (error) {
-      setDbStatus('error');
-    }
-  };
-
-  return (
-    <main style={{
-      maxWidth: '800px',
-      margin: '0 auto',
-      padding: '2rem',
-      fontFamily: 'monospace'
-    }}>
-      <h1 style={{
-        fontSize: '2.5rem',
-        marginBottom: '1rem',
-        fontWeight: 'bold'
-      }}>
-        Welcome to ` + name + `
-      </h1>
-
-      <p style={{
-        fontSize: '1rem',
-        marginBottom: '2rem',
-        color: '#666'
-      }}>
-        Your Next.js application is ready. Edit this page in <code style={{
-          background: '#f0f0f0',
-          padding: '0.25rem 0.5rem',
-          borderRadius: '3px'
-        }}>app/page.tsx</code>
-      </p>
-
-      <div style={{
-        border: '2px solid #1a1a1a',
-        padding: '1.5rem',
-        marginBottom: '1.5rem',
-        background: '#fff'
-      }}>
-        <h2 style={{
-          fontSize: '1.25rem',
-          marginBottom: '1rem',
-          fontWeight: 'bold'
-        }}>
-          Database Status
-        </h2>
-        {dbStatus === 'checking' && (
-          <p style={{ color: '#666' }}>⏳ Checking database connection...</p>
-        )}
-        {dbStatus === 'connected' && (
-          <p style={{ color: '#22c55e' }}>✓ PostgreSQL database connected</p>
-        )}
-        {dbStatus === 'not-configured' && (
-          <div>
-            <p style={{ color: '#f59e0b', marginBottom: '0.5rem' }}>⚠ Database not configured</p>
-            <p style={{ fontSize: '0.875rem', color: '#666' }}>
-              Run <code style={{
-                background: '#f0f0f0',
-                padding: '0.25rem 0.5rem',
-                borderRadius: '3px'
-              }}>setup_database</code> to create a PostgreSQL database
-            </p>
-          </div>
-        )}
-        {dbStatus === 'error' && (
-          <p style={{ color: '#ef4444' }}>✗ Database connection error</p>
-        )}
-      </div>
-
-      <div style={{
-        border: '2px solid #1a1a1a',
-        padding: '1.5rem',
-        background: '#fff'
-      }}>
-        <h2 style={{
-          fontSize: '1.25rem',
-          marginBottom: '1rem',
-          fontWeight: 'bold'
-        }}>
-          Next Steps
-        </h2>
-        <ul style={{
-          listStyle: 'none',
-          padding: 0,
-          margin: 0
-        }}>
-          <li style={{ marginBottom: '0.75rem' }}>
-            <span style={{ color: '#ff4500', marginRight: '0.5rem' }}>→</span>
-            Edit <code style={{
-              background: '#f0f0f0',
-              padding: '0.25rem 0.5rem',
-              borderRadius: '3px'
-            }}>app/page.tsx</code> to customize this page
-          </li>
-          <li style={{ marginBottom: '0.75rem' }}>
-            <span style={{ color: '#ff4500', marginRight: '0.5rem' }}>→</span>
-            Add routes in <code style={{
-              background: '#f0f0f0',
-              padding: '0.25rem 0.5rem',
-              borderRadius: '3px'
-            }}>app/</code> directory
-          </li>
-          <li style={{ marginBottom: '0.75rem' }}>
-            <span style={{ color: '#ff4500', marginRight: '0.5rem' }}>→</span>
-            Use <code style={{
-              background: '#f0f0f0',
-              padding: '0.25rem 0.5rem',
-              borderRadius: '3px'
-            }}>lib/db.ts</code> for database queries
-          </li>
-          <li>
-            <span style={{ color: '#ff4500', marginRight: '0.5rem' }}>→</span>
-            Check <code style={{
-              background: '#f0f0f0',
-              padding: '0.25rem 0.5rem',
-              borderRadius: '3px'
-            }}>.env.local</code> for configuration
-          </li>
-        </ul>
-      </div>
-    </main>
-  );
-}
-`
-	} else {
-		// Tailwind version (only if explicitly requested)
-		pageContent = `'use client';
-
-import { useState, useEffect } from 'react';
-
-export default function Home() {
-  const [dbStatus, setDbStatus] = useState<'checking' | 'connected' | 'not-configured' | 'error'>('checking');
-
-  useEffect(() => {
-    checkDatabase();
-  }, []);
-
-  const checkDatabase = async () => {
-    try {
-      const response = await fetch('/api/init-db', { method: 'POST' });
-      if (response.ok) {
-        setDbStatus('connected');
-      } else {
-        setDbStatus('not-configured');
-      }
-    } catch (error) {
-      setDbStatus('error');
-    }
-  };
-
-  return (
-    <main className="min-h-screen p-8">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-bold mb-8">Welcome to ` + name + `!</h1>
-
-        <div className="bg-white shadow rounded-lg p-6 mb-8">
-          <h2 className="text-2xl font-semibold mb-4">Database Status</h2>
-          {dbStatus === 'checking' && (
-            <p className="text-gray-600">Checking database connection...</p>
-          )}
-          {dbStatus === 'connected' && (
-            <p className="text-green-600">✅ Database connected and ready!</p>
-          )}
-          {dbStatus === 'not-configured' && (
-            <div className="text-yellow-600">
-              <p>⚠️ Database not configured</p>
-              <p className="text-sm mt-2">Run 'setup_database' to create a PostgreSQL database</p>
-            </div>
-          )}
-          {dbStatus === 'error' && (
-            <p className="text-red-600">❌ Database connection error</p>
-          )}
-        </div>
-
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-2xl font-semibold mb-4">Getting Started</h2>
-          <ol className="list-decimal list-inside space-y-2">
-            <li>Set up your database with 'setup_database'</li>
-            <li>Start developing with 'npm run dev'</li>
-            <li>Build for production with 'npm run build'</li>
-          </ol>
-        </div>
-      </div>
-    </main>
-  );
-}
-`
-	}
-	if err := os.WriteFile(filepath.Join(projectPath, "app", "page.tsx"), []byte(pageContent), 0644); err != nil {
-		return fmt.Errorf("failed to create app/page.tsx: %w", err)
-	}
-
-	// Create layout - brutalist by default, Tailwind if requested
-	var layoutContent string
-	if brutalist && !tailwind {
-		// Brutalist version - no external fonts, minimal styles
-		layoutContent = `import type { Metadata } from 'next'
-
-export const metadata: Metadata = {
-  title: '` + name + `',
-  description: 'Built with Next.js and PostgreSQL',
-}
-
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  return (
-    <html lang="en">
-      <body style={{ margin: 0, padding: 0, fontFamily: 'monospace' }}>{children}</body>
-    </html>
-  )
-}
-`
-	} else {
-		// Tailwind version with custom font
-		layoutContent = `import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import './globals.css'
-
-const inter = Inter({ subsets: ['latin'] })
-
-export const metadata: Metadata = {
-  title: '` + name + `',
-  description: 'Built with Next.js and PostgreSQL',
-}
-
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  return (
-    <html lang="en">
-      <body className={inter.className}>{children}</body>
-    </html>
-  )
-}
-`
-	}
-	if err := os.WriteFile(filepath.Join(projectPath, "app", "layout.tsx"), []byte(layoutContent), 0644); err != nil {
-		return fmt.Errorf("failed to create app/layout.tsx: %w", err)
-	}
-
-	// Create globals.css with Tailwind
-	if tailwind {
-		globalsCSSContent := `@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
-}
-
-body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
-}
-`
-		if err := os.WriteFile(filepath.Join(projectPath, "app", "globals.css"), []byte(globalsCSSContent), 0644); err != nil {
-			return fmt.Errorf("failed to create app/globals.css: %w", err)
+		if err := templates.WriteDir("web/nextjs/brutalist", projectPath, data); err != nil {
+			return fmt.Errorf("failed to write brutalist templates: %w", err)
 		}
-
-		// Create tailwind.config.js
-		tailwindConfig := `/** @type {import('tailwindcss').Config} */
-module.exports = {
-  content: [
-    './pages/**/*.{js,ts,jsx,tsx,mdx}',
-    './components/**/*.{js,ts,jsx,tsx,mdx}',
-    './app/**/*.{js,ts,jsx,tsx,mdx}',
-  ],
-  theme: {
-    extend: {},
-  },
-  plugins: [],
-}
-`
-		if err := os.WriteFile(filepath.Join(projectPath, "tailwind.config.js"), []byte(tailwindConfig), 0644); err != nil {
-			return fmt.Errorf("failed to create tailwind.config.js: %w", err)
+	} else if tailwind {
+		if err := templates.WriteDir("web/nextjs/tailwind", projectPath, data); err != nil {
+			return fmt.Errorf("failed to write tailwind templates: %w", err)
 		}
-
-		// Create postcss.config.js
-		postcssConfig := `module.exports = {
-  plugins: {
-    tailwindcss: {},
-    autoprefixer: {},
-  },
-}
-`
-		if err := os.WriteFile(filepath.Join(projectPath, "postcss.config.js"), []byte(postcssConfig), 0644); err != nil {
-			return fmt.Errorf("failed to create postcss.config.js: %w", err)
-		}
-	}
-
-	// Create next-env.d.ts for TypeScript
-	if typescript {
-		nextEnvContent := `/// <reference types="next" />
-/// <reference types="next/image-types/global" />
-
-// NOTE: This file should not be edited
-// see https://nextjs.org/docs/basic-features/typescript for more information.
-`
-		if err := os.WriteFile(filepath.Join(projectPath, "next-env.d.ts"), []byte(nextEnvContent), 0644); err != nil {
-			return fmt.Errorf("failed to create next-env.d.ts: %w", err)
-		}
-	}
-
-	// Create .gitignore
-	gitignoreContent := `# dependencies
-/node_modules
-/.pnp
-.pnp.js
-
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# local env files
-.env*.local
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-`
-	if err := os.WriteFile(filepath.Join(projectPath, ".gitignore"), []byte(gitignoreContent), 0644); err != nil {
-		return fmt.Errorf("failed to create .gitignore: %w", err)
 	}
 
 	fmt.Printf("✅ Created Next.js app '%s' with:\n", name)
@@ -942,20 +241,12 @@ func CreateReactApp(ctx context.Context, args map[string]string) error {
 		return fmt.Errorf("directory %s already exists", projectPath)
 	}
 
-	// Create directories
-	dirs := []string{
-		projectPath,
-		filepath.Join(projectPath, "src"),
-		filepath.Join(projectPath, "public"),
+	// Create project directory
+	if err := os.MkdirAll(projectPath, 0755); err != nil {
+		return fmt.Errorf("failed to create directory %s: %w", projectPath, err)
 	}
 
-	for _, dir := range dirs {
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			return fmt.Errorf("failed to create directory %s: %w", dir, err)
-		}
-	}
-
-	// Create package.json for Vite React
+	// Create package.json for Vite React (dynamic, kept in code)
 	packageJSON := map[string]interface{}{
 		"name":    name,
 		"version": "0.1.0",
@@ -984,118 +275,17 @@ func CreateReactApp(ctx context.Context, args map[string]string) error {
 		return fmt.Errorf("failed to create package.json: %w", err)
 	}
 
-	// Create vite.config.js
-	viteConfig := `import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+	// Template data for variable substitution
+	data := templates.TemplateData{Name: name}
 
-export default defineConfig({
-  plugins: [react()],
-})`
-
-	if err := os.WriteFile(filepath.Join(projectPath, "vite.config.js"), []byte(viteConfig), 0644); err != nil {
-		return fmt.Errorf("failed to create vite.config.js: %w", err)
+	// Copy base templates
+	if err := templates.WriteDir("web/react/base", projectPath, data); err != nil {
+		return fmt.Errorf("failed to write base templates: %w", err)
 	}
 
-	// Create index.html
-	indexHTML := `<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>` + name + `</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
-</html>`
-
-	if err := os.WriteFile(filepath.Join(projectPath, "index.html"), []byte(indexHTML), 0644); err != nil {
-		return fmt.Errorf("failed to create index.html: %w", err)
-	}
-
-	// Create src/main.jsx
-	mainJSX := `import React from 'react'
-import ReactDOM from 'react-dom/client'
-import App from './App.jsx'
-import './index.css'
-
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-)`
-
-	if err := os.WriteFile(filepath.Join(projectPath, "src", "main.jsx"), []byte(mainJSX), 0644); err != nil {
-		return fmt.Errorf("failed to create main.jsx: %w", err)
-	}
-
-	// Create src/App.jsx with Brutalist styling
-	appJSX := `import { useState } from 'react'
-
-function App() {
-  const [count, setCount] = useState(0)
-
-  return (
-    <div style={{ padding: '2rem', fontFamily: 'monospace', maxWidth: '800px', margin: '0 auto' }}>
-      <h1 style={{ fontSize: '2rem', marginBottom: '2rem' }}>` + name + `</h1>
-      <div style={{ padding: '1rem', background: '#f0f0f0', borderRadius: '4px' }}>
-        <button
-          onClick={() => setCount((count) => count + 1)}
-          style={{
-            padding: '0.75rem 1.5rem',
-            background: '#ff4500',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            fontSize: '1rem',
-            cursor: 'pointer',
-            fontFamily: 'monospace'
-          }}
-        >
-          count is {count}
-        </button>
-        <p style={{ marginTop: '1rem' }}>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-    </div>
-  )
-}
-
-export default App`
-
-	if err := os.WriteFile(filepath.Join(projectPath, "src", "App.jsx"), []byte(appJSX), 0644); err != nil {
-		return fmt.Errorf("failed to create App.jsx: %w", err)
-	}
-
-	// Create basic CSS files
-	indexCSS := `:root {
-  font-family: monospace;
-  line-height: 1.5;
-  font-weight: 400;
-}
-
-body {
-  margin: 0;
-  padding: 0;
-}`
-
-	if err := os.WriteFile(filepath.Join(projectPath, "src", "index.css"), []byte(indexCSS), 0644); err != nil {
-		return fmt.Errorf("failed to create index.css: %w", err)
-	}
-
-	// Create .gitignore
-	gitignore := `node_modules/
-dist/
-.env
-.env.local
-.DS_Store
-*.log`
-
-	if err := os.WriteFile(filepath.Join(projectPath, ".gitignore"), []byte(gitignore), 0644); err != nil {
-		return fmt.Errorf("failed to create .gitignore: %w", err)
+	// Copy brutalist variant (default for React)
+	if err := templates.WriteDir("web/react/brutalist", projectPath, data); err != nil {
+		return fmt.Errorf("failed to write brutalist templates: %w", err)
 	}
 
 	fmt.Printf("✅ Created React app '%s' with Vite\n", name)
@@ -1175,21 +365,12 @@ func CreateExpressAPI(ctx context.Context, args map[string]string) error {
 		return fmt.Errorf("directory %s already exists", projectPath)
 	}
 
-	// Create directories
-	dirs := []string{
-		projectPath,
-		filepath.Join(projectPath, "src"),
-		filepath.Join(projectPath, "src", "routes"),
-		filepath.Join(projectPath, "src", "middleware"),
+	// Create project directory
+	if err := os.MkdirAll(projectPath, 0755); err != nil {
+		return fmt.Errorf("failed to create directory %s: %w", projectPath, err)
 	}
 
-	for _, dir := range dirs {
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			return fmt.Errorf("failed to create directory %s: %w", dir, err)
-		}
-	}
-
-	// Create package.json
+	// Create package.json (dynamic, kept in code)
 	packageJSON := map[string]interface{}{
 		"name":        name,
 		"version":     "1.0.0",
@@ -1214,62 +395,12 @@ func CreateExpressAPI(ctx context.Context, args map[string]string) error {
 		return fmt.Errorf("failed to create package.json: %w", err)
 	}
 
-	// Create src/index.js
-	indexJS := `const express = require('express');
-const cors = require('cors');
-require('dotenv').config();
+	// Template data for variable substitution
+	data := templates.TemplateData{Name: name}
 
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Routes
-app.get('/', (req, res) => {
-  res.json({ message: 'API is running' });
-});
-
-app.get('/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
-});
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong!' });
-});
-
-// Start server
-app.listen(PORT, () => {
-  console.log('Server is running on port ' + PORT);
-});`
-
-	if err := os.WriteFile(filepath.Join(projectPath, "src", "index.js"), []byte(indexJS), 0644); err != nil {
-		return fmt.Errorf("failed to create index.js: %w", err)
-	}
-
-	// Create .env.example
-	envExample := `PORT=3000
-NODE_ENV=development`
-
-	if err := os.WriteFile(filepath.Join(projectPath, ".env.example"), []byte(envExample), 0644); err != nil {
-		return fmt.Errorf("failed to create .env.example: %w", err)
-	}
-
-	// Create .gitignore
-	gitignore := `node_modules/
-.env
-.env.local
-.DS_Store
-*.log
-dist/
-build/`
-
-	if err := os.WriteFile(filepath.Join(projectPath, ".gitignore"), []byte(gitignore), 0644); err != nil {
-		return fmt.Errorf("failed to create .gitignore: %w", err)
+	// Copy base templates
+	if err := templates.WriteDir("web/express/base", projectPath, data); err != nil {
+		return fmt.Errorf("failed to write base templates: %w", err)
 	}
 
 	fmt.Printf("✅ Created Express API '%s'\n", name)

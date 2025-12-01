@@ -1,0 +1,60 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+
+export default function Home() {
+  const [dbStatus, setDbStatus] = useState<'checking' | 'connected' | 'not-configured' | 'error'>('checking');
+
+  useEffect(() => {
+    checkDatabase();
+  }, []);
+
+  const checkDatabase = async () => {
+    try {
+      const response = await fetch('/api/init-db', { method: 'POST' });
+      if (response.ok) {
+        setDbStatus('connected');
+      } else {
+        setDbStatus('not-configured');
+      }
+    } catch (error) {
+      setDbStatus('error');
+    }
+  };
+
+  return (
+    <main className="min-h-screen p-8">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-4xl font-bold mb-8">Welcome to [[.Name]]!</h1>
+
+        <div className="bg-white shadow rounded-lg p-6 mb-8">
+          <h2 className="text-2xl font-semibold mb-4">Database Status</h2>
+          {dbStatus === 'checking' && (
+            <p className="text-gray-600">Checking database connection...</p>
+          )}
+          {dbStatus === 'connected' && (
+            <p className="text-green-600">✅ Database connected and ready!</p>
+          )}
+          {dbStatus === 'not-configured' && (
+            <div className="text-yellow-600">
+              <p>⚠️ Database not configured</p>
+              <p className="text-sm mt-2">Run 'setup_database' to create a PostgreSQL database</p>
+            </div>
+          )}
+          {dbStatus === 'error' && (
+            <p className="text-red-600">❌ Database connection error</p>
+          )}
+        </div>
+
+        <div className="bg-white shadow rounded-lg p-6">
+          <h2 className="text-2xl font-semibold mb-4">Getting Started</h2>
+          <ol className="list-decimal list-inside space-y-2">
+            <li>Set up your database with 'setup_database'</li>
+            <li>Start developing with 'npm run dev'</li>
+            <li>Build for production with 'npm run build'</li>
+          </ol>
+        </div>
+      </div>
+    </main>
+  );
+}

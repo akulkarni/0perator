@@ -1,0 +1,141 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+
+export default function Home() {
+  const [dbStatus, setDbStatus] = useState<'checking' | 'connected' | 'not-configured' | 'error'>('checking');
+
+  useEffect(() => {
+    checkDatabase();
+  }, []);
+
+  const checkDatabase = async () => {
+    try {
+      const response = await fetch('/api/init-db', { method: 'POST' });
+      if (response.ok) {
+        setDbStatus('connected');
+      } else {
+        setDbStatus('not-configured');
+      }
+    } catch (error) {
+      setDbStatus('error');
+    }
+  };
+
+  return (
+    <main style={{
+      maxWidth: '800px',
+      margin: '0 auto',
+      padding: '2rem',
+      fontFamily: 'monospace'
+    }}>
+      <h1 style={{
+        fontSize: '2.5rem',
+        marginBottom: '1rem',
+        fontWeight: 'bold'
+      }}>
+        Welcome to [[.Name]]
+      </h1>
+
+      <p style={{
+        fontSize: '1rem',
+        marginBottom: '2rem',
+        color: '#666'
+      }}>
+        Your Next.js application is ready. Edit this page in <code style={{
+          background: '#f0f0f0',
+          padding: '0.25rem 0.5rem',
+          borderRadius: '3px'
+        }}>app/page.tsx</code>
+      </p>
+
+      <div style={{
+        border: '2px solid #1a1a1a',
+        padding: '1.5rem',
+        marginBottom: '1.5rem',
+        background: '#fff'
+      }}>
+        <h2 style={{
+          fontSize: '1.25rem',
+          marginBottom: '1rem',
+          fontWeight: 'bold'
+        }}>
+          Database Status
+        </h2>
+        {dbStatus === 'checking' && (
+          <p style={{ color: '#666' }}>⏳ Checking database connection...</p>
+        )}
+        {dbStatus === 'connected' && (
+          <p style={{ color: '#22c55e' }}>✓ PostgreSQL database connected</p>
+        )}
+        {dbStatus === 'not-configured' && (
+          <div>
+            <p style={{ color: '#f59e0b', marginBottom: '0.5rem' }}>⚠ Database not configured</p>
+            <p style={{ fontSize: '0.875rem', color: '#666' }}>
+              Run <code style={{
+                background: '#f0f0f0',
+                padding: '0.25rem 0.5rem',
+                borderRadius: '3px'
+              }}>setup_database</code> to create a PostgreSQL database
+            </p>
+          </div>
+        )}
+        {dbStatus === 'error' && (
+          <p style={{ color: '#ef4444' }}>✗ Database connection error</p>
+        )}
+      </div>
+
+      <div style={{
+        border: '2px solid #1a1a1a',
+        padding: '1.5rem',
+        background: '#fff'
+      }}>
+        <h2 style={{
+          fontSize: '1.25rem',
+          marginBottom: '1rem',
+          fontWeight: 'bold'
+        }}>
+          Next Steps
+        </h2>
+        <ul style={{
+          listStyle: 'none',
+          padding: 0,
+          margin: 0
+        }}>
+          <li style={{ marginBottom: '0.75rem' }}>
+            <span style={{ color: '#ff4500', marginRight: '0.5rem' }}>→</span>
+            Edit <code style={{
+              background: '#f0f0f0',
+              padding: '0.25rem 0.5rem',
+              borderRadius: '3px'
+            }}>app/page.tsx</code> to customize this page
+          </li>
+          <li style={{ marginBottom: '0.75rem' }}>
+            <span style={{ color: '#ff4500', marginRight: '0.5rem' }}>→</span>
+            Add routes in <code style={{
+              background: '#f0f0f0',
+              padding: '0.25rem 0.5rem',
+              borderRadius: '3px'
+            }}>app/</code> directory
+          </li>
+          <li style={{ marginBottom: '0.75rem' }}>
+            <span style={{ color: '#ff4500', marginRight: '0.5rem' }}>→</span>
+            Use <code style={{
+              background: '#f0f0f0',
+              padding: '0.25rem 0.5rem',
+              borderRadius: '3px'
+            }}>lib/db.ts</code> for database queries
+          </li>
+          <li>
+            <span style={{ color: '#ff4500', marginRight: '0.5rem' }}>→</span>
+            Check <code style={{
+              background: '#f0f0f0',
+              padding: '0.25rem 0.5rem',
+              borderRadius: '3px'
+            }}>.env.local</code> for configuration
+          </li>
+        </ul>
+      </div>
+    </main>
+  );
+}

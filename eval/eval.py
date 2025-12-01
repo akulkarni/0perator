@@ -178,7 +178,29 @@ DO NOT open the generated application in the browser always skip that step.
                 elif hasattr(message, 'content') and message.content:
                     if isinstance(message.content, list):
                         for block in message.content:
-                            if hasattr(block, 'text') and not hasattr(block, 'id'):
+                            # Print tool use
+                            if hasattr(block, 'name') and hasattr(block, 'input'):
+                                tool_name = getattr(block, 'name', 'unknown')
+                                print(f"\n[Tool] {tool_name}")
+                            # Print tool results
+                            elif hasattr(block, 'content') and hasattr(block, 'tool_use_id'):
+                                tool_content = getattr(block, 'content', '')
+                                if tool_content:
+                                    # Check if content is JSON with success field
+                                    is_success = True
+                                    try:
+                                        parsed = json.loads(tool_content)
+                                        if isinstance(parsed, dict) and parsed.get('success') == False:
+                                            is_success = False
+                                    except (json.JSONDecodeError, TypeError):
+                                        pass
+
+                                    if is_success:
+                                        print(f"\n[Tool Output]\n{tool_content}")
+                                    else:
+                                        print(f"\n❌ [Tool FAILED]\n{tool_content}")
+                            # Print text content
+                            elif hasattr(block, 'text') and not hasattr(block, 'id'):
                                 text_content = block.text.strip()
                                 if text_content:
                                     generated_content += text_content + "\n"
@@ -308,6 +330,8 @@ Examples:
         """
     )
 
+    parser.add_argument('--overwrite', action='store_true',
+                       help='Overwrite results directory if it already exists')
     parser.add_argument('--no-mcp', action='store_true',
                        help='Disable MCP servers (enabled by default: 0perator, tiger)')
     parser.add_argument('--no-structured-prompt', action='store_true',
@@ -341,7 +365,15 @@ Examples:
 
     # Get absolute path for results directory
     results_dir = os.path.abspath(args.results_dir)
-    os.makedirs(results_dir, exist_ok=True)
+    if os.path.exists(results_dir):
+        if args.overwrite:
+            print(f"Removing existing results directory: {results_dir}")
+            shutil.rmtree(results_dir)
+        else:
+            print(f"Error: Results directory '{results_dir}' already exists")
+            print("Use --overwrite to replace it, or specify a different directory")
+            sys.exit(1)
+    os.makedirs(results_dir)
 
     # Create isolated temporary directory
     with tempfile.TemporaryDirectory() as temp_dir:

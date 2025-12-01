@@ -1,0 +1,10 @@
+:root {
+  font-family: monospace;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+}

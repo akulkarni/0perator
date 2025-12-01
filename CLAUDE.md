@@ -110,3 +110,91 @@ func TestMyCommand(t *testing.T) {
 - `internal/cmd/root.go` - Root command builder and `Execute()` entry point
 - `internal/cmd/*.go` - Individual command builders
 - `cmd/0perator-mcp/main.go` - Main entry point (just calls `cmd.Execute()`)
+
+## Template Architecture
+
+Web app scaffolding templates use Go's `embed` package for compile-time embedding with a **base + variant overlay** pattern.
+
+### Directory Structure
+
+```
+internal/templates/
+  templates.go              # //go:embed directive and helper functions
+  web/
+    nextjs/
+      base/                 # Always copied first
+        tsconfig.json
+        lib/
+          db.ts
+        app/
+          api/
+            init-db/
+              route.ts
+      brutalist/            # Overlaid when brutalist=true
+        app/
+          page.tsx.tmpl
+          layout.tsx.tmpl
+      tailwind/             # Overlaid when tailwind=true
+        app/
+          page.tsx.tmpl
+          layout.tsx.tmpl
+          globals.css
+        tailwind.config.js
+    react/
+      base/
+      brutalist/
+    express/
+      base/
+```
+
+### Conventions
+
+- **base/** - Common files copied for all variants
+- **{variant}/** - Variant-specific files that overlay (overwrite) base
+- **Static files** - Copied directly (e.g., `tsconfig.json`)
+- **Template files** - Use `.tmpl` extension, rendered with `text/template` (e.g., `page.tsx.tmpl`)
+- **Path mirroring** - Template path matches destination path
+
+### Template Package API
+
+```go
+package templates
+
+import "embed"
+
+//go:embed web/*
+var webFS embed.FS
+
+type TemplateData struct {
+    Name string
+}
+
+// WriteDir recursively copies/renders a directory from embedded FS
+// Files ending in .tmpl are rendered with data, others copied as-is
+func WriteDir(srcDir, destDir string, data TemplateData) error
+```
+
+### Usage in Tools
+
+```go
+func CreateNextJSApp(ctx context.Context, args map[string]string) error {
+    data := templates.TemplateData{Name: args["name"]}
+
+    // 1. Copy base (always)
+    templates.WriteDir("web/nextjs/base", projectPath, data)
+
+    // 2. Overlay variant
+    if brutalist {
+        templates.WriteDir("web/nextjs/brutalist", projectPath, data)
+    } else if tailwind {
+        templates.WriteDir("web/nextjs/tailwind", projectPath, data)
+    }
+}
+```
+
+### Adding New Templates
+
+1. Add files to `internal/templates/web/{framework}/base/` for shared content
+2. Add variant-specific files to `internal/templates/web/{framework}/{variant}/`
+3. Use `.tmpl` extension for files needing `{{.Name}}` substitution
+4. Variant files with same path as base files will overwrite them

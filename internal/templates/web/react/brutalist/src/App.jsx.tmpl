@@ -1,0 +1,33 @@
+import { useState } from 'react'
+
+function App() {
+  const [count, setCount] = useState(0)
+
+  return (
+    <div style={{ padding: '2rem', fontFamily: 'monospace', maxWidth: '800px', margin: '0 auto' }}>
+      <h1 style={{ fontSize: '2rem', marginBottom: '2rem' }}>[[.Name]]</h1>
+      <div style={{ padding: '1rem', background: '#f0f0f0', borderRadius: '4px' }}>
+        <button
+          onClick={() => setCount((count) => count + 1)}
+          style={{
+            padding: '0.75rem 1.5rem',
+            background: '#ff4500',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            fontSize: '1rem',
+            cursor: 'pointer',
+            fontFamily: 'monospace'
+          }}
+        >
+          count is {count}
+        </button>
+        <p style={{ marginTop: '1rem' }}>
+          Edit <code>src/App.jsx</code> and save to test HMR
+        </p>
+      </div>
+    </div>
+  )
+}
+
+export default App

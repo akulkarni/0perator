@@ -58,6 +58,46 @@ Run `0perator init` without the `--dev` flag to reconfigure IDEs to use the comp
 
 The `eval/` directory contains a Python script for testing the MCP server with Claude Code SDK. This is useful for evaluating how Claude interacts with the 0perator tools.
 
+### Prerequisites
+
+- **Python 3.13+** (using pyenv for version management)
+  ```bash
+  brew install pyenv
+  # Add to ~/.zshrc or ~/.bashrc:
+  #   export PYENV_ROOT="$HOME/.pyenv"
+  #   command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
+  #   eval "$(pyenv init -)"
+  pyenv install 3.13
+  pyenv local 3.13  # in the eval directory
+  ```
+
+- **UV package manager**
+  ```bash
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  ```
+
+- **Node.js 20+** (using nvm for version management)
+  ```bash
+  nvm install 20
+  nvm use 20
+  ```
+
+- **Claude Code CLI**
+  ```bash
+  npm install -g @anthropic-ai/claude-code
+  ```
+
+- **Claude Code authentication** - Login via OAuth
+  ```bash
+  claude login
+  ```
+
+- **Tiger CLI** - Authenticated for database operations
+  ```bash
+  # Install Tiger CLI, then authenticate
+  tiger login
+  ```
+
 ### Running an evaluation
 
 ```bash

@@ -1,5 +1,19 @@
 # Development Guide
 
+## MCP Inspector
+
+Use the MCP Inspector to interactively test and debug the MCP server in a web UI:
+
+```bash
+./scripts/inspect.sh
+```
+
+This opens the inspector at http://127.0.0.1:6274 where you can:
+- View available tools and their schemas
+- Test tool calls with custom inputs
+- See request/response payloads
+- Debug issues without an IDE
+
 ## Dev Mode for MCP Server
 
 When developing 0perator, you want code changes to take effect immediately without rebuilding and reinstalling the binary. The `--dev` flag enables this workflow.

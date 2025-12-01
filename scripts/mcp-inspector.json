@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "0perator": {
+      "type": "stdio",
+      "command": "./run-source.sh",
+      "args": []
+    }
+  }
+}

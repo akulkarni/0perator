@@ -129,16 +129,10 @@ Inspired by Anthropic's research on building effective agents [1], we eliminated
 func create_web_app(name string, framework string = "nextjs") {
     // Immediate execution with smart defaults
 }
-
-// Recipe for composition
-type Recipe struct {
-    Steps []string // Simple tool invocations
-}
 ```
 
 **Implementation:**
 - 10 direct tools with smart defaults
-- Simple YAML recipes for composition
 - No dependency resolution (linear execution)
 - Minimal abstraction
 
@@ -238,32 +232,14 @@ Orchestration (fallback):
 └── operator(command, params)  // Complex operations
 ```
 
-### 6.2 Recipe System
-
-Recipes provide composition without complexity:
-
-```yaml
-name: SaaS Starter
-desc: Complete SaaS application
-inputs:
-  app_name: string = my-saas
-steps:
-  - create_web_app name={{app_name}}
-  - setup_database
-  - add_jwt_auth
-  - add_stripe_payments
-```
-
-Linear execution ensures predictability while variable substitution provides flexibility.
-
-### 6.3 Performance Optimizations
+### 6.2 Performance Optimizations
 
 1. **Parallel Execution:** Independent tools can run concurrently
 2. **Caching:** Common operations cached for reuse
 3. **Fail-Fast:** Immediate fallback to manual instructions on CLI failures
 4. **Pre-warming:** Development environments initialized in background
 
-### 6.4 Security Considerations (Planned)
+### 6.3 Security Considerations (Planned)
 
 While not yet implemented, production deployment would require:
 - Sandboxing of tool execution
@@ -271,7 +247,7 @@ While not yet implemented, production deployment would require:
 - Input validation
 - Audit logging
 
-### 6.5 Failure Handling
+### 6.4 Failure Handling
 
 Common failure modes we've observed include:
 - Tiger CLI not installed or authenticated
@@ -433,7 +409,7 @@ Our systematic exploration of AI-native tool architectures reveals a fundamental
 1. **Abstraction layers impede AI agent performance** - Each layer reduces success probability
 2. **Smart defaults eliminate decision paralysis** - 80% reduction in decision points yields 5× performance improvement
 3. **Direct tool mapping optimizes cognitive load** - Removing translation steps reduces errors and latency
-4. **Simple composition outperforms complex orchestration** - Linear recipes succeed where dependency graphs fail
+4. **Simple composition outperforms complex orchestration** - Linear execution succeeds where dependency graphs fail
 
 These findings challenge conventional wisdom in systems design and suggest that AI-native tools require fundamentally different architectural approaches. As LLMs become increasingly central to development workflows, tools that embrace agentic ergonomics will define the next generation of developer productivity.
 
@@ -441,7 +417,7 @@ The success of 0perator—achieving sub-60-second application scaffolding with 9
 
 ## Acknowledgments
 
-We thank the Claude team at Anthropic for their insights on building effective agents, and the open-source community for their contributions to the recipe system.
+We thank the Claude team at Anthropic for their insights on building effective agents.
 
 ## References
 
@@ -468,24 +444,7 @@ We thank the Claude team at Anthropic for their insights on building effective a
 | add_jwt_auth | 3.2s | 100% | 400 |
 | add_stripe_payments | 2.8s | 100% | 350 |
 
-## Appendix B: Recipe Examples
-
-```yaml
-# E-commerce Platform
-name: E-commerce Starter
-desc: Full e-commerce platform with payments
-inputs:
-  store_name: string = my-store
-  payment_provider: stripe = stripe
-steps:
-  - create_web_app name={{store_name}} framework=nextjs
-  - setup_database name={{store_name}}_db
-  - add_stripe_payments mode=checkout
-  - add_inventory_management
-  - add_order_processing
-```
-
-## Appendix C: Error Recovery Patterns
+## Appendix B: Error Recovery Patterns
 
 ```go
 // Pattern: Immediate fallback

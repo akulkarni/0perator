@@ -3,21 +3,17 @@ package server
 import (
 	"context"
 
-	"github.com/akulkarni/0perator/internal/runtime"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 // Server represents the 0perator MCP server
 type Server struct {
-	mcpServer      *mcp.Server
-	processManager *runtime.ProcessManager
+	mcpServer *mcp.Server
 }
 
 // New creates a new 0perator MCP server
 func New() *Server {
-	s := &Server{
-		processManager: runtime.NewProcessManager(),
-	}
+	s := &Server{}
 
 	// Create MCP server with metadata and instructions
 	s.mcpServer = mcp.NewServer(&mcp.Implementation{

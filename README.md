@@ -37,12 +37,9 @@ Everything just works. No manual steps. No configuration. No waiting.
 ## Direct Tools (What Claude Sees)
 
 ```
-🚀 create_web_app   - Create Next.js/React/Express apps (auto-installs & starts!)
-🗄️  setup_database  - Tiger Cloud PostgreSQL with auto-schema and verification
-🔐 add_auth        - Complete auth system with UI (login/register forms)
-🎨 add_ui_theme    - Brutalist, Shadcn, Material UI themes
+🚀 create_web_app   - Create Next.js apps (auto-installs & starts!)
+🗄️  create_database - Tiger Cloud PostgreSQL (free tier)
 🌐 open_app        - Open app in browser when everything is ready
-👤 operator        - Execute recipes and complex workflows
 ```
 
 ### What's Different?
@@ -142,14 +139,10 @@ We've eliminated all the friction:
 0perator/
 ├── internal/
 │   ├── tools/              # Direct tool implementations
-│   │   ├── web.go          # Next.js with auto-start, app-like dashboard
-│   │   ├── database.go     # Tiger Cloud PostgreSQL with verification
-│   │   ├── auth.go         # Complete auth with UI
-│   │   └── ui_themes.go    # Brutalist & more themes
-│   ├── operator/           # Tool orchestration
-│   ├── server/             # MCP server
-│   │   └── tools_direct.go # Tool registrations
-│   └── recipes/            # Complex workflows
+│   │   ├── web.go          # Next.js app creation
+│   │   └── create_database.go # Tiger Cloud database
+│   └── server/             # MCP server
+│       └── tools_direct.go # Tool registrations
 ├── cmd/0perator/           # Main entry point
 └── cmd/0perator-mcp/       # Dedicated MCP server entry point
 ```

@@ -16,11 +16,10 @@ func (s *Server) registerDirectTools() {
 		Description: "🚀 Create any web application - Build an opinionated next.js app",
 	}, s.handleCreateWebApp)
 
-	// Universal database tool (handles all database types)
 	mcp.AddTool(s.mcpServer, &mcp.Tool{
-		Name:        "setup_database",
+		Name:        "create_database",
 		Description: "🗄️ Set up any database - PostgreSQL on Tiger Cloud (default, FREE). Auto-configures with schema, migrations, and connection handling. Use for any database request.",
-	}, s.handleSetupDatabase)
+	}, s.handleCreateDatabase)
 
 	// Open app in browser - call this after all setup is complete
 	mcp.AddTool(s.mcpServer, &mcp.Tool{
@@ -32,7 +31,8 @@ func (s *Server) registerDirectTools() {
 // Input/Output types for each tool
 
 type CreateWebAppInput struct {
-	Name string `json:"name" jsonschema:"Application name"`
+	Name        string `json:"name" jsonschema:"Application name"`
+	DBServiceID string `json:"db_service_id,omitempty" jsonschema:"Database service ID to connect to"`
 }
 
 type CreateWebAppOutput struct {
@@ -47,7 +47,7 @@ func (s *Server) handleCreateWebApp(ctx context.Context, req *mcp.CallToolReques
 		input.Name = "my-app"
 	}
 
-	err := tools.CreateNextJSApp(ctx, input.Name)
+	err := tools.CreateNextJSApp(ctx, input.Name, input.DBServiceID)
 
 	if err != nil {
 		return nil, CreateWebAppOutput{
@@ -63,90 +63,34 @@ func (s *Server) handleCreateWebApp(ctx context.Context, req *mcp.CallToolReques
 	}, nil
 }
 
-type SetupDatabaseInput struct {
-	Name string `json:"name,omitempty" jsonschema:"Database name (default: app-db)"`
-	Type string `json:"type,omitempty" jsonschema:"Database type: postgres (default)"`
+type CreateDatabaseInput struct {
+	DatabaseName string `json:"name,omitempty" jsonschema:"Database name (default: app-db)"`
 }
 
-type SetupDatabaseOutput struct {
-	Success        bool   `json:"success"`
-	Message        string `json:"message"`
-	Type           string `json:"type"`
-	ConnectionInfo string `json:"connection_info,omitempty"`
+type CreateDatabaseOutput struct {
+	Success   bool   `json:"success"`
+	ServiceID string `json:"service_id,omitempty"`
+	Error     string `json:"error,omitempty"`
 }
 
-func (s *Server) handleSetupDatabase(ctx context.Context, req *mcp.CallToolRequest, input SetupDatabaseInput) (*mcp.CallToolResult, SetupDatabaseOutput, error) {
+func (s *Server) handleCreateDatabase(ctx context.Context, req *mcp.CallToolRequest, input CreateDatabaseInput) (*mcp.CallToolResult, CreateDatabaseOutput, error) {
 	// Set defaults
-	if input.Name == "" {
-		input.Name = "app-db"
-	}
-	if input.Type == "" {
-		input.Type = "postgres" // Default to PostgreSQL for production readiness
+	if input.DatabaseName == "" {
+		input.DatabaseName = "app-db"
 	}
 
-	switch input.Type {
-	case "postgres":
-		// Call the real implementation directly
-		err := tools.SetupPostgresWithSchema(ctx, map[string]string{
-			"name": input.Name,
-		})
-
-		if err != nil {
-			return nil, SetupDatabaseOutput{
-				Success: false,
-				Message: err.Error(),
-			}, nil
-		}
-
-		return nil, SetupDatabaseOutput{
-			Success:        true,
-			Message:        fmt.Sprintf("Created PostgreSQL database '%s' on Tiger Cloud (free tier) with auto-schema", input.Name),
-			Type:           "postgres",
-			ConnectionInfo: "", // Connection info will be printed by the tool
-		}, nil
-
-	default:
-		return nil, SetupDatabaseOutput{
-			Success: false,
-			Message: fmt.Sprintf("Database type '%s' not supported. Use 'postgres' (default).", input.Type),
-		}, nil
-	}
-}
-
-type SetupPostgresFreeInput struct {
-	Name string `json:"name,omitempty" jsonschema:"Database name (default: app-db)"`
-}
-
-type SetupPostgresFreeOutput struct {
-	Success        bool   `json:"success"`
-	Message        string `json:"message"`
-	ConnectionInfo string `json:"connection_info,omitempty"`
-}
-
-func (s *Server) handleSetupPostgresFree(ctx context.Context, req *mcp.CallToolRequest, input SetupPostgresFreeInput) (*mcp.CallToolResult, SetupPostgresFreeOutput, error) {
-	if input.Name == "" {
-		input.Name = "app-db"
-	}
-
-	// Call the real implementation directly
-	err := tools.SetupPostgresWithSchema(ctx, map[string]string{
-		"name": input.Name,
-	})
+	serviceID, err := tools.CreateDatabase(ctx, input.DatabaseName)
 
 	if err != nil {
-		return nil, SetupPostgresFreeOutput{
+		return nil, CreateDatabaseOutput{
 			Success: false,
-			Message: err.Error(),
+			Error:   err.Error(),
 		}, nil
 	}
 
-	// Connection info will be printed by the tool
-	connInfo := ""
-
-	return nil, SetupPostgresFreeOutput{
-		Success:        true,
-		Message:        fmt.Sprintf("Created PostgreSQL database '%s' on Tiger Cloud (free tier) with auto-schema", input.Name),
-		ConnectionInfo: connInfo,
+	return nil, CreateDatabaseOutput{
+		Success:   true,
+		ServiceID: serviceID,
 	}, nil
 }
 

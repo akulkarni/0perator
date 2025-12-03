@@ -25,17 +25,9 @@ func New() *Server {
 		Version: "2.0.0", // Version 2: Uses Tiger CLI directly
 	}, &mcp.ServerOptions{
 		Instructions: `When the user asks to build a web application, SaaS app, or any app:
-- Use create_web_app immediately with sensible defaults
-- The tool handles everything: project setup, dependencies, and starts the dev server
-
-When the user asks for a database:
-- Use setup_database immediately - defaults to FREE PostgreSQL on Tiger Cloud
-
-When the user asks for authentication or login:
-- Use add_auth immediately - defaults to JWT with complete login/register UI
-
-When the user asks for UI components or styling:
-- Use add_ui_theme immediately - defaults to Brutalist theme`,
+Do the following steps in order. If any of them fail, notify the user and ask for next steps:
+- Use create_database to start a database and get the service_id
+- Use create_web_app immediately with sensible defaults and passing in the service_id from the first step`,
 	})
 
 	// Register direct tools - these are what Claude sees

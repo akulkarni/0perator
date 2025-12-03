@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 
-	"github.com/akulkarni/0perator/internal/operator"
 	"github.com/akulkarni/0perator/internal/runtime"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -12,14 +11,12 @@ import (
 type Server struct {
 	mcpServer      *mcp.Server
 	processManager *runtime.ProcessManager
-	operator       *operator.Operator
 }
 
 // New creates a new 0perator MCP server
 func New() *Server {
 	s := &Server{
 		processManager: runtime.NewProcessManager(),
-		operator:       operator.New(),
 	}
 
 	// Create MCP server with metadata and instructions
@@ -43,9 +40,6 @@ When the user asks for UI components or styling:
 
 	// Register direct tools - these are what Claude sees
 	s.registerDirectTools()
-
-	// Register the operator tool (minimal wrapper for backward compatibility)
-	s.registerOperatorTool()
 
 	// Debug: Log registered tools count
 	// fmt.Fprintf(os.Stderr, "Debug: Registered tools in MCP server\n")

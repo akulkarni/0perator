@@ -8,6 +8,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/akulkarni/0perator/internal/templates"
 )
 
 // replaceEnvValue replaces the value of a variable in a .env file
@@ -45,12 +47,21 @@ func CreateNextJSApp(ctx context.Context, name string, dbServiceID string) error
 		name = "my-app"
 	}
 
-	cmd := exec.CommandContext(ctx, "npm", "create", "t3-app@latest", "--", name, "--noGit", "--CI", "--tailwind", "--drizzle", "--trpc", "--dbProvider", "postgres", "--appRouter", "--betterAuth")
+	cmd := exec.CommandContext(ctx, "npx", "create-t3-app@latest", name, "--noGit", "--CI", "--tailwind", "--drizzle", "--trpc", "--dbProvider", "postgres", "--appRouter", "--betterAuth")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to run create-t3-app: %w\n%s", err, output)
 	}
 	fmt.Fprintf(os.Stderr, "create-t3-app output: %s\n", string(output))
+
+	// Initialize shadcn UI
+	shadcnCmd := exec.CommandContext(ctx, "npx", "shadcn@latest", "init", "--base-color=neutral")
+	shadcnCmd.Dir = name
+	shadcnOutput, err := shadcnCmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to init shadcn: %w\n%s", err, shadcnOutput)
+	}
+	fmt.Fprintf(os.Stderr, "shadcn init output: %s\n", string(shadcnOutput))
 
 	if dbServiceID == "" {
 		return fmt.Errorf("dbServiceID is required")
@@ -80,6 +91,11 @@ func CreateNextJSApp(ctx context.Context, name string, dbServiceID string) error
 	// Remove start-database script if it exists (we've already set up the database)
 	startDbPath := filepath.Join(name, "start-database.sh")
 	os.Remove(startDbPath)
+
+	// Copy app templates (CLAUDE.md, globals.css)
+	if err := templates.WriteAppTemplates(name); err != nil {
+		return fmt.Errorf("failed to write app templates: %w", err)
+	}
 
 	return nil
 }

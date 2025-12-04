@@ -77,5 +77,9 @@ func CreateNextJSApp(ctx context.Context, name string, dbServiceID string) error
 		return err
 	}
 
+	// Remove start-database script if it exists (we've already set up the database)
+	startDbPath := filepath.Join(name, "start-database.sh")
+	os.Remove(startDbPath)
+
 	return nil
 }

@@ -12,7 +12,7 @@ type Server struct {
 }
 
 // New creates a new 0perator MCP server
-func New() *Server {
+func New() (*Server, error) {
 	s := &Server{}
 
 	// Create MCP server with metadata and instructions
@@ -20,19 +20,15 @@ func New() *Server {
 		Name:    "0perator",
 		Version: "2.0.0", // Version 2: Uses Tiger CLI directly
 	}, &mcp.ServerOptions{
-		Instructions: `When the user asks to build a web application, SaaS app, or any app:
-Do the following steps in order. If any of them fail, notify the user and ask for next steps:
-- Use create_database to start a database and get the service_id
-- Use create_web_app immediately with sensible defaults and passing in the service_id from the first step`,
+		Instructions: `When the user asks to build a web application, SaaS app, or any app: use the view_skill tool for the skill named create-app.`,
 	})
 
 	// Register direct tools - these are what Claude sees
-	s.registerDirectTools()
+	if err := s.registerDirectTools(); err != nil {
+		return nil, err
+	}
 
-	// Debug: Log registered tools count
-	// fmt.Fprintf(os.Stderr, "Debug: Registered tools in MCP server\n")
-
-	return s
+	return s, nil
 }
 
 // Start starts the MCP server (stdio mode)

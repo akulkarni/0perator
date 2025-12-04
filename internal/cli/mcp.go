@@ -12,7 +12,10 @@ func MCPStart() error {
 	fmt.Fprintln(os.Stderr, "0perator MCP server starting...")
 
 	// Create and start the MCP server
-	srv := server.New()
+	srv, err := server.New()
+	if err != nil {
+		return fmt.Errorf("failed to create MCP server: %w", err)
+	}
 
 	fmt.Fprintln(os.Stderr, "0perator MCP server ready")
 

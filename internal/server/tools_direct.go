@@ -5,11 +5,12 @@ import (
 	"fmt"
 
 	"github.com/akulkarni/0perator/internal/tools"
+	"github.com/akulkarni/0perator/skills"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 // registerDirectTools registers individual MCP tools for direct access
-func (s *Server) registerDirectTools() {
+func (s *Server) registerDirectTools() error {
 	// Universal web app tool (handles all frameworks)
 	mcp.AddTool(s.mcpServer, &mcp.Tool{
 		Name:        "create_web_app",
@@ -26,6 +27,18 @@ func (s *Server) registerDirectTools() {
 		Name:        "open_app",
 		Description: "🌐 Open the app in browser. Call this AFTER all setup (database, auth, UI) is complete to show the user their running app.",
 	}, s.handleOpenApp)
+
+	// View skill instructions
+	skillsList, err := skills.ListSkills()
+	if err != nil {
+		return fmt.Errorf("failed to list skills: %w", err)
+	}
+	mcp.AddTool(s.mcpServer, &mcp.Tool{
+		Name:        "view_skill",
+		Description: "📖 View instructions for a specific skill by name.\n\nAvailable skills:\n" + skillsList,
+	}, s.handleViewSkill)
+
+	return nil
 }
 
 // Input/Output types for each tool
@@ -126,4 +139,38 @@ func (s *Server) handleOpenApp(ctx context.Context, req *mcp.CallToolRequest, in
 	}, nil
 }
 
-// Additional handlers would go here
+type ViewSkillInput struct {
+	Name string `json:"name" jsonschema:"Skill name (directory name)"`
+}
+
+type ViewSkillOutput struct {
+	Success     bool   `json:"success"`
+	Name        string `json:"name,omitempty"`
+	Description string `json:"description,omitempty"`
+	Body        string `json:"body,omitempty"`
+	Error       string `json:"error,omitempty"`
+}
+
+func (s *Server) handleViewSkill(ctx context.Context, req *mcp.CallToolRequest, input ViewSkillInput) (*mcp.CallToolResult, ViewSkillOutput, error) {
+	if input.Name == "" {
+		return nil, ViewSkillOutput{
+			Success: false,
+			Error:   "skill name is required",
+		}, nil
+	}
+
+	skill, err := skills.GetSkill(input.Name)
+	if err != nil {
+		return nil, ViewSkillOutput{
+			Success: false,
+			Error:   err.Error(),
+		}, nil
+	}
+
+	return nil, ViewSkillOutput{
+		Success:     true,
+		Name:        skill.Name,
+		Description: skill.Description,
+		Body:        skill.Body,
+	}, nil
+}

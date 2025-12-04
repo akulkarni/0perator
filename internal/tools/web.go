@@ -42,12 +42,16 @@ func OpenBrowser(url string) error {
 
 // CreateNextJSApp creates a complete Next.js app with proper configuration,
 // auto-installs dependencies, starts dev server, and opens browser
-func CreateNextJSApp(ctx context.Context, name string, dbServiceID string) error {
+func CreateNextJSApp(ctx context.Context, name string, dbServiceID string, useAuth bool) error {
 	if name == "" {
 		name = "my-app"
 	}
 
-	cmd := exec.CommandContext(ctx, "npx", "create-t3-app@latest", name, "--noGit", "--CI", "--tailwind", "--drizzle", "--trpc", "--dbProvider", "postgres", "--appRouter", "--betterAuth")
+	args := []string{"create-t3-app@latest", name, "--noGit", "--CI", "--tailwind", "--drizzle", "--trpc", "--dbProvider", "postgres", "--appRouter"}
+	if useAuth {
+		args = append(args, "--betterAuth")
+	}
+	cmd := exec.CommandContext(ctx, "npx", args...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to run create-t3-app: %w\n%s", err, output)

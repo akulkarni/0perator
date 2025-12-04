@@ -46,6 +46,7 @@ func (s *Server) registerDirectTools() error {
 type CreateWebAppInput struct {
 	Name        string `json:"name" jsonschema:"Application name"`
 	DBServiceID string `json:"db_service_id,omitempty" jsonschema:"Database service ID to connect to"`
+	UseAuth     bool   `json:"use_auth,omitempty" jsonschema:"Enable authentication"`
 }
 
 type CreateWebAppOutput struct {
@@ -60,7 +61,7 @@ func (s *Server) handleCreateWebApp(ctx context.Context, req *mcp.CallToolReques
 		input.Name = "my-app"
 	}
 
-	err := tools.CreateNextJSApp(ctx, input.Name, input.DBServiceID)
+	err := tools.CreateNextJSApp(ctx, input.Name, input.DBServiceID, input.UseAuth)
 
 	if err != nil {
 		return nil, CreateWebAppOutput{

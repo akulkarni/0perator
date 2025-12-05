@@ -20,12 +20,8 @@ func buildRootCmd() *cobra.Command {
 0perator provides MCP (Model Context Protocol) servers that enable
 AI assistants to help you build and deploy applications.
 
-Running 0perator without any command starts the MCP server (default behavior).`,
-		// When run without subcommands, start the MCP server
-		RunE: func(cmd *cobra.Command, args []string) error {
-			// This is the default behavior when no subcommand is provided
-			return runMCP(cmd)
-		},
+Use "0perator init" to configure your IDE with MCP servers.
+Use "0perator mcp start" to start the MCP server manually.`,
 	}
 
 	// Add all subcommands

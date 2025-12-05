@@ -55,7 +55,7 @@ func Install0peratorMCP(clientName string, options Install0peratorMCPOptions) er
 			return fmt.Errorf("dev mode requires running from the 0perator repository root (expected %s)", scriptPath)
 		}
 		command = "sh"
-		args = []string{scriptPath}
+		args = []string{scriptPath, "mcp", "start"}
 	} else {
 		// Get the full path to the 0perator binary
 		operatorPath, err := exec.LookPath("0perator")
@@ -67,7 +67,7 @@ func Install0peratorMCP(clientName string, options Install0peratorMCPOptions) er
 			}
 		}
 		command = operatorPath
-		args = []string{}
+		args = []string{"mcp", "start"}
 	}
 
 	return mcpinstall.Install(mcpinstall.Options{

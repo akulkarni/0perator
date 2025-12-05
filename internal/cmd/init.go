@@ -8,6 +8,7 @@ import (
 // buildInitCmd creates the init command
 func buildInitCmd() *cobra.Command {
 	var devMode bool
+	var clients []string
 
 	cmd := &cobra.Command{
 		Use:   "init",
@@ -18,18 +19,26 @@ This interactive command will:
   1. Check and install tiger-cli if needed
   2. Authenticate with Tiger Cloud
   3. Let you select which IDE(s) to configure
-  4. Install Tiger MCP and 0perator MCP servers`,
-		Example: `  0perator init       # Set up your IDE interactively
-  0perator init --dev  # Use 'go run' for development`,
+  4. Install Tiger MCP and 0perator MCP servers
+
+Use --client to skip interactive selection and specify clients directly.`,
+		Example: `  0perator init                          # Set up your IDE interactively
+  0perator init --client claude-code     # Configure Claude Code only
+  0perator init --client cursor --client windsurf  # Configure multiple IDEs
+  0perator init --dev                    # Use 'go run' for development`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// No argument validation needed - this command takes no args
 			cmd.SilenceUsage = true
 
-			return cli.Init(cli.InitOptions{DevMode: devMode})
+			return cli.Init(cli.InitOptions{
+				DevMode: devMode,
+				Clients: clients,
+			})
 		},
 	}
 
 	cmd.Flags().BoolVar(&devMode, "dev", false, "Use 'go run' instead of compiled binary (for development)")
+	cmd.Flags().StringArrayVar(&clients, "client", nil, "Client to configure (can be specified multiple times: claude-code, cursor, windsurf)")
 
 	return cmd
 }

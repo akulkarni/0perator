@@ -1,67 +1,26 @@
 package mcp
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/timescale/tiger-cli/pkg/mcpinstall"
 )
 
-// IDEClient represents supported IDE clients
-type IDEClient string
+// ClientInfo re-exports mcpinstall.ClientInfo for convenience
+type ClientInfo = mcpinstall.ClientInfo
 
-const (
-	ClaudeCode IDEClient = "claude-code"
-	Cursor     IDEClient = "cursor"
-	Windsurf   IDEClient = "windsurf"
-)
-
-// ideConfigPaths maps IDE clients to their MCP config file paths
-// Paths with ~ will be expanded to user's home directory
-var ideConfigPaths = map[IDEClient]string{
-	ClaudeCode: "~/.claude.json",
-	Cursor:     "~/.cursor/mcp.json",
-	Windsurf:   "~/.windsurf/mcp.json",
-}
-
-// MCPConfig represents the MCP configuration file structure
-type MCPConfig struct {
-	MCPServers map[string]MCPServer `json:"mcpServers"`
-}
-
-// MCPServer represents a single MCP server configuration
-type MCPServer struct {
-	Command string            `json:"command"`
-	Args    []string          `json:"args,omitempty"`
-	Env     map[string]string `json:"env,omitempty"`
-}
-
-// expandPath expands ~ to home directory
-func expandPath(path string) (string, error) {
-	if strings.HasPrefix(path, "~") {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return "", fmt.Errorf("failed to get home directory: %w", err)
-		}
-		return filepath.Join(home, path[1:]), nil
-	}
-	return path, nil
-}
-
-// getConfigPath returns the config file path for a given IDE client
-func getConfigPath(client IDEClient) (string, error) {
-	path, ok := ideConfigPaths[client]
-	if !ok {
-		return "", fmt.Errorf("unsupported IDE client: %s", client)
-	}
-	return expandPath(path)
+// GetSupportedClients returns information about all supported MCP clients
+func GetSupportedClients() []ClientInfo {
+	return mcpinstall.SupportedClients()
 }
 
 // InstallTigerMCP installs Tiger MCP for the given IDE client
-func InstallTigerMCP(client IDEClient) error {
-	cmd := exec.Command("tiger", "mcp", "install", string(client), "--no-backup")
+func InstallTigerMCP(clientName string) error {
+	cmd := exec.Command("tiger", "mcp", "install", clientName, "--no-backup")
 	output, err := cmd.CombinedOutput()
 
 	if err != nil {
@@ -81,43 +40,10 @@ type Install0peratorMCPOptions struct {
 }
 
 // Install0peratorMCP adds 0perator MCP server to the IDE's config file
-func Install0peratorMCP(client IDEClient, options Install0peratorMCPOptions) error {
+func Install0peratorMCP(clientName string, options Install0peratorMCPOptions) error {
+	var command string
+	var args []string
 
-	configPath, err := getConfigPath(client)
-	if err != nil {
-		return err
-	}
-
-	// Ensure config directory exists
-	configDir := filepath.Dir(configPath)
-	if err := os.MkdirAll(configDir, 0755); err != nil {
-		return fmt.Errorf("failed to create config directory: %w", err)
-	}
-
-	// Read existing config or create new one
-	var config MCPConfig
-	data, err := os.ReadFile(configPath)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return fmt.Errorf("failed to read config file: %w", err)
-		}
-		// File doesn't exist, create new config
-		config = MCPConfig{
-			MCPServers: make(map[string]MCPServer),
-		}
-	} else {
-		// File exists, parse it
-		if err := json.Unmarshal(data, &config); err != nil {
-			return fmt.Errorf("failed to parse config file: %w", err)
-		}
-	}
-
-	// Add 0perator MCP server
-	if config.MCPServers == nil {
-		config.MCPServers = make(map[string]MCPServer)
-	}
-
-	var server MCPServer
 	if options.DevMode {
 		// In dev mode, use 'go run' with the project directory
 		cwd, err := os.Getwd()
@@ -128,10 +54,8 @@ func Install0peratorMCP(client IDEClient, options Install0peratorMCPOptions) err
 		if _, err := os.Stat(scriptPath); err != nil {
 			return fmt.Errorf("dev mode requires running from the 0perator repository root (expected %s)", scriptPath)
 		}
-		server = MCPServer{
-			Command: "sh",
-			Args:    []string{scriptPath},
-		}
+		command = "sh"
+		args = []string{scriptPath}
 	} else {
 		// Get the full path to the 0perator binary
 		operatorPath, err := exec.LookPath("0perator")
@@ -142,66 +66,27 @@ func Install0peratorMCP(client IDEClient, options Install0peratorMCPOptions) err
 				return fmt.Errorf("failed to determine 0perator binary path: %w", err)
 			}
 		}
-		server = MCPServer{
-			Command: operatorPath,
-			Args:    []string{},
-		}
+		command = operatorPath
+		args = []string{}
 	}
 
-	config.MCPServers["0perator"] = server
-
-	// Write back to file with pretty formatting
-	updatedData, err := json.MarshalIndent(config, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal config: %w", err)
-	}
-
-	if err := os.WriteFile(configPath, updatedData, 0644); err != nil {
-		return fmt.Errorf("failed to write config file: %w", err)
-	}
-
-	return nil
+	return mcpinstall.Install(mcpinstall.Options{
+		ClientName: clientName,
+		ServerName: "0perator",
+		Command:    command,
+		Args:       args,
+	})
 }
 
 // InstallBoth installs both Tiger and 0perator MCP servers for the given IDE
-func InstallBoth(client IDEClient, options Install0peratorMCPOptions) error {
-	// Check if Tiger MCP config already exists
-	configPath, err := getConfigPath(client)
-	if err != nil {
+func InstallBoth(clientName string, options Install0peratorMCPOptions) error {
+	if err := InstallTigerMCP(clientName); err != nil {
 		return err
 	}
 
-	tigerExists := false
-	if data, err := os.ReadFile(configPath); err == nil {
-		var config MCPConfig
-		if json.Unmarshal(data, &config) == nil {
-			if _, exists := config.MCPServers["tiger"]; exists {
-				tigerExists = true
-			}
-		}
-	}
-
-	// Only install Tiger if it doesn't exist
-	if !tigerExists {
-		if err := InstallTigerMCP(client); err != nil {
-			return err
-		}
-	}
-
-	// Add 0perator to the config file
-	if err := Install0peratorMCP(client, options); err != nil {
+	if err := Install0peratorMCP(clientName, options); err != nil {
 		return err
 	}
 
 	return nil
-}
-
-// GetSupportedIDEs returns a list of supported IDE clients in a consistent order
-func GetSupportedIDEs() []IDEClient {
-	// Return in a fixed order for consistent UI
-	return []IDEClient{
-		ClaudeCode,
-		Cursor,
-		Windsurf,
-	}
 }

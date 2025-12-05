@@ -11,16 +11,33 @@ Build full-stack applications instantly through natural conversation.
 ## Installation
 
 ```bash
-# Clone the repo
+# Clone and build
 git clone https://github.com/akulkarni/0perator
 cd 0perator
-
-# Build
 go build -o ~/.local/bin/0perator ./cmd/0perator
 
-# Configure MCP in Claude Code
-# Add to ~/.config/claude/mcp.json
+# Initialize (installs tiger-cli, authenticates, configures IDEs)
+0perator init
 ```
+
+### Init Options
+
+```bash
+# Interactive mode (select IDEs with arrow keys)
+0perator init
+
+# Configure specific IDE(s)
+0perator init --client claude-code
+0perator init --client cursor --client windsurf
+
+# Development mode (uses 'go run' instead of binary)
+0perator init --dev
+```
+
+The init command will:
+1. Install tiger-cli if needed
+2. Authenticate with Tiger Cloud (opens browser)
+3. Configure MCP servers for your selected IDE(s)
 
 ## The Magic 🎉
 

@@ -2,13 +2,10 @@ package cli
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/akulkarni/0perator/internal/mcp"
 )
 
 // Uninstall removes 0perator from the system
@@ -16,7 +13,7 @@ func Uninstall() error {
 	printBanner()
 
 	fmt.Println()
-	fmt.Println(accent("[1/3]") + " Confirm uninstallation")
+	fmt.Println(accent("[1/2]") + " Confirm uninstallation")
 	fmt.Println()
 
 	// Confirm with user
@@ -35,23 +32,9 @@ func Uninstall() error {
 		return nil
 	}
 
-	// Remove MCP server configurations
-	fmt.Println()
-	fmt.Println(accent("[2/3]") + " Removing MCP server configurations...")
-	fmt.Println()
-
-	ides := mcp.GetSupportedIDEs()
-	for _, ide := range ides {
-		if err := removeMCPConfig(ide); err != nil {
-			fmt.Printf("  %s Failed to remove %s config: %v\n", accent("!"), ide, err)
-		} else {
-			fmt.Printf("  %s Removed %s configuration\n", accent("✓"), ide)
-		}
-	}
-
 	// Remove binary
 	fmt.Println()
-	fmt.Println(accent("[3/3]") + " Removing binary...")
+	fmt.Println(accent("[2/2]") + " Removing binary...")
 	fmt.Println()
 
 	binaryPath, err := os.Executable()
@@ -85,83 +68,10 @@ func Uninstall() error {
 	fmt.Println("  " + accent("✨ Uninstall complete!"))
 	fmt.Println("──────────────────────────────────────────────────────────────────────────")
 	fmt.Println()
-	fmt.Println("  0perator has been removed from your system.")
-	fmt.Println("  Please restart your IDE for changes to take effect.")
+	fmt.Println("  Please manually remove '0perator' from your IDE's MCP configuration.")
+	fmt.Println()
+	fmt.Println("  Restart your IDE for changes to take effect.")
 	fmt.Println()
 
 	return nil
-}
-
-// removeMCPConfig removes 0perator MCP server from IDE config
-func removeMCPConfig(client mcp.IDEClient) error {
-	configPath, err := getIDEConfigPath(client)
-	if err != nil {
-		return err
-	}
-
-	// Check if config file exists
-	data, err := os.ReadFile(configPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil // Config doesn't exist, nothing to remove
-		}
-		return fmt.Errorf("failed to read config file: %w", err)
-	}
-
-	// Parse config
-	var config map[string]interface{}
-	if err := json.Unmarshal(data, &config); err != nil {
-		return fmt.Errorf("failed to parse config file: %w", err)
-	}
-
-	// Check if mcpServers exists
-	mcpServers, ok := config["mcpServers"].(map[string]interface{})
-	if !ok || mcpServers == nil {
-		return nil // No MCP servers configured
-	}
-
-	// Remove 0perator entry
-	if _, exists := mcpServers["0perator"]; !exists {
-		return nil // 0perator not configured
-	}
-
-	delete(mcpServers, "0perator")
-
-	// Write back to file
-	updatedData, err := json.MarshalIndent(config, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal config: %w", err)
-	}
-
-	if err := os.WriteFile(configPath, updatedData, 0644); err != nil {
-		return fmt.Errorf("failed to write config file: %w", err)
-	}
-
-	return nil
-}
-
-// getIDEConfigPath returns the config file path for a given IDE
-func getIDEConfigPath(client mcp.IDEClient) (string, error) {
-	var path string
-	switch client {
-	case mcp.ClaudeCode:
-		path = "~/.claude.json"
-	case mcp.Cursor:
-		path = "~/.cursor/mcp.json"
-	case mcp.Windsurf:
-		path = "~/.windsurf/mcp.json"
-	default:
-		return "", fmt.Errorf("unsupported IDE client: %s", client)
-	}
-
-	// Expand home directory
-	if strings.HasPrefix(path, "~") {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return "", fmt.Errorf("failed to get home directory: %w", err)
-		}
-		path = filepath.Join(home, path[1:])
-	}
-
-	return path, nil
 }

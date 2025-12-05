@@ -30,7 +30,7 @@ go build -o ~/.local/bin/0perator ./cmd/0perator
 0perator init --client claude-code
 0perator init --client cursor --client windsurf
 
-# Development mode (uses 'go run' instead of binary)
+# Development mode (uses the equivalent of 'go run' instead of binary)
 0perator init --dev
 ```
 
@@ -39,25 +39,37 @@ The init command will:
 2. Authenticate with Tiger Cloud (opens browser)
 3. Configure MCP servers for your selected IDE(s)
 
-## The Magic 🎉
+## The Stack
 
-When you say "Create a web app with auth and a database", 0perator:
+0perator creates apps using the **T3 Stack**:
 
-1. **Creates a Next.js app** with TypeScript, proper structure, and best practices
-2. **Sets up Tiger Postgres** with auto-schema, connection pooling, and SSL
-3. **Builds complete authentication** with login/register forms, JWT tokens, and protected routes
-4. **Installs dependencies automatically** - no manual npm install
-5. **Starts the dev server immediately** - your app is running at http://localhost:3000!
+- **Next.js 15** with App Router and React 19
+- **tRPC v11** for end-to-end type-safe APIs
+- **Drizzle ORM** for type-safe database queries
+- **Better Auth** for authentication (optional)
+- **Tailwind CSS 4** with shadcn/ui components
+- **Tiger Cloud PostgreSQL** with TimescaleDB
 
-Everything just works. No manual steps. No configuration. No waiting.
+Everything is configured and connected automatically.
 
 ## Direct Tools (What Claude Sees)
 
 ```
-🚀 create_web_app   - Create Next.js apps (auto-installs & starts!)
+🚀 create_web_app   - Create T3 Stack app with database connection
 🗄️  create_database - Tiger Cloud PostgreSQL (free tier)
-🌐 open_app        - Open app in browser when everything is ready
+🌐 open_app        - Open app in browser
+📖 view_skill      - View step-by-step instructions for complex tasks
 ```
+
+### Skills
+
+Skills provide step-by-step instructions for complex workflows:
+
+| Skill | Description |
+|-------|-------------|
+| `create-app` | Full app creation workflow: database setup, auth configuration, shadcn components |
+
+
 
 ### What's Different?
 
@@ -82,133 +94,34 @@ Everything just works. No manual steps. No configuration. No waiting.
 
 ### Create a Full-Stack App
 ```
-"Create a web app with authentication and a Tiger Postgres database"
+"Create a web app with authentication and a database"
 ```
 
 0perator will:
-- ✅ Create a Next.js app with TypeScript
-- ✅ Set up Tiger Postgres with TimescaleDB
-- ✅ Add JWT authentication with bcrypt
-- ✅ Create login/register UI forms
+- ✅ Create a T3 Stack app (Next.js + tRPC + Drizzle)
+- ✅ Set up Tiger Cloud PostgreSQL
+- ✅ Configure Better Auth with your chosen providers
+- ✅ Initialize shadcn/ui components
+- ✅ Connect database and run migrations
 - ✅ Install all dependencies
-- ✅ Start the dev server
-- ✅ Open at http://localhost:3000
-
-### Add Authentication
-```
-"Add auth to my app"
-```
-
-0perator creates:
-- ✅ API routes (/api/auth/login, /api/auth/register)
-- ✅ Login form with validation
-- ✅ Register form with password confirmation
-- ✅ Auth context and useAuth hook
-- ✅ Protected route wrapper
-- ✅ User profile page
-- ✅ Logout functionality
-
-All styled with the brutalist aesthetic (#ff4500 for actions, monospace fonts).
-
-## Architecture Evolution
-
-### Old: Template-Based (O(N²) Complexity)
-```
-100+ templates × 10+ frameworks × 5+ databases = 5000+ combinations
-```
-
-### New: Direct Tools (O(N) Complexity)
-```
-5 universal tools with parameters = ∞ combinations
-```
-
-The Direct Tools Architecture is **7.3× faster** and infinitely more flexible.
-
-## What Actually Happens
-
-When you run `create_web_app`:
-
-1. **Smart Framework Detection** - Checks if you're in an existing project
-2. **Complete Project Structure** - App router, TypeScript config, path aliases
-3. **Database Ready** - Connection pooling, SSL config, auto-schema
-4. **Auth System** - JWT tokens, secure cookies, password hashing
-5. **UI Components** - Forms, error handling, loading states
-6. **Auto Install** - Runs npm install silently
-7. **Auto Start** - Launches dev server in background
-8. **Instant Gratification** - App running immediately!
-
-## Fixed Issues 🛠️
-
-We've eliminated all the friction:
-
-- **Tiger CLI JSON Parsing** - Correctly parses flat JSON responses from Tiger CLI
-- **Database Connection Verification** - Verifies app can actually connect, auto-restarts dev server if needed
-- **Auto .env Loading** - Database credentials written to .env.local and loaded automatically
-- **SSL Configuration** - Works perfectly with Tiger Cloud
-- **Auth Dependencies** - Auto-installs jsonwebtoken, bcryptjs, cookie (no manual npm install)
-- **Next.js 15 + React 19** - Uses latest versions with modern defaults
-- **Complete Auth UI** - Not just APIs, but actual login/register forms users can interact with
-- **App-like Dashboard** - Real navigation sidebar, stats cards, professional layout
-
-## Project Structure
-
-```
-0perator/
-├── internal/
-│   ├── tools/              # Direct tool implementations
-│   │   ├── web.go          # Next.js app creation
-│   │   └── create_database.go # Tiger Cloud database
-│   └── server/             # MCP server
-│       └── tools_direct.go # Tool registrations
-├── cmd/0perator/           # Main entry point
-└── cmd/0perator-mcp/       # Dedicated MCP server entry point
-```
 
 ## Development
 
-### Build & Deploy
-```bash
-# Build
-go build -o bin/0perator ./cmd/0perator
-
-# Install locally
-cp bin/0perator ~/.local/bin/
-
-# Test
-~/.local/bin/0perator mcp start
-```
-
-### Adding a New Tool
-
-Tools are just Go functions with a simple signature:
-```go
-func MyTool(ctx context.Context, args map[string]string) error {
-    // Your tool logic here
-    return nil
-}
-```
-
-Register in `tools_direct.go`:
-```go
-mcp.AddTool(s.mcpServer, &mcp.Tool{
-    Name:        "my_tool",
-    Description: "What it does",
-}, s.handleMyTool)
-```
+See [DEVELOPMENT.md](DEVELOPMENT.md) for build instructions and adding new tools.
 
 ## Design Philosophy
 
+**Humans design product not infrastructure:** The developers should think about the product experience, AI should know how to set up the best infrastucture possible. 
+
 **Agentic Ergonomics:** Abstraction layers that help humans can hinder AI agents. 0perator embraces direct, parameter-driven interfaces that AI can use efficiently.
 
-**Instant Gratification:** When you create something, it should be running immediately. No manual steps.
+**Zero Config:** When you create something, it should work immediately. No manual steps.
 
-**Complete Solutions:** When users ask for auth, they want login forms, not just API routes. Deliver the complete experience.
-
-**Brutalist by Default:** Clean, monospace, #ff4500 for actions. No unnecessary decoration.
+**Best Practices Built-in:** T3 Stack provides type-safety from database to UI with tRPC and Drizzle.
 
 ## Success Metrics
 
-- **Speed**: Full-stack app deployed locally in under 30 seconds
+- **Speed**: Full-stack app deployed locally in under 30 seconds (after it's well specified).
 - **Completeness**: Auth includes UI, database includes schema, everything works
 - **Zero Config**: No manual steps, no .env editing, no npm install
 - **Quality**: Production-ready code with TypeScript, error handling, best practices
@@ -220,7 +133,3 @@ mcp.AddTool(s.mcpServer, &mcp.Tool{
 - Payment integration
 - Real-time features
 - Testing tools
-
-## License
-
-Apache 2.0

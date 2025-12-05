@@ -38,7 +38,7 @@ Instead of configuring IDEs to use the compiled `0perator` binary:
 }
 ```
 
-Dev mode configures IDEs to use `go run`:
+Dev mode configures IDEs to use `scripts/run-source.sh` which does the eqivalent of `go run` but handles directories correctly:
 
 ```json
 {

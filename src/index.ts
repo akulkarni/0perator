@@ -2,6 +2,7 @@
 import { Command } from 'commander';
 import { version } from './config.js';
 import { createMcpCommand } from './commands/mcp.js';
+import { createInitCommand } from './commands/init.js';
 
 const program = new Command();
 
@@ -10,6 +11,7 @@ program
   .description('Infrastructure for AI native development')
   .version(version);
 
+program.addCommand(createInitCommand());
 program.addCommand(createMcpCommand());
 
 program.parse();

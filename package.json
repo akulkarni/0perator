@@ -14,12 +14,13 @@
   ],
   "scripts": {
     "build": "tsc && shx chmod +x dist/*.js",
+    "watch": "tsc --watch",
     "prepare": "npm run build",
     "preuninstall": "node dist/scripts/cleanup.js",
     "dev": "tsx src/index.ts",
     "dev:mcp": "tsx src/index.ts mcp start",
     "start": "node dist/index.js",
-    "inspector": "npx @modelcontextprotocol/inspector node dist/index.js mcp start",
+    "inspector": "npx @modelcontextprotocol/inspector tsx src/index.ts mcp start",
     "lint": "biome check",
     "lint:fix": "biome check --fix",
     "format": "biome format --write"

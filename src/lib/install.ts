@@ -1,5 +1,7 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { join } from 'path';
+import { packageRoot } from '../config.js';
 
 const execAsync = promisify(exec);
 
@@ -30,14 +32,23 @@ export async function install0peratorMcp(
   clientName: string,
   options: InstallOptions = {},
 ): Promise<void> {
-  // For now, use tiger mcp install with 0perator binary path
-  // In production, this will use the installed 0perator binary
-  const operatorPath = process.argv[1]; // Current executable
-  const args = options.devMode ? '' : 'mcp start';
+  let command: string;
+  let args: string;
+
+  if (options.devMode) {
+    // Dev mode: use npx tsx with source file
+    const srcPath = join(packageRoot, 'src', 'index.ts');
+    command = 'npx';
+    args = `tsx ${srcPath} mcp start`;
+  } else {
+    // Production: use the installed binary
+    command = process.argv[1];
+    args = 'mcp start';
+  }
 
   // Use tiger CLI to install MCP config
   await execAsync(
-    `tiger mcp install-raw ${clientName} --name 0perator --command "${operatorPath}" --args "${args}" --no-backup`,
+    `tiger mcp install-raw ${clientName} --name 0perator --command "${command}" --args "${args}" --no-backup`,
   );
 }
 

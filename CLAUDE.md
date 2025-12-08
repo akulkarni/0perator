@@ -144,10 +144,40 @@ Skills are automatically loaded and accessible via the `view_skill` tool.
 npm run dev           # Run CLI in development mode
 npm run dev:mcp       # Run MCP server in development mode
 npm run build         # Build for production
+npm run watch         # Watch mode - recompile on changes
 npm run start         # Run production CLI
 npm run inspector     # Open MCP inspector
 npm run lint          # Run Biome linter
 npm run format        # Format with Biome
+```
+
+### MCP Inspector
+
+Test and debug the MCP server in a web UI:
+
+```bash
+npm run inspector
+```
+
+Opens at http://127.0.0.1:6274 where you can:
+- View available tools and their schemas
+- Test tool calls with custom inputs
+- See request/response payloads
+
+### Dev Mode for MCP Server
+
+When developing, use `--dev` so code changes take effect without rebuilding:
+
+```bash
+npm run dev -- init --dev
+```
+
+This configures IDEs to run the MCP server via `npx tsx` from source instead of the installed binary. After making code changes, just restart your IDE to pick them up.
+
+To switch back to production mode, run `init` without `--dev`:
+
+```bash
+npm run dev -- init
 ```
 
 ### Key Files

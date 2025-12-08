@@ -105,7 +105,7 @@ Skills provide step-by-step instructions for complex workflows:
 
 ## Development
 
-See [DEVELOPMENT.md](DEVELOPMENT.md) for build instructions and adding new tools.
+See [CLAUDE.md](CLAUDE.md) for development setup, adding new tools, and debugging.
 
 ## Design Philosophy
 

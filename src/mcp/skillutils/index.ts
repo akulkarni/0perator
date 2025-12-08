@@ -1,9 +1,9 @@
-import { readdir, readFile } from 'fs/promises';
-import { join } from 'path';
-import matter from 'gray-matter';
-import { z } from 'zod';
-import { log } from '@tigerdata/mcp-boilerplate';
-import { skillsDir } from '../../config.js';
+import { readdir, readFile } from "node:fs/promises";
+import { join } from "node:path";
+import { log } from "@tigerdata/mcp-boilerplate";
+import matter from "gray-matter";
+import { z } from "zod";
+import { skillsDir } from "../../config.js";
 
 // ===== Skill Types =====
 
@@ -42,11 +42,11 @@ const parseSkillFile = async (
   if (!/^[a-zA-Z0-9-_]+$/.test(skillMatter.name)) {
     const normalized = skillMatter.name
       .toLowerCase()
-      .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9-_]/g, '_')
-      .replace(/-[-_]+/g, '-')
-      .replace(/_[_-]+/g, '_')
-      .replace(/(^[-_]+)|([-_]+$)/g, '');
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-_]/g, "_")
+      .replace(/-[-_]+/g, "-")
+      .replace(/_[_-]+/g, "_")
+      .replace(/(^[-_]+)|([-_]+$)/g, "");
     log.warn(
       `Skill name "${skillMatter.name}" contains invalid characters. Normalizing to "${normalized}".`,
     );
@@ -78,9 +78,9 @@ async function doLoadSkills(): Promise<Map<string, Skill>> {
   };
 
   const loadLocalPath = async (path: string): Promise<void> => {
-    const skillPath = join(path, 'SKILL.md');
+    const skillPath = join(path, "SKILL.md");
     try {
-      const fileContent = await readFile(skillPath, 'utf-8');
+      const fileContent = await readFile(skillPath, "utf-8");
       const {
         matter: { name, description },
         content,
@@ -110,13 +110,13 @@ async function doLoadSkills(): Promise<Map<string, Skill>> {
 
     if (skills.size === 0) {
       log.warn(
-        'No skills found. Please add SKILL.md files to the skills/ subdirectories.',
+        "No skills found. Please add SKILL.md files to the skills/ subdirectories.",
       );
     } else {
       log.info(`Successfully loaded ${skills.size} skill(s)`);
     }
   } catch (err) {
-    log.error('Failed to load skills', err as Error);
+    log.error("Failed to load skills", err as Error);
   }
 
   return skills;
@@ -133,7 +133,7 @@ export const loadSkills = async (
   }
 
   skillMapPromise = doLoadSkills().catch((err) => {
-    log.error('Failed to load skills', err as Error);
+    log.error("Failed to load skills", err as Error);
     skillMapPromise = null;
     return new Map<string, Skill>();
   });
@@ -146,7 +146,7 @@ export const loadSkills = async (
  */
 export const viewSkillContent = async (
   name: string,
-  targetPath = 'SKILL.md',
+  targetPath = "SKILL.md",
 ): Promise<string> => {
   const skillsMap = await loadSkills();
   const skill = skillsMap.get(name);
@@ -163,7 +163,7 @@ export const viewSkillContent = async (
   // Read from filesystem
   try {
     const fullPath = join(skill.path, targetPath);
-    const content = await readFile(fullPath, 'utf-8');
+    const content = await readFile(fullPath, "utf-8");
     skillContentCache.set(cacheKey, content);
     return content;
   } catch {

@@ -1,7 +1,7 @@
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import { join } from 'path';
-import { packageRoot } from '../config.js';
+import { exec } from "node:child_process";
+import { join } from "node:path";
+import { promisify } from "node:util";
+import { packageRoot } from "../config.js";
 
 const execAsync = promisify(exec);
 
@@ -18,7 +18,7 @@ export async function installTigerMcp(clientName: string): Promise<void> {
   } catch (err) {
     const error = err as Error & { stderr?: string };
     // Ignore if already installed
-    if (!error.stderr?.includes('already exists')) {
+    if (!error.stderr?.includes("already exists")) {
       throw new Error(`Failed to install Tiger MCP: ${error.message}`);
     }
   }
@@ -37,13 +37,13 @@ export async function install0peratorMcp(
 
   if (options.devMode) {
     // Dev mode: use npx tsx with source file
-    const srcPath = join(packageRoot, 'src', 'index.ts');
-    command = 'npx';
+    const srcPath = join(packageRoot, "src", "index.ts");
+    command = "npx";
     args = `tsx ${srcPath} mcp start`;
   } else {
     // Production: use the installed binary
     command = process.argv[1];
-    args = 'mcp start';
+    args = "mcp start";
   }
 
   // Use tiger CLI to install MCP config

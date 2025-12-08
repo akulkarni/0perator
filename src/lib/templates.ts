@@ -1,12 +1,12 @@
-import { readdir, readFile, writeFile, mkdir } from 'fs/promises';
-import { dirname, join, relative } from 'path';
-import { templatesDir } from '../config.js';
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, join, relative } from "node:path";
+import { templatesDir } from "../config.js";
 
 /**
  * Copy app templates (CLAUDE.md, globals.css, etc.) to destination
  */
 export async function writeAppTemplates(destDir: string): Promise<void> {
-  const appDir = join(templatesDir, 'app');
+  const appDir = join(templatesDir, "app");
 
   async function copyDir(srcDir: string, destBase: string): Promise<void> {
     const entries = await readdir(srcDir, { withFileTypes: true });

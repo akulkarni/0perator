@@ -1,24 +1,27 @@
-import { ApiFactory } from '@tigerdata/mcp-boilerplate';
-import { z } from 'zod';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import { readFile, writeFile, unlink } from 'fs/promises';
-import { join } from 'path';
-import { ServerContext } from '../../types.js';
-import { writeAppTemplates } from '../../lib/templates.js';
+import { exec } from "node:child_process";
+import { readFile, unlink, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { promisify } from "node:util";
+import type { ApiFactory } from "@tigerdata/mcp-boilerplate";
+import { z } from "zod";
+import { writeAppTemplates } from "../../lib/templates.js";
+import type { ServerContext } from "../../types.js";
 
 const execAsync = promisify(exec);
 
 const inputSchema = {
-  name: z.string().optional().describe('Application name'),
-  db_service_id: z.string().optional().describe('Database service ID to connect to'),
-  use_auth: z.boolean().optional().describe('Enable authentication'),
+  name: z.string().optional().describe("Application name"),
+  db_service_id: z
+    .string()
+    .optional()
+    .describe("Database service ID to connect to"),
+  use_auth: z.boolean().optional().describe("Enable authentication"),
 } as const;
 
 const outputSchema = {
-  success: z.boolean().describe('Whether the app was created successfully'),
-  message: z.string().describe('Status message'),
-  path: z.string().optional().describe('Path to created app'),
+  success: z.boolean().describe("Whether the app was created successfully"),
+  message: z.string().describe("Status message"),
+  path: z.string().optional().describe("Path to created app"),
 } as const;
 
 type OutputSchema = {
@@ -35,8 +38,8 @@ async function replaceEnvValue(
   key: string,
   value: string,
 ): Promise<void> {
-  const envData = await readFile(envPath, 'utf-8');
-  const lines = envData.split('\n');
+  const envData = await readFile(envPath, "utf-8");
+  const lines = envData.split("\n");
 
   for (let i = 0; i < lines.length; i++) {
     if (lines[i].startsWith(`${key}=`)) {
@@ -45,7 +48,7 @@ async function replaceEnvValue(
     }
   }
 
-  await writeFile(envPath, lines.join('\n'));
+  await writeFile(envPath, lines.join("\n"));
 }
 
 export const createWebAppFactory: ApiFactory<
@@ -54,47 +57,47 @@ export const createWebAppFactory: ApiFactory<
   typeof outputSchema
 > = () => {
   return {
-    name: 'create_web_app',
+    name: "create_web_app",
     config: {
-      title: 'Create Web App',
+      title: "Create Web App",
       description:
-        '🚀 Create any web application - Build an opinionated next.js app',
+        "🚀 Create any web application - Build an opinionated next.js app",
       inputSchema,
       outputSchema,
     },
     fn: async ({ name, db_service_id, use_auth }): Promise<OutputSchema> => {
-      const appName = name || 'my-app';
+      const appName = name || "my-app";
 
       if (!db_service_id) {
         return {
           success: false,
-          message: 'db_service_id is required',
+          message: "db_service_id is required",
         };
       }
 
       try {
         // Create T3 app
         const t3Args = [
-          'npx',
-          'create-t3-app@latest',
+          "npx",
+          "create-t3-app@latest",
           appName,
-          '--noGit',
-          '--CI',
-          '--tailwind',
-          '--drizzle',
-          '--trpc',
-          '--dbProvider',
-          'postgres',
-          '--appRouter',
+          "--noGit",
+          "--CI",
+          "--tailwind",
+          "--drizzle",
+          "--trpc",
+          "--dbProvider",
+          "postgres",
+          "--appRouter",
         ];
         if (use_auth) {
-          t3Args.push('--betterAuth');
+          t3Args.push("--betterAuth");
         }
 
-        await execAsync(t3Args.join(' '));
+        await execAsync(t3Args.join(" "));
 
         // Initialize shadcn UI
-        await execAsync('npx shadcn@latest init --base-color=neutral', {
+        await execAsync("npx shadcn@latest init --base-color=neutral", {
           cwd: appName,
         });
 
@@ -109,17 +112,21 @@ export const createWebAppFactory: ApiFactory<
         if (!serviceDetails.connection_string) {
           return {
             success: false,
-            message: 'connection_string not found in service details',
+            message: "connection_string not found in service details",
           };
         }
 
         // Update .env with database connection
-        const envPath = join(appName, '.env');
-        await replaceEnvValue(envPath, 'DATABASE_URL', serviceDetails.connection_string);
+        const envPath = join(appName, ".env");
+        await replaceEnvValue(
+          envPath,
+          "DATABASE_URL",
+          serviceDetails.connection_string,
+        );
 
         // Remove start-database script if it exists
         try {
-          await unlink(join(appName, 'start-database.sh'));
+          await unlink(join(appName, "start-database.sh"));
         } catch {
           // Ignore if file doesn't exist
         }
@@ -136,7 +143,7 @@ export const createWebAppFactory: ApiFactory<
         const error = err as Error & { stderr?: string };
         return {
           success: false,
-          message: `Failed to create app: ${error.message}\n${error.stderr || ''}`,
+          message: `Failed to create app: ${error.message}\n${error.stderr || ""}`,
         };
       }
     },

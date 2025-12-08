@@ -1,14 +1,14 @@
 #!/usr/bin/env node
-import { Command } from 'commander';
-import { version } from './config.js';
-import { createMcpCommand } from './commands/mcp.js';
-import { createInitCommand } from './commands/init.js';
+import { Command } from "commander";
+import { createInitCommand } from "./commands/init.js";
+import { createMcpCommand } from "./commands/mcp.js";
+import { version } from "./config.js";
 
 const program = new Command();
 
 program
-  .name('0perator')
-  .description('Infrastructure for AI native development')
+  .name("0perator")
+  .description("Infrastructure for AI native development")
   .version(version);
 
 program.addCommand(createInitCommand());

@@ -1,13 +1,13 @@
-import { ApiFactory } from '@tigerdata/mcp-boilerplate';
-import { z } from 'zod';
-import { ServerContext } from '../../types.js';
-import { skills, viewSkillContent } from '../skillutils/index.js';
+import type { ApiFactory } from "@tigerdata/mcp-boilerplate";
+import { z } from "zod";
+import type { ServerContext } from "../../types.js";
+import { skills, viewSkillContent } from "../skillutils/index.js";
 
 // Create enum schema dynamically from loaded skills
 const inputSchema = {
   name: z
     .enum(Array.from(skills.keys()) as [string, ...string[]])
-    .describe('Skill name (directory name)'),
+    .describe("Skill name (directory name)"),
 } as const;
 
 const outputSchema = {
@@ -27,15 +27,15 @@ export const viewSkillFactory: ApiFactory<
   typeof outputSchema
 > = () => {
   return {
-    name: 'view_skill',
+    name: "view_skill",
     config: {
-      title: 'View Skill',
+      title: "View Skill",
       description: `📖 View instructions for a specific skill by name.
 
 Available skills:
 ${Array.from(skills.values())
   .map((s) => `- ${s.name}: ${s.description}`)
-  .join('\n')}
+  .join("\n")}
 `,
       inputSchema,
       outputSchema,
@@ -52,7 +52,7 @@ ${Array.from(skills.values())
       return {
         success: true,
         name: skill.name,
-        description: skill.description || '',
+        description: skill.description || "",
         body,
       };
     },

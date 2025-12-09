@@ -45,17 +45,11 @@ templates/             # App templates copied to new projects
 ### CLI Commands
 
 ```bash
-0perator              # Show help
-0perator init         # Configure IDEs with MCP servers (interactive)
-0perator init --client claude-code --client cursor  # Configure specific IDEs
-0perator mcp start    # Start MCP server (used by IDEs)
-0perator --version    # Show version
-```
-
-### Uninstalling
-
-```bash
-npm uninstall -g 0perator  # Automatically runs cleanup script
+npx 0perator              # Show help
+npx 0perator init         # Configure IDEs with MCP servers (interactive)
+npx 0perator init --client claude-code --client cursor  # Configure specific IDEs
+npx 0perator mcp start    # Start MCP server (used by IDEs)
+npx 0perator --version    # Show version
 ```
 
 ### Adding New CLI Commands

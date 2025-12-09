@@ -11,25 +11,20 @@ Build full-stack applications instantly through natural conversation.
 ## Installation
 
 ```bash
-# Install globally via npm
-npm install -g 0perator
-
-# Initialize (configures IDEs with MCP servers)
-0perator init
+npx 0perator init
 ```
+
+This will configure your IDE(s) with the MCP servers. Select which IDEs to configure when prompted.
 
 ### Init Options
 
 ```bash
 # Interactive mode (select IDEs with arrow keys)
-0perator init
+npx 0perator init
 
 # Configure specific IDE(s)
-0perator init --client claude-code
-0perator init --client cursor --client windsurf
-
-# Development mode
-0perator init --dev
+npx 0perator init --client claude-code
+npx 0perator init --client cursor --client windsurf
 ```
 
 The init command will:
@@ -104,6 +99,8 @@ Skills provide step-by-step instructions for complex workflows:
 - ✅ Install all dependencies
 
 ## Development
+
+**Dev mode:** Run `npm run dev -- init --dev` from the repo to configure IDEs to run the MCP server from source. Code changes take effect on IDE restart without rebuilding.
 
 See [CLAUDE.md](CLAUDE.md) for development setup, adding new tools, and debugging.
 

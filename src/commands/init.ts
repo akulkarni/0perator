@@ -1,5 +1,8 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import * as p from "@clack/prompts";
 import { Command } from "commander";
+import { packageRoot } from "../config.js";
 import { supportedClients } from "../lib/clients.js";
 import { installBoth } from "../lib/install.js";
 
@@ -19,6 +22,20 @@ export function createInitCommand(): Command {
     )
     .option("--dev", "Use development mode")
     .action(async (options: InitOptions) => {
+      // Check if --dev is used outside a development context
+      if (options.dev) {
+        const gitDir = join(packageRoot, ".git");
+        if (!existsSync(gitDir)) {
+          console.error(
+            "Error: --dev flag can only be used when running from a local git checkout of 0perator.",
+          );
+          console.error(
+            "For development, clone the repo and run: npm run dev -- init --dev",
+          );
+          process.exit(1);
+        }
+      }
+
       let clients = options.client || [];
 
       p.intro("0perator Setup");

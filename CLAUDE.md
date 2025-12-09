@@ -149,6 +149,16 @@ npm run start         # Run production CLI
 npm run inspector     # Open MCP inspector
 npm run lint          # Run Biome linter
 npm run format        # Format with Biome
+npm test              # Run tests
+npm run test:watch    # Run tests in watch mode
+```
+
+### Before Committing
+
+Always run tests and lint before every commit:
+
+```bash
+npm test && npm run lint
 ```
 
 ### MCP Inspector

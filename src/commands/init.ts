@@ -24,8 +24,16 @@ export function createInitCommand(): Command {
 
       // If no clients specified, prompt interactively
       if (clients.length === 0) {
+        console.log(pc.bold("\n0perator Setup\n"));
         clients = await checkbox({
-          message: "Select IDEs to configure:",
+          message:
+            "Select IDEs to configure (space to select, enter to confirm)",
+          theme: {
+            prefix: {
+              idle: pc.cyan("›"),
+              done: pc.green("✓"),
+            },
+          },
           choices: supportedClients.map((c) => ({
             name: c.displayName,
             value: c.name,
@@ -40,10 +48,14 @@ export function createInitCommand(): Command {
 
       console.log(pc.blue("\nConfiguring MCP servers...\n"));
 
+      let successCount = 0;
+      let failCount = 0;
+
       for (const clientName of clients) {
         const client = supportedClients.find((c) => c.name === clientName);
         if (!client) {
           console.log(pc.red(`Unknown client: ${clientName}`));
+          failCount++;
           continue;
         }
 
@@ -51,15 +63,29 @@ export function createInitCommand(): Command {
           console.log(`  ${pc.cyan("→")} ${client.displayName}...`);
           await installBoth(clientName, { devMode: options.dev });
           console.log(`  ${pc.green("✓")} ${client.displayName} configured`);
+          successCount++;
         } catch (err) {
           const error = err as Error;
           console.log(
             `  ${pc.red("✗")} ${client.displayName}: ${error.message}`,
           );
+          failCount++;
         }
       }
 
-      console.log(pc.green("\nDone! Restart your IDE to use the MCP servers."));
+      if (failCount === 0) {
+        console.log(
+          pc.green("\nDone! Restart your IDE to use the MCP servers."),
+        );
+      } else if (successCount === 0) {
+        console.log(pc.red("\nFailed to configure any IDEs."));
+      } else {
+        console.log(
+          pc.yellow(
+            `\nPartially completed: ${successCount} succeeded, ${failCount} failed.`,
+          ),
+        );
+      }
     });
 
   return init;

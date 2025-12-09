@@ -23,12 +23,16 @@
     "inspector": "npx @modelcontextprotocol/inspector tsx src/index.ts mcp start",
     "lint": "biome check",
     "lint:fix": "biome check --fix",
-    "format": "biome format --write"
+    "format": "biome format --write",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
+    "@antfu/ni": "^28.0.0",
     "@inquirer/prompts": "^8.0.2",
     "@tigerdata/mcp-boilerplate": "^0.8.0",
     "commander": "^14.0.2",
+    "comment-json": "^4.4.1",
     "gray-matter": "^4.0.3",
     "picocolors": "^1.1.1",
     "zod": "^3.25.76"
@@ -38,6 +42,7 @@
     "@types/node": "^24.10.1",
     "shx": "^0.4.0",
     "tsx": "^4.20.6",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.15"
   }
 }

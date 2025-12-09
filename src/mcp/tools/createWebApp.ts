@@ -10,7 +10,7 @@ import type { ServerContext } from "../../types.js";
 const execAsync = promisify(exec);
 
 const inputSchema = {
-  name: z.string().optional().describe("Application name"),
+  app_name: z.string().describe("Application name"),
   db_service_id: z
     .string()
     .optional()
@@ -65,8 +65,8 @@ export const createWebAppFactory: ApiFactory<
       inputSchema,
       outputSchema,
     },
-    fn: async ({ name, db_service_id, use_auth }): Promise<OutputSchema> => {
-      const appName = name || "my-app";
+    fn: async ({ app_name, db_service_id, use_auth }): Promise<OutputSchema> => {
+      const appName = app_name;
 
       if (!db_service_id) {
         return {

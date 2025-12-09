@@ -1,0 +1,205 @@
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { spawn } from "node:child_process";
+import type { ApiFactory } from "@tigerdata/mcp-boilerplate";
+import { z } from "zod";
+import * as dotenv from "dotenv";
+import type { ServerContext } from "../../types.js";
+
+const vercelEnvironments = ["production", "preview", "development"] as const;
+type VercelEnvironment = (typeof vercelEnvironments)[number];
+
+const inputSchema = {
+  env_file: z
+    .string()
+    .default(".env")
+    .describe("Path to .env file"),
+  environments: z
+    .array(z.enum(vercelEnvironments))
+    .default(["production", "preview"])
+    .describe(
+      "Vercel environments to upload to (default: production and preview)"
+    ),
+} as const;
+
+const outputSchema = {
+  success: z.boolean().describe("Whether all env vars were uploaded"),
+  message: z.string().describe("Status message"),
+  uploaded: z
+    .array(z.string())
+    .optional()
+    .describe("List of uploaded variable names"),
+  failed: z
+    .array(z.string())
+    .optional()
+    .describe("List of failed variable names"),
+  skipped_empty: z
+    .array(z.string())
+    .optional()
+    .describe("List of variable names skipped because they had empty values"),
+} as const;
+
+type OutputSchema = {
+  success: boolean;
+  message: string;
+  uploaded?: string[];
+  failed?: string[];
+  skipped_empty?: string[];
+};
+
+interface ParsedEnvResult {
+  vars: Record<string, string>;
+  skippedEmpty: string[];
+}
+
+function readEnvFile(envFilePath: string): ParsedEnvResult {
+  const absolutePath = resolve(process.cwd(), envFilePath);
+
+  if (!existsSync(absolutePath)) {
+    throw new Error(`.env file not found at: ${absolutePath}`);
+  }
+
+  const raw = readFileSync(absolutePath, "utf8");
+  const parsed = dotenv.parse(raw);
+
+  const vars: Record<string, string> = {};
+  const skippedEmpty: string[] = [];
+
+  for (const [key, value] of Object.entries(parsed)) {
+    if (!key.trim()) continue;
+    if (value === undefined || value === null || value === "") {
+      skippedEmpty.push(key);
+      continue;
+    }
+    vars[key] = value;
+  }
+
+  return { vars, skippedEmpty };
+}
+
+function runVercelEnvAddSingle(
+  name: string,
+  value: string,
+  vercelEnv: VercelEnvironment
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const args = ["vercel", "env", "add", name, vercelEnv, "--sensitive", "--force"];
+
+    const child = spawn("npx", args, {
+      stdio: ["pipe", "inherit", "inherit"],
+      env: {
+        ...process.env,
+        VERCEL_TELEMETRY_DISABLED: "1",
+      },
+    });
+
+    child.on("error", (err) => {
+      reject(err);
+    });
+
+    child.on("exit", (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(
+          new Error(
+            `vercel env add failed for ${name} (exit code ${code ?? "unknown"})`
+          )
+        );
+      }
+    });
+
+    // Send the secret through stdin so it never appears on the command line
+    child.stdin.write(value);
+    child.stdin.write("\n");
+    child.stdin.end();
+  });
+}
+
+async function runVercelEnvAdd(
+  name: string,
+  value: string,
+  environments: VercelEnvironment[]
+): Promise<void> {
+  for (const env of environments) {
+    await runVercelEnvAddSingle(name, value, env);
+  }
+}
+
+export const uploadEnvToVercelFactory: ApiFactory<
+  ServerContext,
+  typeof inputSchema,
+  typeof outputSchema
+> = () => {
+  return {
+    name: "upload_env_to_vercel",
+    config: {
+      title: "Upload Env to Vercel",
+      description:
+        "Upload environment variables from a .env file to Vercel project",
+      inputSchema,
+      outputSchema,
+    },
+    fn: async ({ env_file, environments }): Promise<OutputSchema> => {
+      let parsed: ParsedEnvResult;
+      try {
+        parsed = readEnvFile(env_file);
+      } catch (err) {
+        const error = err as Error;
+        return {
+          success: false,
+          message: error.message,
+        };
+      }
+
+      const { vars: envVars, skippedEmpty } = parsed;
+
+      const varNames = Object.keys(envVars);
+      if (varNames.length === 0) {
+        return {
+          success: false,
+          message: "No environment variables with values found in .env file",
+          skipped_empty: skippedEmpty.length > 0 ? skippedEmpty : undefined,
+        };
+      }
+
+      const uploaded: string[] = [];
+      const failed: string[] = [];
+
+      for (const [name, value] of Object.entries(envVars)) {
+        try {
+          await runVercelEnvAdd(name, value, environments);
+          uploaded.push(name);
+        } catch (err) {
+          failed.push(name);
+        }
+      }
+
+      const skipped_empty = skippedEmpty.length > 0 ? skippedEmpty : undefined;
+
+      if (failed.length === 0) {
+        return {
+          success: true,
+          message: `Uploaded ${uploaded.length} environment variables to Vercel`,
+          uploaded,
+          skipped_empty,
+        };
+      } else if (uploaded.length === 0) {
+        return {
+          success: false,
+          message: "Failed to upload any environment variables",
+          failed,
+          skipped_empty,
+        };
+      } else {
+        return {
+          success: false,
+          message: `Partially completed: ${uploaded.length} uploaded, ${failed.length} failed`,
+          uploaded,
+          failed,
+          skipped_empty,
+        };
+      }
+    },
+  };
+};

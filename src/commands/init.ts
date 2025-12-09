@@ -93,6 +93,12 @@ export function createInitCommand(): Command {
 
       if (failCount === 0) {
         p.outro("Done! Restart your IDE to use the MCP servers.");
+        console.log("");
+        console.log("Try asking your AI coding assistant:");
+        console.log("  • Create a new collaborative TODO webapp");
+        console.log("  • Build a real-time chat application");
+        console.log("  • Create a dashboard to track my fitness goals");
+        console.log("");
       } else if (successCount === 0) {
         p.outro("Failed to configure any IDEs.");
       } else {

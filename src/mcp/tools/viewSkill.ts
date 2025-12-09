@@ -1,14 +1,8 @@
 import type { ApiFactory } from "@tigerdata/mcp-boilerplate";
 import { z } from "zod";
 import type { ServerContext } from "../../types.js";
-import { skills, viewSkillContent } from "../skillutils/index.js";
-
-// Create enum schema dynamically from loaded skills
-const inputSchema = {
-  name: z
-    .enum(Array.from(skills.keys()) as [string, ...string[]])
-    .describe("Skill name (directory name)"),
-} as const;
+import type { Skill } from "../skillutils/index.js";
+import { loadSkills, viewSkillContent } from "../skillutils/index.js";
 
 const outputSchema = {
   success: z.boolean(),
@@ -21,12 +15,20 @@ type OutputSchema = {
   [K in keyof typeof outputSchema]: z.infer<(typeof outputSchema)[K]>;
 };
 
-export const viewSkillFactory: ApiFactory<
+export function createViewSkillFactory(
+  skills: Map<string, Skill>,
+): ApiFactory<
   ServerContext,
-  typeof inputSchema,
+  { name: z.ZodEnum<[string, ...string[]]> },
   typeof outputSchema
-> = () => {
-  return {
+> {
+  const inputSchema = {
+    name: z
+      .enum(Array.from(skills.keys()) as [string, ...string[]])
+      .describe("Skill name (directory name)"),
+  } as const;
+
+  return () => ({
     name: "view_skill",
     config: {
       title: "View Skill",
@@ -56,5 +58,11 @@ ${Array.from(skills.values())
         body,
       };
     },
-  };
-};
+  });
+}
+
+// Helper to get the factory with loaded skills
+export async function getViewSkillFactory() {
+  const skills = await loadSkills();
+  return createViewSkillFactory(skills);
+}

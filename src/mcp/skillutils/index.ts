@@ -170,6 +170,3 @@ export const viewSkillContent = async (
     throw new Error(`Failed to read skill content: ${name}/${targetPath}`);
   }
 };
-
-// Initialize skills on module load
-export const skills = await loadSkills();

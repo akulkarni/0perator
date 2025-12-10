@@ -10,10 +10,13 @@ const vercelEnvironments = ["production", "preview", "development"] as const;
 type VercelEnvironment = (typeof vercelEnvironments)[number];
 
 const inputSchema = {
+  application_directory: z
+    .string()
+    .describe("Path to the application directory containing .env and Vercel project"),
   env_file: z
     .string()
     .default(".env")
-    .describe("Path to .env file"),
+    .describe("Path to .env file (relative to application_directory)"),
   environments: z
     .array(z.enum(vercelEnvironments))
     .default(["production", "preview"])
@@ -57,8 +60,8 @@ interface ParsedEnvResult {
   skippedEmpty: string[];
 }
 
-function readEnvFile(envFilePath: string): ParsedEnvResult {
-  const absolutePath = resolve(process.cwd(), envFilePath);
+function readEnvFile(appDir: string, envFilePath: string): ParsedEnvResult {
+  const absolutePath = resolve(appDir, envFilePath);
 
   if (!existsSync(absolutePath)) {
     throw new Error(`.env file not found at: ${absolutePath}`);
@@ -83,14 +86,16 @@ function readEnvFile(envFilePath: string): ParsedEnvResult {
 }
 
 function runVercelEnvAddSingle(
+  appDir: string,
   name: string,
   value: string,
   vercelEnv: VercelEnvironment
 ): Promise<void> {
   return new Promise((resolve, reject) => {
-    const args = ["vercel", "env", "add", name, vercelEnv, "--sensitive", "--force"];
+    const args = ["vercel", "env", "add", name, vercelEnv, "--cwd", appDir, "--sensitive", "--force"];
 
     const child = spawn("npx", args, {
+      cwd: appDir,
       stdio: ["pipe", "pipe", "pipe"],
       env: {
         ...process.env,
@@ -124,12 +129,13 @@ function runVercelEnvAddSingle(
 }
 
 async function runVercelEnvAdd(
+  appDir: string,
   name: string,
   value: string,
   environments: VercelEnvironment[]
 ): Promise<void> {
   for (const env of environments) {
-    await runVercelEnvAddSingle(name, value, env);
+    await runVercelEnvAddSingle(appDir, name, value, env);
   }
 }
 
@@ -147,10 +153,12 @@ export const uploadEnvToVercelFactory: ApiFactory<
       inputSchema,
       outputSchema,
     },
-    fn: async ({ env_file, environments }): Promise<OutputSchema> => {
+    fn: async ({ application_directory, env_file, environments }): Promise<OutputSchema> => {
+      const appDir = resolve(process.cwd(), application_directory);
+
       let parsed: ParsedEnvResult;
       try {
-        parsed = readEnvFile(env_file);
+        parsed = readEnvFile(appDir, env_file);
       } catch (err) {
         const error = err as Error;
         return {
@@ -175,7 +183,7 @@ export const uploadEnvToVercelFactory: ApiFactory<
 
       for (const [name, value] of Object.entries(envVars)) {
         try {
-          await runVercelEnvAdd(name, value, environments);
+          await runVercelEnvAdd(appDir, name, value, environments);
           uploaded.push(name);
         } catch (err) {
           const error = err as Error;

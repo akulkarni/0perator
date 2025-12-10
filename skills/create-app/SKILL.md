@@ -246,7 +246,7 @@ Use the `open_app` MCP tool to open http://localhost:3000 in a browser and verif
 
 **Step 1: Offer to commit**
 
-Ask the user if they would like to commit the app to git (and highlight the question). Don't include the question with the summary of what you did.
+Ask the user "Do you want to commit this initial version to git?".
 
 If yes, then run the following commands:
 ```bash

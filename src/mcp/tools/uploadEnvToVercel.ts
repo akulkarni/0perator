@@ -30,20 +30,25 @@ const outputSchema = {
     .optional()
     .describe("List of uploaded variable names"),
   failed: z
-    .array(z.string())
+    .array(z.object({ name: z.string(), error: z.string() }))
     .optional()
-    .describe("List of failed variable names"),
+    .describe("List of failed variables with error messages"),
   skipped_empty: z
     .array(z.string())
     .optional()
     .describe("List of variable names skipped because they had empty values"),
 } as const;
 
+type FailedVar = {
+  name: string;
+  error: string;
+};
+
 type OutputSchema = {
   success: boolean;
   message: string;
   uploaded?: string[];
-  failed?: string[];
+  failed?: FailedVar[];
   skipped_empty?: string[];
 };
 
@@ -86,11 +91,16 @@ function runVercelEnvAddSingle(
     const args = ["vercel", "env", "add", name, vercelEnv, "--sensitive", "--force"];
 
     const child = spawn("npx", args, {
-      stdio: ["pipe", "inherit", "inherit"],
+      stdio: ["pipe", "pipe", "pipe"],
       env: {
         ...process.env,
         VERCEL_TELEMETRY_DISABLED: "1",
       },
+    });
+
+    let stderr = "";
+    child.stderr.on("data", (data: Buffer) => {
+      stderr += data.toString();
     });
 
     child.on("error", (err) => {
@@ -101,11 +111,8 @@ function runVercelEnvAddSingle(
       if (code === 0) {
         resolve();
       } else {
-        reject(
-          new Error(
-            `vercel env add failed for ${name} (exit code ${code ?? "unknown"})`
-          )
-        );
+        const errorMsg = stderr.trim() || `exit code ${code ?? "unknown"}`;
+        reject(new Error(errorMsg));
       }
     });
 
@@ -164,14 +171,15 @@ export const uploadEnvToVercelFactory: ApiFactory<
       }
 
       const uploaded: string[] = [];
-      const failed: string[] = [];
+      const failed: FailedVar[] = [];
 
       for (const [name, value] of Object.entries(envVars)) {
         try {
           await runVercelEnvAdd(name, value, environments);
           uploaded.push(name);
         } catch (err) {
-          failed.push(name);
+          const error = err as Error;
+          failed.push({ name, error: error.message });
         }
       }
 

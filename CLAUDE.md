@@ -155,6 +155,18 @@ Always run tests and lint before every commit:
 npm test && npm run lint
 ```
 
+### Version Bumping
+
+Use npm to bump versions (configured in `.npmrc`):
+
+```bash
+npm version patch   # 0.1.1 -> 0.1.2
+npm version minor   # 0.1.2 -> 0.2.0
+npm version major   # 0.2.0 -> 1.0.0
+```
+
+This automatically creates a commit with message `chore: bump version to <version>`.
+
 ### MCP Inspector
 
 Test and debug the MCP server in a web UI:

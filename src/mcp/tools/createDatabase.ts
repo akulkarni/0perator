@@ -53,8 +53,7 @@ export const createDatabaseFactory: ApiFactory<
         "shared",
         "--addons",
         "time-series,ai",
-        "--wait-timeout",
-        "2m",
+        "--no-wait",
         "-o",
         "json",
       ];

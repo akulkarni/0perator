@@ -1,6 +1,6 @@
 ---
 name: create-app
-description: 'Use this skill whenever creating a new application. This should be the first thing you read when starting a new project. Read this before planning or brainstorming.'
+description: 'Use this skill whenever creating a new application. IMPORTANT: This should be the FIRST thing you read when starting a new project. IMPORTANT: Read this before planning or brainstorming.'
 ---
 
 # Create App Implementation Plan
@@ -74,75 +74,9 @@ Read the `CLAUDE.md` file in the newly created app directory into your context.
 
 ---
 
-## Phase 2: UI Refinement
+## Phase 2: Auth Configuration (If Multi-User)
 
-### Task 4: Install Required shadcn Components
-
-**Files:**
-- Modify: `package.json` (dependencies added automatically)
-- Create: `src/components/ui/*.tsx` (component files)
-
-**Step 1: Identify needed components**
-
-Review existing pages and determine which shadcn components are needed (button, card, input, form, etc.)
-
-**Step 2: Install components**
-
-```bash
-npx shadcn@latest add button card input label form
-```
-
-Note: `shadcn init` was already run. Only add individual components.
-
----
-
-### Task 5: Refactor Pages to Use shadcn Components
-
-**Files:**
-- Modify: `src/app/page.tsx`
-- Modify: Any other pages in `src/app/`
-
-**Step 1: Replace HTML elements with shadcn components**
-
-Replace native elements with shadcn equivalents:
-- `<button>` → `<Button>`
-- `<input>` → `<Input>`
-- Cards/containers → `<Card>`, `<CardHeader>`, `<CardContent>`
-
-**Step 2: Verify imports**
-
-Ensure all components are imported from `@/components/ui/*`
-
----
-
-### Task 6: Fix Color Scheme
-
-**Files:**
-- Modify: `src/app/page.tsx`
-- Modify: All pages in `src/app/`
-
-**Step 1: Remove T3 template colors**
-
-Find and replace hardcoded colors with shadcn CSS variables. Examples:
-
-| Replace | With |
-|---------|------|
-| `bg-gradient-to-b from-slate-900 to-slate-800` | `bg-background` |
-| `text-white` | `text-foreground` |
-| `bg-white/10` | `bg-muted` |
-| `border-white/20` | `border-border` |
-
-Look for any hardcoded Tailwind colors (slate, gray, white, etc.) and replace with semantic shadcn tokens.
-
-**Step 2: Verify consistency**
-
-Check every page uses shadcn color tokens, not hardcoded colors.
-
----
-
-## Phase 3: Auth Configuration (If Multi-User)
-
-### Task 7: Configure Auth Providers
+### Task 4: Configure Auth Providers
 
 **Files:**
 - Modify: `src/server/better-auth/config.ts`
@@ -171,27 +105,9 @@ Update the src/env.js file to set the environment variables for the auth provide
 
 ---
 
-### Task 8: Create Sign-In Component
+## Phase 3: Database Schema
 
-**Files:**
-- Create: `src/components/auth/sign-in-form.tsx`
-- Modify: Sign-in page to use the new component
-
-**Step 1: Create sign-in form component**
-
-Build a reusable sign-in form component using shadcn components that supports all auth methods the user requested.
-
-**Step 2: Include all requested methods**
-
-- Email: email/password form fields
-- GitHub: "Sign in with GitHub" button
-- Google: "Sign in with Google" button
-
----
-
-## Phase 4: Database Schema
-
-### Task 9: Fix Schema Table Prefix
+### Task 5: Fix Schema Table Prefix
 
 **Files:**
 - Modify: `src/server/db/schema.ts`
@@ -207,33 +123,28 @@ In `src/server/db/schema.ts`, replace the `pg_drizzle` prefix with whatever pref
 
 ---
 
-### Task 10: Remove Example Post Model
+### Task 6: Design Database Schema
 
 **Files:**
 - Modify: `src/server/db/schema.ts`
 
-**Step 1: Delete post table**
+**Step 1: Remove example post table**
 
-Remove the example `post` table definition - it was only there as a template.
+Delete the example `post` table definition - it was only there as a template.
 
-**Step 2: Remove related code**
-
-Delete any tRPC routes or components that reference the post model.
-
----
-
-## Phase 5: App Implementation
-
-### Task 11: Implement Database Schema
-
-**Files:**
-- Modify: `src/server/db/schema.ts`
-
-**Step 1: Design and add tables**
+**Step 2: Design tables for the app**
 
 Based on the user's app requirements, add the necessary Drizzle table definitions to `src/server/db/schema.ts`.
 
-**Step 2: Push schema to database**
+---
+
+### Task 7: Push Schema to Database
+
+**Step 1: Wait for database to be ready**
+
+Run `tiger service list -o json` and check that the database service has `"status": "READY"`. If not, wait and retry in a loop for up to 2 minutes.
+
+**Step 2: Push schema**
 
 ```bash
 npm run db:push
@@ -241,23 +152,47 @@ npm run db:push
 
 ---
 
-### Task 12: Implement tRPC Backend
+## Phase 4: Backend Implementation
+
+### Task 8: Implement tRPC Backend
 
 **Files:**
 - Create/Modify: `src/server/api/routers/*.ts`
 - Modify: `src/server/api/root.ts`
 
-**Step 1: Create routers**
+**Step 1: Remove example post router**
+
+Delete any tRPC routes that reference the old post model.
+
+**Step 2: Create routers**
 
 Add tRPC routers for CRUD operations on your data models. Follow the patterns in existing routers.
 
-**Step 2: Register routers**
+**Step 3: Register routers**
 
 Add new routers to `src/server/api/root.ts`.
 
 ---
 
-### Task 13: Implement Frontend Pages
+## Phase 5: Frontend Implementation
+
+### Task 9: Install Required shadcn Components
+
+**Step 1: Identify needed components**
+
+Determine which shadcn components are needed for the app (button, card, input, form, table, etc.)
+
+**Step 2: Install components**
+
+```bash
+npx shadcn@latest add button card input label form
+```
+
+Note: `shadcn init` was already run. Only add individual components.
+
+---
+
+### Task 10: Implement Frontend Pages
 
 **Files:**
 - Create/Modify: `src/app/**/*.tsx`
@@ -271,13 +206,29 @@ Build the pages needed for your app using shadcn components.
 
 Use tRPC hooks to fetch and mutate data from your routers.
 
-**Step 3: Style with shadcn**
+**Step 3: Create sign-in component (if multi-user)**
 
-Ensure all UI uses shadcn components and color tokens.
+Build a reusable sign-in form component at `src/components/auth/sign-in-form.tsx` using shadcn components that supports all auth methods the user requested:
+- Email: email/password form fields
+- GitHub: "Sign in with GitHub" button
+- Google: "Sign in with Google" button
+
+**Step 4: Fix color scheme**
+
+Replace any hardcoded T3 template colors with shadcn CSS variables. Examples:
+
+| Replace | With |
+|---------|------|
+| `bg-gradient-to-b from-slate-900 to-slate-800` | `bg-background` |
+| `text-white` | `text-foreground` |
+| `bg-white/10` | `bg-muted` |
+| `border-white/20` | `border-border` |
 
 ---
 
-### Task 14: Run and Verify
+## Phase 6: Run and Verify
+
+### Task 11: Run and Verify
 
 **Step 1: Start the dev server**
 
@@ -289,7 +240,11 @@ npm run dev
 
 Use the `open_app` MCP tool to open http://localhost:3000 in a browser and verify the app works as expected.
 
-**Step 3: Offer to commit**
+---
+
+### Task 12: Finish Up
+
+**Step 1: Offer to commit**
 
 Ask the user if they would like to commit the app to git (and highlight the question). Don't include the question with the summary of what you did.
 
@@ -300,8 +255,12 @@ git add .
 git commit -m "Initial commit: <app_name>"
 ```
 
-**Step 4: Highlight the next steps**
+---
+
+### Task 13: Summarization
+
+**Step 1: Highlight the next steps**
 
 Highlight the next steps a user can take:
-- Plan out the next steps for the app development using superpowers:brainstorming 
-- Use the depoy-app skill to deploy the app
+- Plan out the next steps for the app development using superpowers:brainstorming
+- Use the deploy-app skill to deploy the app

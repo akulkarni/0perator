@@ -9,6 +9,7 @@ const execAsync = promisify(exec);
 
 export interface InstallOptions {
   devMode?: boolean;
+  latest?: boolean;
 }
 
 /**
@@ -48,8 +49,10 @@ export async function install0peratorMcp(
     args = [...runnerParts.slice(1), "tsx", srcPath, "mcp", "start"];
   } else {
     // Production: use package runner to run the installed package
+    // Use @latest to bypass npx cache if latest option is true (default)
+    const packageName = options.latest !== false ? "0perator@latest" : "0perator";
     command = runnerParts[0];
-    args = [...runnerParts.slice(1), "0perator", "mcp", "start"];
+    args = [...runnerParts.slice(1), packageName, "mcp", "start"];
   }
 
   await installMCPForClient({

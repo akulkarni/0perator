@@ -11,20 +11,23 @@ Build full-stack applications instantly through natural conversation.
 ## Installation
 
 ```bash
-npx 0perator init
+npx 0perator@latest init
 ```
 
-This will configure your IDE(s) with the MCP servers. Select which IDEs to configure when prompted.
+This will configure your IDE with the MCP servers. Select which IDE to configure when prompted.
 
 ### Init Options
 
 ```bash
-# Interactive mode (select IDEs with arrow keys)
-npx 0perator init
+# Interactive mode (select IDE with arrow keys)
+npx 0perator@latest init
 
-# Configure specific IDE(s)
-npx 0perator init --client claude-code
-npx 0perator init --client cursor --client windsurf
+# Configure specific IDE
+npx 0perator@latest init --client claude-code
+npx 0perator@latest init --client cursor
+
+# Pin to current version instead of always using latest
+npx 0perator init --no-latest
 ```
 
 The init command will:

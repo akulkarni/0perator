@@ -61,7 +61,7 @@ export const createWebAppFactory: ApiFactory<
     config: {
       title: "Create Web App",
       description:
-        "🚀 Create any web application - Build an opinionated next.js app",
+        "🚀 Create any web application - Build an opinionated next.js app. Get instructions for how to use this using the create-app skill.",
       inputSchema,
       outputSchema,
     },

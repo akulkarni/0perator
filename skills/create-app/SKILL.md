@@ -1,6 +1,6 @@
 ---
 name: create-app
-description: 'Step-by-step plan for creating a new fullstack web application with database, auth, and shadcn UI'
+description: 'Use this skill whenever creating a new application. This should be the first thing you read when starting a new project. Read this before planning or brainstorming.'
 ---
 
 # Create App Implementation Plan

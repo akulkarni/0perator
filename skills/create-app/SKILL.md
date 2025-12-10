@@ -80,7 +80,7 @@ Read the `CLAUDE.md` file in the newly created app directory into your context.
 
 **Files:**
 - Modify: `src/server/better-auth/config.ts`
-- Modify: `src/env.js`
+- Modify: `src/env.js`, `.env` , `.env.example`
 
 **Step 1: Edit auth config**
 
@@ -99,9 +99,9 @@ export const authConfig = {
 };
 ```
 
-**Step 2: Update env.js**
+**Step 2: Update env files**
 
-Update the src/env.js file to set the environment variables for the auth providers.
+Update the `src/env.js`,`.env` and `.env.example` files to set the environment variables for the auth providers.
 
 ---
 

@@ -4,9 +4,23 @@ Build full-stack applications instantly through natural conversation.
 
 ## Overview
 
-0perator is an MCP (Model Context Protocol) server that enables AI agents to create, deploy, and manage real applications. It provides **direct, parameter-driven tools** that create complete, working applications with a single command.
+0perator helps you build modern, well-designed full-stack apps without worrying about the tech stack. We've chosen a best-in-class TypeScript stack and built world-class AI support through MCP. You focus on product functionality and design—we handle the infrastructure.
 
-**Key Innovation:** The Direct Tools Architecture - instead of templates or scaffolding, 0perator uses intelligent, parameter-driven tools that adapt to your needs and create everything automatically: dependencies installed, database connected, auth UI built, and dev server running.
+## Example Queries
+
+After installing 0perator, try asking your AI coding assistant:
+
+- "Create a collaborative TODO app with user accounts"
+- "Build a real-time chat application"
+- "Create a dashboard to track my fitness goals"
+- "Build a blog with markdown support and comments"
+- "Create an expense tracker with categories and charts"
+
+Once your app is built, we also support deployment:
+
+- "Deploy my app to Vercel"
+
+(More deployment options coming soon)
 
 ## Installation
 
@@ -51,10 +65,11 @@ Everything is configured and connected automatically.
 ## Direct Tools (What Claude Sees)
 
 ```
-🚀 create_web_app   - Create T3 Stack app with database connection
-🗄️  create_database - Tiger Cloud PostgreSQL (free tier)
-🌐 open_app        - Open app in browser
-📖 view_skill      - View step-by-step instructions for complex tasks
+🚀 create_web_app        - Create T3 Stack app with database connection
+🗄️  create_database       - Tiger Cloud PostgreSQL (free tier)
+🌐 open_app              - Open app in browser
+📤 upload_env_to_vercel  - Upload .env variables to Vercel
+📖 view_skill            - View step-by-step instructions for complex tasks
 ```
 
 ### Skills
@@ -64,6 +79,7 @@ Skills provide step-by-step instructions for complex workflows:
 | Skill | Description |
 |-------|-------------|
 | `create-app` | Full app creation workflow: database setup, auth configuration, shadcn components |
+| `deploy-app` | Deploy your app to Vercel with environment configuration |
 
 
 
@@ -86,26 +102,15 @@ Skills provide step-by-step instructions for complex workflows:
 - 🎉 Your app is running at http://localhost:3000!
 ```
 
-## Real Examples
-
-### Create a Full-Stack App
-```
-"Create a web app with authentication and a database"
-```
-
-0perator will:
-- ✅ Create a T3 Stack app (Next.js + tRPC + Drizzle)
-- ✅ Set up Tiger Cloud PostgreSQL
-- ✅ Configure Better Auth with your chosen providers
-- ✅ Initialize shadcn/ui components
-- ✅ Connect database and run migrations
-- ✅ Install all dependencies
-
 ## Development
 
 **Dev mode:** Run `npm run dev -- init --dev` from the repo to configure IDEs to run the MCP server from source. Code changes take effect on IDE restart without rebuilding.
 
 See [CLAUDE.md](CLAUDE.md) for development setup, adding new tools, and debugging.
+
+### Testing
+
+When testing app creation, verify that the AI coding agent calls `view_skill('create-app')` in the first few tool calls. This ensures the agent follows the structured workflow for setting up the database, auth, and UI components correctly.
 
 ## Design Philosophy
 

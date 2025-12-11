@@ -16,6 +16,14 @@ const inputSchema = {
     .optional()
     .describe("Database service ID to connect to"),
   use_auth: z.boolean().optional().describe("Enable authentication"),
+  product_brief: z
+    .string()
+    .optional()
+    .describe("Description of the product and minimal features for v0/demo"),
+  future_features: z
+    .string()
+    .optional()
+    .describe("Features deferred to later that may affect architectural decisions"),
 } as const;
 
 const outputSchema = {
@@ -65,7 +73,7 @@ export const createWebAppFactory: ApiFactory<
       inputSchema,
       outputSchema,
     },
-    fn: async ({ app_name, db_service_id, use_auth }): Promise<OutputSchema> => {
+    fn: async ({ app_name, db_service_id, use_auth, product_brief, future_features }): Promise<OutputSchema> => {
       const appName = app_name;
 
       if (!db_service_id) {
@@ -132,7 +140,12 @@ export const createWebAppFactory: ApiFactory<
         }
 
         // Copy app templates (CLAUDE.md, globals.css)
-        await writeAppTemplates(appName);
+        await writeAppTemplates(appName, {
+          app_name: appName,
+          use_auth,
+          product_brief,
+          future_features,
+        });
 
         return {
           success: true,

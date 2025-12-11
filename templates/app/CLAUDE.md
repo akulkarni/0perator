@@ -1,9 +1,21 @@
-# Todo App - Project Guide
+# {{app_name}} - Project Guide
 
 ## Overview
 
-Full-stack [[.Name]] management app built with the T3 Stack (Next.js 15, tRPC, Drizzle ORM, Better Auth).
+Full-stack {{app_name}} app built with the T3 Stack (Next.js 15, tRPC, Drizzle ORM{{#if use_auth}}, Better Auth{{/if}}).
 
+{{#if product_brief}}
+## Product Brief
+
+{{{product_brief}}}
+
+{{/if}}
+{{#if future_features}}
+## Future Features
+
+{{{future_features}}}
+
+{{/if}}
 ## Status
 
 The app is now in development and has not been deployed to production yet
@@ -11,7 +23,7 @@ The app is now in development and has not been deployed to production yet
 ## Tech Stack
 
 - **Frontend**: Next.js 15.2.3 (App Router), React 19, TypeScript, Tailwind CSS 4
-- **Backend**: tRPC v11, Better Auth v1.3
+- **Backend**: tRPC v11{{#if use_auth}}, Better Auth v1.3{{/if}}
 - **Database**: PostgreSQL with Drizzle ORM v0.41
 - **State Management**: TanStack Query (React Query) v5
 
@@ -33,7 +45,9 @@ npm run db:studio    # Open Drizzle Studio UI
 src/
 ├── app/                    # Next.js App Router
 │   ├── api/
+{{#if use_auth}}
 │   │   ├── auth/[...all]/ # Better Auth handler
+{{/if}}
 │   │   └── trpc/[trpc]/   # tRPC endpoint
 │   ├── _components/       # Client components
 │   ├── page.tsx           # Home page (Server Component)
@@ -46,7 +60,9 @@ src/
 │   ├── db/
 │   │   ├── schema.ts      # Drizzle schema definitions
 │   │   └── index.ts       # Database connection
+{{#if use_auth}}
 │   └── better-auth/       # Auth configuration
+{{/if}}
 ├── trpc/
 │   ├── server.ts          # RSC tRPC helpers
 │   ├── react.tsx          # Client tRPC provider
@@ -71,15 +87,19 @@ import { api } from "~/trpc/server";
 
 ### tRPC Procedures
 - `publicProcedure`: No authentication required
+{{#if use_auth}}
 - `protectedProcedure`: Requires valid session (throws UNAUTHORIZED)
+{{/if}}
 
 ```typescript
 // In routers
 export const postRouter = createTRPCRouter({
   getAll: publicProcedure.query(async ({ ctx }) => { ... }),
+{{#if use_auth}}
   create: protectedProcedure
     .input(z.object({ title: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => { ... }),
+{{/if}}
 });
 ```
 
@@ -96,6 +116,7 @@ await db.query.todos.findMany({ where: eq(todos.createdById, userId) });
 await db.insert(todos).values({ title, createdById: userId });
 ```
 
+{{#if use_auth}}
 ### Authentication
 Session available in tRPC context for protected procedures:
 ```typescript
@@ -103,7 +124,7 @@ Session available in tRPC context for protected procedures:
 const userId = ctx.session.user.id;
 ```
 
-
+{{/if}}
 ## Development Notes
 
 - Dev server has artificial 100-500ms delay to catch data waterfalls
@@ -115,6 +136,32 @@ const userId = ctx.session.user.id;
 - Tailwind CSS with CSS variables for theming
 - Use `cn()` utility from `~/lib/utils` for conditional classes
 - Dark mode supported via `dark:` prefix
+
+### shadcn/ui Components
+
+This project uses [shadcn/ui](https://ui.shadcn.com/) for UI components. Components are installed to `src/components/ui/`.
+
+**Adding new components:**
+```bash
+npx shadcn@latest add button card input form table
+```
+
+**Using components:**
+```typescript
+import { Button } from "~/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent } from "~/components/ui/card";
+```
+
+**Color tokens:** Use semantic shadcn colors instead of hardcoded Tailwind colors:
+- `bg-background` / `text-foreground` - main bg/text
+- `bg-muted` / `text-muted-foreground` - secondary bg/text
+- `bg-card` / `text-card-foreground` - card surfaces
+- `bg-primary` / `text-primary-foreground` - primary actions
+- `bg-destructive` / `text-destructive-foreground` - destructive actions
+- `border-border` - borders
+- `ring-ring` - focus rings
+
+Browse available components at https://ui.shadcn.com/docs/components
 
 ## Adding New Features
 

@@ -17,7 +17,11 @@ description: 'Use this skill whenever creating a new application. IMPORTANT: Thi
 
 ## Phase 1: Project Setup
 
-### Task 1: Gather Requirements
+### Task 1: Gather Requirements And Understand The Project
+
+Before asking any questions tell the user: "Let's start by planning a minimal v0/demo version of your app. We'll focus on the core features needed to get something working, then we can iterate from there."
+
+DO NOT ask multiple questions in the same prompt.
 
 **Step 1: Determine app type**
 
@@ -38,6 +42,52 @@ Propose a sensible app name based on the user's request. The name should be:
 - Appropriate for a directory name
 
 Ask the user: "I'll name the project `<proposed-name>`. Does that work, or would you prefer something else?"
+
+**Step 4: Understand what product you are building**
+
+You are building a new application so try to understand the project from the user prompt then ask questions one at a time to refine the idea.
+Right now you need to understand the project from the perspective of what the product will do. DO NOT try to determine the technical details now.
+You want to determine two sections:
+1) A one to three paragraph description of what the project will do.
+2) A short description of the minimal features for a v0/demo - just enough to get a working application.
+
+Once you understand what you're building, present these sections to the user, checking if these two sections are correct.
+Ask the user "Is the basic description and feature set for the v0/demo correct?" 
+
+Let's call these two section together the "product brief"
+
+After you've verified these first two sections:
+- Ask the user: "Are there any features not in the v0/demo that might affect how we build this? For example: offline support, real-time sync, multi-tenancy, or specific integrations. These won't be built now, but knowing them helps us make the right architectural choices upfront."
+- If yes:
+  1) create a list of such features.
+  2) present the list of features to the user for confirmation.
+  
+Let's call this list the "future features"
+
+#### The Process
+Understanding the idea:
+
+- Ask questions one at a time to refine the idea
+- Prefer multiple choice questions when possible, but open-ended is fine too
+- Only one question per message - if a topic needs more exploration, break it into multiple questions
+- Focus on understanding: purpose, constraints, success criteria
+
+Exploring approaches:
+
+- Propose 2-3 different approaches with trade-offs
+- Present options conversationally with your recommendation and reasoning
+- Lead with your recommended option and explain why
+
+
+Ask: "Ready to set up for implementation?"
+
+Key Principles:
+One question at a time - Don't overwhelm with multiple questions
+Multiple choice preferred - Easier to answer than open-ended when possible
+YAGNI ruthlessly - Remove unnecessary features from all designs
+Explore alternatives - Always propose 2-3 approaches before settling
+Incremental validation - Present design in sections, validate each
+Be flexible - Go back and clarify when something doesn't make sense
 
 ---
 
@@ -61,6 +111,8 @@ Use the `create_web_app` MCP tool with:
 - `app_name` confirmed in Task 1, Step 3
 - `db_service_id` from Task 2
 - `use_auth: true` if multi-user app (from Task 1)
+- `product_brief` from Task 1, Step 4 (the product brief)
+- `future_features` from Task 1, Step 4 (if any future features were identified)
 
 **Step 2: Change into app directory**
 
@@ -244,7 +296,11 @@ Use the `open_app` MCP tool to open http://localhost:3000 in a browser and verif
 
 ### Task 12: Finish Up
 
-**Step 1: Offer to commit**
+**Step 1: Review CLAUDE.md**
+
+Read the `CLAUDE.md` file. Make sure it is accurate. Fix if needed.
+
+**Step 2: Offer to commit**
 
 Ask the user "Do you want to commit this initial version to git?".
 

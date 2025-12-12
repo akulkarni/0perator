@@ -7,6 +7,16 @@ description: 'Step-by-step instructions for evaluating TypeScript code for quali
 
 > **For Claude:** Follow this checklist systematically. Report findings with specific file paths and line numbers. Prioritize issues by severity.
 
+**Output Style:** Report issues as you find them - don't wait until the end. After each task, output any findings immediately so the user sees progress. Use the format below for each issue. At the end, provide a summary report.
+
+**Issue Format:**
+```
+[SEVERITY] Issue Title
+📍 file/path.ts:123
+💬 Brief description of the problem
+🔧 Recommendation
+```
+
 **Goal:** Evaluate a TypeScript codebase for quality issues, identify problems, and provide actionable recommendations.
 
 **Scope:** Type safety, runtime validation, code organization, error handling, performance, maintainability, and best practices.
@@ -648,13 +658,15 @@ Identify dependencies that:
 
 ---
 
-## Phase 11: Report Generation
+## Phase 11: Summary Report
 
-### Task 18: Generate Quality Report
+### Task 18: Generate Summary Report
+
+After completing all phases, provide a summary that consolidates the issues already reported.
 
 **Step 1: Compile findings**
 
-Organize issues by severity:
+Summarize the issues by severity (counts and highlights):
 
 **Critical (Must Fix)**
 - Custom crypto/security implementations (use established libraries)
@@ -685,14 +697,23 @@ Organize issues by severity:
 - Documentation gaps
 - Default exports
 
-**Step 2: Provide actionable recommendations**
+**Step 2: Provide summary statistics**
 
-For each issue, provide:
-1. File path and line number
-2. Description of the problem
-3. Why it matters (the bug scenario or risk)
-4. Specific recommendation for fixing
-5. Example of the fix (when helpful)
+Example format:
+```
+## Summary
+
+Found X issues across Y files:
+- Critical: N
+- High: N
+- Medium: N
+- Low: N
+
+Top priorities:
+1. [Most important issue to fix first]
+2. [Second most important]
+3. [Third most important]
+```
 
 **Step 3: Highlight positive patterns**
 

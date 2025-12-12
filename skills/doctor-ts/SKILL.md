@@ -79,9 +79,20 @@ This is the highest-impact check in this phase. API SDKs installed but not impor
 - The SDK maintainers update types when APIs change; your manual types don't
 - You lose automatic token refresh, pagination, rate limiting, retries, and error handling
 - You're maintaining hundreds/thousands of lines of code that the SDK provides for free
-- Even if there's a valid reason (e.g., runtime constraints), you need Zod validation on all responses since manual types can't be trusted
 
-examples:
+**Recommendation format:**
+```
+🔧 Migrate to the official SDK. The SDK provides:
+   - Typed responses that stay in sync with the actual API
+   - Built-in authentication, retries, rate limiting, and error handling
+   - Less code to maintain
+
+   If there's a legitimate reason to use raw HTTP (e.g., edge runtime constraints,
+   SDK doesn't support a specific endpoint), add a code comment explaining why
+   AND add Zod validation on all responses since manual types cannot be trusted.
+```
+
+**Examples of SDK lookup:**
 
 | SDK in package.json | Check for imports | Check for raw HTTP if no imports |
 |---------------------|-------------------|----------------------------------|
@@ -133,7 +144,9 @@ Flag as **CRITICAL** if you find:
 
 **Why this is critical:** Security code must be written by experts. Custom implementations almost always have vulnerabilities.
 
-**Step 5: Check for raw HTTP calls to APIs without installed SDKs**
+**Step 5: Check for raw HTTP calls to APIs where SDKs exist**
+
+Flag as **HIGH** if the SDK is actually installed but unused (and a direct API call used instead). 
 
 If no SDK is installed, look for direct `fetch`/`axios` calls to well-known APIs that have official SDKs:
 

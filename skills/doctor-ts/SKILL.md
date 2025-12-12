@@ -62,7 +62,39 @@ If no runtime validation library is present, flag this as a potential gap and re
 
 **Why this matters:** Hand-rolled implementations of common functionality are bug-prone, harder to maintain, and often miss edge cases that battle-tested libraries handle. Before analyzing code quality, identify code that shouldn't exist at all.
 
-**Step 1: Check for hand-rolled utilities**
+**Step 1: Check for installed but unused API SDKs (CRITICAL CHECK)**
+
+This is the highest-impact check in this phase. API SDKs installed but not imported indicate raw HTTP is being used with manually-maintained types that WILL drift from the actual API.
+
+**Perform this check:**
+
+1. Identify API SDKs in `package.json`
+
+**Flag as HIGH priority when:**
+- An API SDK is in `package.json` but has zero imports anywhere in the codebase
+- AND raw HTTP calls to that API's endpoints exist
+
+**Why this is a high-priority issue:**
+- Manual TypeScript interfaces for API responses are lies waiting to happen
+- The SDK maintainers update types when APIs change; your manual types don't
+- You lose automatic token refresh, pagination, rate limiting, retries, and error handling
+- You're maintaining hundreds/thousands of lines of code that the SDK provides for free
+- Even if there's a valid reason (e.g., runtime constraints), you need Zod validation on all responses since manual types can't be trusted
+
+examples:
+
+| SDK in package.json | Check for imports | Check for raw HTTP if no imports |
+|---------------------|-------------------|----------------------------------|
+| `googleapis` | `from "googleapis"` | `googleapis.com/calendar`, `googleapis.com/drive`, etc. |
+| `stripe` | `from "stripe"` | `api.stripe.com` |
+| `@aws-sdk/*` | `from "@aws-sdk/"` | `amazonaws.com` |
+| `openai` | `from "openai"` | `api.openai.com` |
+| `twilio` | `from "twilio"` | `api.twilio.com` |
+| `@sendgrid/mail` | `from "@sendgrid/"` | `api.sendgrid.com` |
+| `octokit` | `from "octokit"` or `from "@octokit/"` | `api.github.com` |
+| `firebase` | `from "firebase"` | `firebaseio.com` |
+
+**Step 2: Check for hand-rolled utilities**
 
 Look for custom implementations of functionality that well-known libraries handle better:
 
@@ -82,7 +114,7 @@ Look for custom implementations of functionality that well-known libraries handl
 | Custom form validation | `react-hook-form`, `formik` + Zod |
 | Custom caching logic | `lru-cache`, `node-cache` |
 
-**Step 2: Check for reimplemented language features**
+**Step 3: Check for reimplemented language features**
 
 Look for:
 - Custom `isEmpty`, `isNil`, `isObject` checks → Use `lodash` or write proper type guards
@@ -90,7 +122,7 @@ Look for:
 - Custom `sleep`/`delay` functions → Fine, but check if a library already provides one
 - Custom `retry` or `poll` functions → `p-retry`, `p-poll`
 
-**Step 3: Check for crypto/security implementations**
+**Step 4: Check for crypto/security implementations**
 
 Flag as **CRITICAL** if you find:
 - Custom password hashing → Use `bcrypt`, `argon2`
@@ -101,9 +133,9 @@ Flag as **CRITICAL** if you find:
 
 **Why this is critical:** Security code must be written by experts. Custom implementations almost always have vulnerabilities.
 
-**Step 4: Check for raw HTTP calls to APIs with SDKs**
+**Step 5: Check for raw HTTP calls to APIs without installed SDKs**
 
-Look for direct `fetch`/`axios` calls to well-known APIs that have official SDKs or OpenAPI-generated clients:
+If no SDK is installed, look for direct `fetch`/`axios` calls to well-known APIs that have official SDKs:
 
 | Raw HTTP to... | Should Use Instead |
 |----------------|-------------------|
@@ -129,17 +161,23 @@ Look for direct `fetch`/`axios` calls to well-known APIs that have official SDKs
 
 Flag as **HIGH** priority when an official SDK could replace significant custom code (auth handling, retry logic, error parsing). Flag as **MEDIUM** priority for simpler cases where raw HTTP works but an SDK would be cleaner.
 
-**Step 5: Check for ignored installed dependencies**
+**Step 6: Check for other ignored installed dependencies**
 
-Cross-reference `package.json` dependencies with the codebase:
-- Is `lodash` installed but custom utilities exist anyway?
-- Is `date-fns` installed but custom date parsing is used?
-- Is `zod` installed but manual validation code exists?
-- Is an API SDK installed but raw `fetch` calls are used instead?
+Cross-reference `package.json` dependencies with actual usage:
 
-Flag as **MEDIUM** priority when a library is installed but not used where it should be.
+```bash
+# For each utility library, check if it's imported
+grep -r "from ['\"]lodash" --include="*.ts" .
+grep -r "from ['\"]date-fns" --include="*.ts" .
+grep -r "from ['\"]zod" --include="*.ts" .
+```
 
-**Step 6: Evaluate whether to recommend new dependencies**
+Flag as **MEDIUM** priority when:
+- `lodash` is installed but custom utilities exist anyway
+- `date-fns` is installed but custom date parsing is used
+- `zod` is installed but manual validation code exists in the same boundary
+
+**Step 7: Evaluate whether to recommend new dependencies**
 
 Consider suggesting libraries when:
 - Custom code is > 50 lines for common functionality
@@ -662,11 +700,33 @@ Identify dependencies that:
 
 ### Task 18: Generate Summary Report
 
-After completing all phases, provide a summary that consolidates the issues already reported.
+After completing all phases, provide a summary that consolidates all issues.
 
-**Step 1: Compile findings**
+**Step 1: Reprint all issues**
 
-Summarize the issues by severity (counts and highlights):
+List every issue found, grouped by severity, using the same format as during the evaluation:
+
+```
+## All Issues
+
+### Critical
+[CRITICAL] Issue Title
+📍 file/path.ts:123
+💬 Brief description of the problem
+🔧 Recommendation
+
+### High
+[HIGH] Issue Title
+📍 file/path.ts:456
+💬 Brief description of the problem
+🔧 Recommendation
+
+... (continue for Medium, Low)
+```
+
+**Step 2: Compile findings**
+
+Reference these severity categories when classifying issues:
 
 **Critical (Must Fix)**
 - Custom crypto/security implementations (use established libraries)
@@ -676,6 +736,7 @@ Summarize the issues by severity (counts and highlights):
 - Missing error handling that could crash the app
 
 **High (Should Fix)**
+- API SDK installed but unused (raw HTTP used instead, manual types will drift from actual API)
 - Reinvented wheels for complex functionality (dates, validation, state machines)
 - Strict mode violations
 - Empty catch blocks
@@ -697,11 +758,11 @@ Summarize the issues by severity (counts and highlights):
 - Documentation gaps
 - Default exports
 
-**Step 2: Provide summary statistics**
+**Step 3: Provide summary statistics**
 
-Example format:
+After the full issue list, add:
 ```
-## Summary
+## Statistics
 
 Found X issues across Y files:
 - Critical: N
@@ -709,13 +770,13 @@ Found X issues across Y files:
 - Medium: N
 - Low: N
 
-Top priorities:
+Top 3 priorities:
 1. [Most important issue to fix first]
 2. [Second most important]
 3. [Third most important]
 ```
 
-**Step 3: Highlight positive patterns**
+**Step 4: Highlight positive patterns**
 
 Note well-implemented patterns that should be continued:
 - Good type safety practices

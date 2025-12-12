@@ -786,9 +786,18 @@ Note well-implemented patterns that should be continued:
 
 ---
 
-## Phase 12: Optional Deep Dives
+## Phase 12: Save and Next Steps
 
-### Task 19: Offer Additional Analysis
+### Task 19: Offer to Save Report
+
+Ask the user: "Would you like me to save this report to `docs/issues-{date}.md`?"
+
+If yes:
+- Create the `docs/` directory if it doesn't exist
+- Write the full summary report (all issues, statistics, positive patterns) to `docs/issues-YYYY-MM-DD.md` (e.g., `docs/issues-2025-01-15.md`)
+- Include a timestamp at the top of the file
+
+### Task 20: Offer Additional Analysis
 
 Ask the user if they want deeper analysis on:
 - Test coverage and test quality

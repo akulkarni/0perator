@@ -807,8 +807,8 @@ Ask the user: "Would you like me to save this report to `docs/issues-{date}.md`?
 
 If yes:
 - Create the `docs/` directory if it doesn't exist
-- Write the full summary report (all issues, statistics, positive patterns) to `docs/issues-YYYY-MM-DD.md` (e.g., `docs/issues-2025-01-15.md`)
-- Include a timestamp at the top of the file
+- Write the exact same summary report printed above to `docs/issues-YYYY-MM-DD.md` (e.g., `docs/issues-2025-01-15.md`)
+- The file should contain: all issues in standard format, statistics, and positive patterns - identical to what was just displayed
 
 ### Task 20: Offer Additional Analysis
 

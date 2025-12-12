@@ -1,6 +1,6 @@
 ---
 name: doctor-ts
-description: 'Step-by-step instructions for evaluating TypeScript code for quality, identifying issues, and providing actionable recommendations'
+description: 'Instructions for evaluating TypeScript code for quality, identifying issues, and providing actionable recommendations. Use this when asked to evaluate the code quality of a project, diff, or PR.'
 ---
 
 # TypeScript Code Quality Evaluation
@@ -56,9 +56,50 @@ If no runtime validation library is present, flag this as a potential gap and re
 
 ---
 
-## Phase 2: Reinvented Wheels
+## Phase 2: Project-Specific Guidelines
 
-### Task 2: Find Code That Should Use Existing Libraries
+### Task 2: Check Project Code Standards
+
+**Why this matters:** Many projects define their own code quality rules in documentation files. Code that violates the project's own stated rules indicates technical debt or forgotten standards. Mark as **MEDIUM** priority.
+
+**Step 1: Look for project guidelines**
+
+Search for configuration and documentation files that define code standards:
+- `CLAUDE.md` - Claude Code instructions (often contains strict rules)
+- `CONTRIBUTING.md` - Contribution guidelines
+- `.cursor/rules` - Cursor AI rules
+- `docs/CODE_STYLE.md` or similar
+- Comments in config files defining limits
+
+**Step 2: Extract enforceable rules**
+
+Look for quantifiable limits such as:
+- Function/method size limits (e.g., "≤100 lines per function")
+- Component size limits (e.g., "≤200 lines per component")
+- Nesting depth limits (e.g., "≤4 levels")
+- `any` type policies (e.g., "0 allowed")
+- Magic number policies
+- Naming conventions
+- File organization requirements
+
+**Step 3: Verify compliance**
+
+For each quantifiable rule found, scan the codebase for violations:
+
+```bash
+# Example: Find files exceeding line limits
+wc -l **/*.ts | sort -rn | head -20
+```
+
+**Step 4: Report violations**
+
+Flag as **MEDIUM** priority when code violates the project's own stated rules. 
+
+---
+
+## Phase 3: Reinvented Wheels
+
+### Task 3: Find Code That Should Use Existing Libraries
 
 **Why this matters:** Hand-rolled implementations of common functionality are bug-prone, harder to maintain, and often miss edge cases that battle-tested libraries handle. Before analyzing code quality, identify code that shouldn't exist at all.
 
@@ -80,17 +121,9 @@ This is the highest-impact check in this phase. API SDKs installed but not impor
 - You lose automatic token refresh, pagination, rate limiting, retries, and error handling
 - You're maintaining hundreds/thousands of lines of code that the SDK provides for free
 
-**Recommendation format:**
-```
-🔧 Migrate to the official SDK. The SDK provides:
-   - Typed responses that stay in sync with the actual API
-   - Built-in authentication, retries, rate limiting, and error handling
-   - Less code to maintain
+**Recommendation:**
 
-   If there's a legitimate reason to use raw HTTP (e.g., edge runtime constraints,
-   SDK doesn't support a specific endpoint), add a code comment explaining why
-   AND add Zod validation on all responses since manual types cannot be trusted.
-```
+HIGHLY recommend using the sdk instead of raw API calls.
 
 **Examples of SDK lookup:**
 
@@ -146,7 +179,7 @@ Flag as **CRITICAL** if you find:
 
 **Step 5: Check for raw HTTP calls to APIs where SDKs exist**
 
-Flag as **HIGH** if the SDK is actually installed but unused (and a direct API call used instead). 
+Flag as **HIGH** if the SDK is actually installed but unused (and a direct API call used instead). Recommend using the SDK and NOT using raw API calls.
 
 If no SDK is installed, look for direct `fetch`/`axios` calls to well-known APIs that have official SDKs:
 
@@ -512,6 +545,25 @@ Check if:
 - Files are reasonably sized (flag files > 500 lines)
 - Naming conventions are consistent
 
+**Step 4: Find duplicate implementations**
+
+Look for multiple versions of the same component or module:
+
+Search patterns:
+- Same component name in different directories
+- Files with suffixes like `Old`, `Legacy`, `V2`, `New`, `Refactored`
+- A `ComponentName/` directory (refactored) alongside a flat `ComponentName.tsx` (old)
+- Similar file names suggesting copy-paste evolution
+
+```bash
+# Find potential duplicates
+find . -name "*.tsx" | xargs -I{} basename {} | sort | uniq -d
+```
+
+Flag as **MEDIUM** priority.
+
+**Why this matters:** Duplicate implementations cause confusion about which version to use, lead to bugs when only one version is updated, and indicate incomplete refactoring.
+
 ---
 
 ### Task 11: Review Export Patterns
@@ -803,11 +855,11 @@ Note well-implemented patterns that should be continued:
 
 ### Task 19: Offer to Save Report
 
-Ask the user: "Would you like me to save this report to `docs/issues-{date}.md`?"
+Ask the user: "Would you like me to save this report to `docs/reports/issues-{date}.md`?"
 
 If yes:
-- Create the `docs/` directory if it doesn't exist
-- Write the exact same summary report printed above to `docs/issues-YYYY-MM-DD.md` (e.g., `docs/issues-2025-01-15.md`)
+- Create the `docs/reports/` directory if it doesn't exist
+- Write the exact same summary report printed above to `docs/reports/issues-YYYY-MM-DD.md` (e.g., `docs/reports/issues-2025-01-15.md`)
 - The file should contain: all issues in standard format, statistics, and positive patterns - identical to what was just displayed
 
 ### Task 20: Offer Additional Analysis

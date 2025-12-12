@@ -46,9 +46,103 @@ If no runtime validation library is present, flag this as a potential gap and re
 
 ---
 
-## Phase 2: Type Safety Analysis
+## Phase 2: Reinvented Wheels
 
-### Task 2: Check TypeScript Strictness
+### Task 2: Find Code That Should Use Existing Libraries
+
+**Why this matters:** Hand-rolled implementations of common functionality are bug-prone, harder to maintain, and often miss edge cases that battle-tested libraries handle. Before analyzing code quality, identify code that shouldn't exist at all.
+
+**Step 1: Check for hand-rolled utilities**
+
+Look for custom implementations of functionality that well-known libraries handle better:
+
+| Pattern | Should Use Instead |
+|---------|-------------------|
+| Custom date formatting/parsing | `date-fns`, `dayjs`, or `Intl.DateTimeFormat` |
+| Custom deep clone/merge | `lodash/cloneDeep`, `structuredClone()` |
+| Custom debounce/throttle | `lodash/debounce`, `lodash/throttle` |
+| Custom UUID generation | `uuid`, `nanoid`, or `crypto.randomUUID()` |
+| Custom slug generation | `slugify` |
+| Custom retry logic | `p-retry`, `async-retry` |
+| Custom query string parsing | `qs`, `URLSearchParams` |
+| Custom CSV/JSON parsing | `papaparse`, native `JSON.parse` with schema |
+| Custom email/URL validation regex | `zod`, `validator.js` |
+| Custom HTTP client wrapper | `ky`, `got`, or framework-specific (tRPC, etc.) |
+| Custom state machine | `xstate`, `robot` |
+| Custom form validation | `react-hook-form`, `formik` + Zod |
+| Custom caching logic | `lru-cache`, `node-cache` |
+
+**Step 2: Check for reimplemented language features**
+
+Look for:
+- Custom `isEmpty`, `isNil`, `isObject` checks → Use `lodash` or write proper type guards
+- Custom array utilities (unique, flatten, groupBy) → Use native methods or `lodash`
+- Custom `sleep`/`delay` functions → Fine, but check if a library already provides one
+- Custom `retry` or `poll` functions → `p-retry`, `p-poll`
+
+**Step 3: Check for crypto/security implementations**
+
+Flag as **CRITICAL** if you find:
+- Custom password hashing → Use `bcrypt`, `argon2`
+- Custom encryption → Use `crypto` built-in or established libraries
+- Custom JWT handling → Use `jose`, `jsonwebtoken`
+- Custom session management → Use framework-provided solutions
+- Custom CSRF protection → Use framework middleware
+
+**Why this is critical:** Security code must be written by experts. Custom implementations almost always have vulnerabilities.
+
+**Step 4: Check for raw HTTP calls to APIs with SDKs**
+
+Look for direct `fetch`/`axios` calls to well-known APIs that have official SDKs or OpenAPI-generated clients:
+
+| Raw HTTP to... | Should Use Instead |
+|----------------|-------------------|
+| Stripe API | `stripe` SDK |
+| AWS services | `@aws-sdk/*` |
+| GitHub API | `octokit` |
+| Slack API | `@slack/web-api` |
+| Twilio API | `twilio` SDK |
+| SendGrid API | `@sendgrid/mail` |
+| OpenAI API | `openai` SDK |
+| Google APIs | `googleapis` or specific SDKs |
+| Firebase | `firebase` SDK |
+
+**Why this matters:**
+- SDKs handle authentication, retries, rate limiting, and error handling correctly
+- SDKs provide TypeScript types that match the actual API responses
+- Raw HTTP calls require manual type definitions that can drift from the real API
+- SDKs are updated when APIs change; raw calls silently break
+
+**Also check for:**
+- APIs with published OpenAPI/Swagger specs - consider generating a typed client instead of manual `fetch` calls
+- GraphQL APIs being called with raw HTTP instead of a GraphQL client (`@apollo/client`, `urql`, `graphql-request`)
+
+Flag as **HIGH** priority when an official SDK could replace significant custom code (auth handling, retry logic, error parsing). Flag as **MEDIUM** priority for simpler cases where raw HTTP works but an SDK would be cleaner.
+
+**Step 5: Check for ignored installed dependencies**
+
+Cross-reference `package.json` dependencies with the codebase:
+- Is `lodash` installed but custom utilities exist anyway?
+- Is `date-fns` installed but custom date parsing is used?
+- Is `zod` installed but manual validation code exists?
+- Is an API SDK installed but raw `fetch` calls are used instead?
+
+Flag as **MEDIUM** priority when a library is installed but not used where it should be.
+
+**Step 6: Evaluate whether to recommend new dependencies**
+
+Consider suggesting libraries when:
+- Custom code is > 50 lines for common functionality
+- Multiple bugs or edge cases exist in custom implementations
+- The custom code duplicates well-known library functionality
+
+Be conservative - don't recommend adding dependencies for trivial utilities (< 10 lines) unless they're error-prone (dates, crypto, validation).
+
+---
+
+## Phase 3: Type Safety Analysis
+
+### Task 3: Check TypeScript Strictness
 
 **Files:** `tsconfig.json`
 
@@ -70,7 +164,7 @@ If strict mode is not fully enabled, flag this as a **HIGH** priority issue.
 
 ---
 
-### Task 3: Find Type Safety Violations
+### Task 4: Find Type Safety Violations
 
 **Step 1: Search for `any` usage**
 
@@ -116,9 +210,9 @@ Each should have a comment explaining why it's necessary. Consider whether refac
 
 ---
 
-## Phase 3: Runtime Validation (Zod Analysis)
+## Phase 4: Runtime Validation (Zod Analysis)
 
-### Task 4: Check External Data Boundaries
+### Task 5: Check External Data Boundaries
 
 **Why this matters:** External data should be validated with Zod before being treated as trusted. TypeScript types are erased at runtime - only validation provides actual safety.
 
@@ -160,7 +254,7 @@ type User = z.infer<typeof UserSchema>; // Derive type from schema
 
 ---
 
-### Task 5: Check Environment Variable Handling
+### Task 6: Check Environment Variable Handling
 
 **Why this matters:** Environment variables are a classic source of bugs. They should be validated once, centrally, with a Zod schema. Using `process.env.*` directly throughout the codebase is fragile.
 
@@ -203,7 +297,7 @@ export const CONFIG = {
 
 ---
 
-### Task 6: Check Zod Usage Patterns (If Zod is present)
+### Task 7: Check Zod Usage Patterns (If Zod is present)
 
 **Step 1: Find validation results that are ignored**
 
@@ -239,7 +333,7 @@ const data = Schema.parse(input); // Throws on invalid
 
 ---
 
-### Task 7: Check for Type-Schema Drift
+### Task 8: Check for Type-Schema Drift
 
 **Why this matters:** When a Zod schema and a separate TypeScript interface describe the same domain object but are defined independently, they can drift apart over time, causing subtle bugs.
 
@@ -285,7 +379,7 @@ type User = z.infer<typeof UserSchema>;
 
 ---
 
-### Task 8: Check Schema-Logic Alignment
+### Task 9: Check Schema-Logic Alignment
 
 **Why this matters:** Sometimes a Zod schema allows more states than the consuming code handles. This isn't a type error, but it's a design bug.
 
@@ -332,9 +426,9 @@ Flag schema-logic mismatches as **MEDIUM** priority.
 
 ---
 
-## Phase 4: Code Organization
+## Phase 5: Code Organization
 
-### Task 9: Analyze Module Structure
+### Task 10: Analyze Module Structure
 
 **Step 1: Check for barrel exports**
 
@@ -359,7 +453,7 @@ Check if:
 
 ---
 
-### Task 10: Review Export Patterns
+### Task 11: Review Export Patterns
 
 **Step 1: Check for default exports**
 
@@ -374,9 +468,9 @@ Identify exported functions, types, or constants that aren't imported anywhere.
 
 ---
 
-## Phase 5: Error Handling
+## Phase 6: Error Handling
 
-### Task 11: Evaluate Error Handling
+### Task 12: Evaluate Error Handling
 
 **Step 1: Check for empty catch blocks**
 
@@ -409,9 +503,9 @@ Check for:
 
 ---
 
-## Phase 6: Code Quality Patterns
+## Phase 7: Code Quality Patterns
 
-### Task 12: Identify Anti-Patterns
+### Task 13: Identify Anti-Patterns
 
 **Step 1: Check for common anti-patterns**
 
@@ -432,7 +526,7 @@ Identify repeated code blocks that could be extracted into shared utilities.
 
 ---
 
-### Task 13: Review Type Definitions
+### Task 14: Review Type Definitions
 
 **Step 1: Check interface vs type usage**
 
@@ -457,9 +551,9 @@ Check that:
 
 ---
 
-## Phase 7: Logic and Semantic Bugs
+## Phase 8: Logic and Semantic Bugs
 
-### Task 14: Find Logic Bugs That Pass Type Checking
+### Task 15: Find Logic Bugs That Pass Type Checking
 
 **Why this matters:** Even with strict TypeScript AND Zod, logic can be wrong. Focus on business rules and invariants that types and schemas don't guarantee.
 
@@ -503,9 +597,9 @@ Flag logic bugs as **HIGH** priority when you can describe a concrete plausible 
 
 ---
 
-## Phase 8: Performance Considerations
+## Phase 9: Performance Considerations
 
-### Task 15: Identify Performance Issues
+### Task 16: Identify Performance Issues
 
 **Step 1: Check for synchronous blocking operations**
 
@@ -531,9 +625,9 @@ Look for:
 
 ---
 
-## Phase 9: Dependency Analysis
+## Phase 10: Dependency Analysis
 
-### Task 16: Review Dependencies
+### Task 17: Review Dependencies
 
 **Files:** `package.json`
 
@@ -554,21 +648,23 @@ Identify dependencies that:
 
 ---
 
-## Phase 10: Report Generation
+## Phase 11: Report Generation
 
-### Task 17: Generate Quality Report
+### Task 18: Generate Quality Report
 
 **Step 1: Compile findings**
 
 Organize issues by severity:
 
 **Critical (Must Fix)**
+- Custom crypto/security implementations (use established libraries)
 - External data used without runtime validation
 - Type safety holes that could cause runtime errors
 - Security vulnerabilities
 - Missing error handling that could crash the app
 
 **High (Should Fix)**
+- Reinvented wheels for complex functionality (dates, validation, state machines)
 - Strict mode violations
 - Empty catch blocks
 - Zod validation results ignored
@@ -576,6 +672,7 @@ Organize issues by severity:
 - Significant code duplication
 
 **Medium (Consider Fixing)**
+- Installed dependencies not being used where they should be
 - Type-schema drift
 - Schema-logic mismatches
 - Direct env var access without central config
@@ -607,9 +704,9 @@ Note well-implemented patterns that should be continued:
 
 ---
 
-## Phase 11: Optional Deep Dives
+## Phase 12: Optional Deep Dives
 
-### Task 18: Offer Additional Analysis
+### Task 19: Offer Additional Analysis
 
 Ask the user if they want deeper analysis on:
 - Test coverage and test quality

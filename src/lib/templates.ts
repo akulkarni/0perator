@@ -5,16 +5,19 @@ import { templatesDir } from "../config.js";
 
 export interface TemplateVars {
   app_name: string;
-  use_auth?: boolean;
-  product_brief?: string;
-  future_features?: string;
+  use_auth: boolean;
+  product_brief?: string | undefined;
+  future_features?: string | undefined;
 }
 
 /**
  * Copy app templates (CLAUDE.md, globals.css, etc.) to destination
  * Applies Handlebars templating to all files
  */
-export async function writeAppTemplates(destDir: string, vars: TemplateVars): Promise<void> {
+export async function writeAppTemplates(
+  destDir: string,
+  vars: TemplateVars,
+): Promise<void> {
   const appDir = join(templatesDir, "app");
 
   async function copyDir(srcDir: string, destBase: string): Promise<void> {

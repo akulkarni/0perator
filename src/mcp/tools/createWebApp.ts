@@ -15,7 +15,7 @@ const inputSchema = {
     .string()
     .optional()
     .describe("Database service ID to connect to"),
-  use_auth: z.boolean().optional().describe("Enable authentication"),
+  use_auth: z.boolean().default(false).describe("Enable authentication"),
   product_brief: z
     .string()
     .optional()
@@ -23,7 +23,9 @@ const inputSchema = {
   future_features: z
     .string()
     .optional()
-    .describe("Features deferred to later that may affect architectural decisions"),
+    .describe(
+      "Features deferred to later that may affect architectural decisions",
+    ),
 } as const;
 
 const outputSchema = {
@@ -73,7 +75,13 @@ export const createWebAppFactory: ApiFactory<
       inputSchema,
       outputSchema,
     },
-    fn: async ({ app_name, db_service_id, use_auth, product_brief, future_features }): Promise<OutputSchema> => {
+    fn: async ({
+      app_name,
+      db_service_id,
+      use_auth,
+      product_brief,
+      future_features,
+    }): Promise<OutputSchema> => {
       const appName = app_name;
 
       if (!db_service_id) {
@@ -89,6 +97,7 @@ export const createWebAppFactory: ApiFactory<
           "npx",
           "create-t3-app@latest",
           appName,
+          "--noInstall", //avoids dependency conflicts that could result
           "--noGit",
           "--CI",
           "--tailwind",
@@ -97,6 +106,7 @@ export const createWebAppFactory: ApiFactory<
           "--dbProvider",
           "postgres",
           "--appRouter",
+          "--biome",
         ];
         if (use_auth) {
           t3Args.push("--betterAuth");
@@ -104,10 +114,10 @@ export const createWebAppFactory: ApiFactory<
 
         await execAsync(t3Args.join(" "));
 
-        // Initialize shadcn UI
+        /*// Initialize shadcn UI
         await execAsync("npx shadcn@latest init --base-color=neutral", {
           cwd: appName,
-        });
+        });*/
 
         // Get database connection string from Tiger
         const { stdout: serviceJson } = await execAsync(

@@ -183,3 +183,11 @@ Browse available components at https://ui.shadcn.com/docs/components
 - tRPC provides end-to-end type inference
 - Zod schemas validate inputs at runtime
 - Environment variables validated via `@t3-oss/env-nextjs`
+
+## Before Committing
+
+Always run tests and check before every commit:
+
+```bash
+npm test && npm run check
+```

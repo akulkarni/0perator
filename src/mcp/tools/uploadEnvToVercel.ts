@@ -1,9 +1,9 @@
+import { spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { spawn } from "node:child_process";
 import type { ApiFactory } from "@tigerdata/mcp-boilerplate";
-import { z } from "zod";
 import * as dotenv from "dotenv";
+import { z } from "zod";
 import type { ServerContext } from "../../types.js";
 
 const vercelEnvironments = ["production", "preview", "development"] as const;
@@ -12,7 +12,9 @@ type VercelEnvironment = (typeof vercelEnvironments)[number];
 const inputSchema = {
   application_directory: z
     .string()
-    .describe("Path to the application directory containing .env and Vercel project"),
+    .describe(
+      "Path to the application directory containing .env and Vercel project",
+    ),
   env_file: z
     .string()
     .default(".env")
@@ -21,7 +23,7 @@ const inputSchema = {
     .array(z.enum(vercelEnvironments))
     .default(["production", "preview"])
     .describe(
-      "Vercel environments to upload to (default: production and preview)"
+      "Vercel environments to upload to (default: production and preview)",
     ),
 } as const;
 
@@ -50,9 +52,9 @@ type FailedVar = {
 type OutputSchema = {
   success: boolean;
   message: string;
-  uploaded?: string[];
-  failed?: FailedVar[];
-  skipped_empty?: string[];
+  uploaded?: string[] | undefined;
+  failed?: FailedVar[] | undefined;
+  skipped_empty?: string[] | undefined;
 };
 
 interface ParsedEnvResult {
@@ -89,10 +91,20 @@ function runVercelEnvAddSingle(
   appDir: string,
   name: string,
   value: string,
-  vercelEnv: VercelEnvironment
+  vercelEnv: VercelEnvironment,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
-    const args = ["vercel", "env", "add", name, vercelEnv, "--cwd", appDir, "--sensitive", "--force"];
+    const args = [
+      "vercel",
+      "env",
+      "add",
+      name,
+      vercelEnv,
+      "--cwd",
+      appDir,
+      "--sensitive",
+      "--force",
+    ];
 
     const child = spawn("npx", args, {
       cwd: appDir,
@@ -132,7 +144,7 @@ async function runVercelEnvAdd(
   appDir: string,
   name: string,
   value: string,
-  environments: VercelEnvironment[]
+  environments: VercelEnvironment[],
 ): Promise<void> {
   for (const env of environments) {
     await runVercelEnvAddSingle(appDir, name, value, env);
@@ -153,7 +165,11 @@ export const uploadEnvToVercelFactory: ApiFactory<
       inputSchema,
       outputSchema,
     },
-    fn: async ({ application_directory, env_file, environments }): Promise<OutputSchema> => {
+    fn: async ({
+      application_directory,
+      env_file,
+      environments,
+    }): Promise<OutputSchema> => {
       const appDir = resolve(process.cwd(), application_directory);
 
       let parsed: ParsedEnvResult;

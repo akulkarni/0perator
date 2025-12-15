@@ -21,6 +21,7 @@
     "dev:mcp": "tsx src/index.ts mcp start",
     "start": "node dist/index.js",
     "inspector": "npx @modelcontextprotocol/inspector tsx src/index.ts mcp start",
+    "check": "biome check . && tsc --noEmit -p tsconfig.check.json",
     "lint": "biome check",
     "lint:fix": "biome check --fix",
     "format": "biome format --write",

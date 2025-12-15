@@ -50,7 +50,8 @@ export async function install0peratorMcp(
   } else {
     // Production: use package runner to run the installed package
     // Use @latest to bypass npx cache if latest option is true (default)
-    const packageName = options.latest !== false ? "0perator@latest" : "0perator";
+    const packageName =
+      options.latest !== false ? "0perator@latest" : "0perator";
     command = runnerParts[0];
     args = [...runnerParts.slice(1), packageName, "mcp", "start"];
   }

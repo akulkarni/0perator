@@ -19,7 +19,24 @@ description: 'Use this skill whenever creating a new application. IMPORTANT: Thi
 
 ### Task 1: Gather Requirements And Understand The Project
 
-Before asking any questions tell the user: "Let's start by planning a minimal v0/demo version of your app. We'll focus on the core features needed to get something working, then we can iterate from there."
+Before asking any questions tell the user:
+
+"Let's start by planning a minimal v0/demo version of your app. We'll focus on the core features needed to get something working, then we can iterate from there.
+
+Here's how we'll build this:
+1. 🎯 **Understand the product** - I'll ask a few questions to understand what you're building
+2. 🏗️ **Set up infrastructure** - Create a cloud database and scaffold the app with Next.js, tRPC, and Drizzle
+3. 🔐 **Configure auth** (if needed) - Set up user authentication
+4. 🗄️ **Design the database** - Create tables for your data
+5. ⚙️ **Build the backend** - Create API endpoints with tRPC
+6. 🎨 **Build the frontend** - Create pages and components with shadcn/ui
+7. 🔍 **Configure strict checks** - Set up stricter TypeScript and linting to catch AI-generated code issues, and fix any issues in the scaffold
+8. ✅ **Run and verify** - Make sure everything works
+9. 💾 **Commit** - Save this initial version so we can iterate from here
+
+Let's start with understanding your product."
+
+Stress that this will be a v0/demo version we'll iterate
 
 DO NOT ask multiple questions in the same prompt.
 
@@ -47,16 +64,33 @@ Ask the user: "I'll name the project `<proposed-name>`. Does that work, or would
 
 You are building a new application so try to understand the project from the user prompt then ask questions one at a time to refine the idea.
 Right now you need to understand the project from the perspective of what the product will do. DO NOT try to determine the technical details now.
-You want to determine two sections:
-1) A one to three paragraph description of what the project will do.
-2) A short description of the minimal features for a v0/demo - just enough to get a working application.
 
-Once you understand what you're building, present these sections to the user, checking if these two sections are correct.
-Ask the user "Is the basic description and feature set for the v0/demo correct?" 
+Once you understand what you're building, present the **product brief** to the user for confirmation. The product brief should include:
 
-Let's call these two section together the "product brief"
+1) **App type**: Single-user or multi-user
+2) **Authentication** (if multi-user): Which methods (email, GitHub, Google)
+3) **Product description**: A one to three paragraph description of what the project will do
+4) **Minimal features for v0/demo**: A short bulleted list - just enough to get a working application
 
-After you've verified these first two sections:
+Example product brief:
+```
+**App type:** Multi-user
+
+**Authentication:** Email signup
+
+**Product description:**
+A collaborative to-do app where users can create personal to-do lists and share them with other users. Users sign up with email, create tasks, and can invite collaborators to view or edit their lists together.
+
+**Minimal features for v0/demo:**
+- Email signup/login
+- Create, edit, delete, and complete to-dos
+- Share a to-do list with another user by email
+- Collaborators can view and edit shared lists
+```
+
+Ask the user: "Is this product brief correct?"
+
+After the user confirms the product brief:
 - Ask the user: "Are there any features not in the v0/demo that might affect how we build this? For example: offline support, real-time sync, multi-tenancy, or specific integrations. These won't be built now, but knowing them helps us make the right architectural choices upfront."
 - If yes:
   1) create a list of such features.
@@ -78,8 +112,6 @@ Exploring approaches:
 - Present options conversationally with your recommendation and reasoning
 - Lead with your recommended option and explain why
 
-
-Ask: "Ready to set up for implementation?"
 
 Key Principles:
 One question at a time - Don't overwhelm with multiple questions
@@ -120,7 +152,14 @@ Use the `create_web_app` MCP tool with:
 cd <app_name>
 ```
 
-**Step 3: Read project context**
+**Step 3: Upgrade dependencies**
+
+```bash
+npx npm-check-updates -u --reject drizzle-orm
+npm install
+```
+
+**Step 4: Read project context**
 
 Read the `CLAUDE.md` file in the newly created app directory into your context.
 
@@ -194,7 +233,8 @@ Based on the user's app requirements, add the necessary Drizzle table definition
 
 **Step 1: Wait for database to be ready**
 
-Run `tiger service list -o json` and check that the database service has `"status": "READY"`. If not, wait and retry in a loop for up to 2 minutes.
+Check that the database status is `READY` using the `service_get` MCP tool (or `tiger service list -o json` if the tiger MCP server is unavailable).
+If not ready, poll every 10 seconds for up to 2 minutes.
 
 **Step 2: Push schema**
 
@@ -230,17 +270,27 @@ Add new routers to `src/server/api/root.ts`.
 
 ### Task 9: Install Required shadcn Components
 
-**Step 1: Identify needed components**
+**Step 1: Install shadcn**
+
+```bash
+npx shadcn@latest init --base-color=neutral
+```
+
+**Step 2: Set Orange Theme**
+
+```
+cp src/styles/global.css.orange src/styles/global.css
+```
+
+**Step 2: Identify needed components**
 
 Determine which shadcn components are needed for the app (button, card, input, form, table, etc.)
 
-**Step 2: Install components**
+**Step 3: Install components**
 
 ```bash
 npx shadcn@latest add button card input label form
 ```
-
-Note: `shadcn init` was already run. Only add individual components.
 
 ---
 
@@ -252,7 +302,7 @@ Note: `shadcn init` was already run. Only add individual components.
 
 **Step 1: Create page components**
 
-Build the pages needed for your app using shadcn components.
+Build the pages needed for your app using shadcn components. Make sure all buttons have a type.
 
 **Step 2: Connect to backend**
 
@@ -278,9 +328,62 @@ Replace any hardcoded T3 template colors with shadcn CSS variables. Examples:
 
 ---
 
-## Phase 6: Run and Verify
+## Phase 6: Stricter Checks
 
-### Task 11: Run and Verify
+Important: tell the user: "Now I'll configure stricter TypeScript and linting checks. These catch bugs that standard TypeScript misses, which is especially important for AI-assisted development where code is generated quickly and may have subtle issues."
+
+### Task 11: Configure Stricter TypeScript and Linting
+
+**Step 1: Add stricter compiler options**
+
+Add these additional strict options to `tsconfig.json` under `compilerOptions`:
+
+```json
+{
+  "compilerOptions": {
+    // ... existing options ...
+
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "forceConsistentCasingInFileNames": true,
+    "exactOptionalPropertyTypes": true,
+    "useUnknownInCatchVariables": true
+  }
+}
+```
+
+**Step 2: Add check script to package.json**
+
+```json
+{
+  "scripts": {
+    "check": "biome check . && tsc --noEmit -p tsconfig.check.json"
+  }
+}
+```
+
+Note: tsconfig.check.json already exists don't try to create it.
+
+**Step 3: Auto-fix issues**
+
+```bash
+npm run check:unsafe
+```
+
+Fix any remaining issues. NEVER disable any checks in biome, tsconfig.json or tsconfig.check.json. Instead, fix the code to not violate the check.
+
+**Step 3: Run checks**
+
+```bash
+npm run check
+```
+
+---
+
+## Phase 7: Run and Verify
+
+### Task 12: Run and Verify
 
 **Step 1: Start the dev server**
 
@@ -294,7 +397,7 @@ Use the `open_app` MCP tool to open http://localhost:3000 in a browser and verif
 
 ---
 
-### Task 12: Finish Up
+### Task 13: Finish Up
 
 **Step 1: Review CLAUDE.md**
 
@@ -313,7 +416,7 @@ git commit -m "Initial commit: <app_name>"
 
 ---
 
-### Task 13: Summarization
+### Task 14: Summarization
 
 **Step 1: Highlight the next steps**
 

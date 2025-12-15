@@ -149,10 +149,10 @@ npm run test:watch    # Run tests in watch mode
 
 ### Before Committing
 
-Always run tests and lint before every commit:
+Always run tests and check before every commit:
 
 ```bash
-npm test && npm run lint
+npm test && npm run check
 ```
 
 ### Version Bumping

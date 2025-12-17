@@ -29,10 +29,11 @@ Here's how we'll build this:
 3. 🔐 **Configure auth** (if needed) - Set up user authentication
 4. 🗄️ **Design the database** - Create tables for your data
 5. ⚙️ **Build the backend** - Create API endpoints with tRPC
-6. 🎨 **Build the frontend** - Create pages and components with shadcn/ui
-7. 🔍 **Configure strict checks** - Set up stricter TypeScript and linting to catch AI-generated code issues, and fix any issues in the scaffold
-8. ✅ **Run and verify** - Make sure everything works
-9. 💾 **Commit** - Save this initial version so we can iterate from here
+6. 🧪 **Add testing** (if wanted) - Set up integration tests with Vitest
+7. 🎨 **Build the frontend** - Create pages and components with shadcn/ui
+8. 🔍 **Configure strict checks** (if wanted) - Set up stricter TypeScript and linting to catch AI-generated code issues, and fix any issues in the scaffold
+9. ✅ **Run and verify** - Make sure everything works
+10. 💾 **Commit** - Save this initial version so we can iterate from here
 
 Let's start with understanding your product."
 
@@ -141,7 +142,6 @@ Store the returned `service_id` - you'll need it for the next task.
 
 Use the `create_web_app` MCP tool with:
 - `app_name` confirmed in Task 1, Step 3
-- `db_service_id` from Task 2
 - `use_auth: true` if multi-user app (from Task 1)
 - `product_brief` from Task 1, Step 4 (the product brief)
 - `future_features` from Task 1, Step 4 (if any future features were identified)
@@ -173,6 +173,19 @@ Read the `CLAUDE.md` file in the newly created app directory into your context.
 - Modify: `src/server/better-auth/config.ts`
 - Modify: `src/env.js`, `.env` , `.env.example`
 
+**Step 1: Pass the drizzle schemas into drizzleAdapter**
+
+```typescript
+import * as schema from "~/server/db/schema";
+
+//when initiating the drizzle adapterb pass in the schema
+  drizzleAdapter(db, {
+    provider: "pg",
+    schema,
+})
+```
+
+
 **Step 1: Edit auth config**
 
 Update the Better Auth configuration to enable only the providers the user requested:
@@ -198,23 +211,50 @@ Update the `src/env.js`,`.env` and `.env.example` files to set the environment v
 
 ## Phase 3: Database Schema
 
-### Task 5: Fix Schema Table Prefix
+### Task 5: Set Up Database Connection
 
-**Files:**
-- Modify: `src/server/db/schema.ts`
-- Read: `drizzle.config.ts`
+**Step 1: Wait for database to be ready**
 
-**Step 1: Check drizzle config**
+Check that the database status is `READY` using the `service_get` MCP tool with the `service_id` from Task 2.
+If not ready, poll every 10 seconds for up to 2 minutes.
 
-Read `drizzle.config.ts` and note the `tablesFilter` or prefix setting.
+**Step 2: Set up app schema**
 
-**Step 2: Update schema prefix**
+Use the `setup_app_schema` MCP tool with:
+- `application_directory`: "."
+- `service_id` from Task 2
+- `app_name` (use the same name, converted to lowercase with underscores)
 
-In `src/server/db/schema.ts`, replace the `pg_drizzle` prefix with whatever prefix is configured in `drizzle.config.ts`.
+This creates:
+- A PostgreSQL schema named after the app
+- A database user with the same name and limited permissions
+- Writes `DATABASE_URL` and `DATABASE_SCHEMA` to `.env`
 
 ---
 
-### Task 6: Design Database Schema
+### Task 6: Configure Schema Support
+
+**Step 1: Add a DATABASE_SCHEMA env variable**
+
+In `src/env.js` add DATABASE_SCHEMA variable (use the `schema_name` returned by `setup_app_schema` as default) to both the server and runtimeEnv sections
+
+**Step 2: Change drizzle config to obey schema**
+
+Modify `drizzle.config.ts` to remove the tablesFilter and add a schemasFilter with the value of the DATABASE_SCHEMA env variable.
+
+**Step 3: Update schema table definitions**
+
+In `src/server/db/schema.ts`, remove pgTableCreator pattern and instead create all tables (including auth tables, if present) using createTable:
+
+```typescript
+export const dbSchema = pgSchema(env.DATABASE_SCHEMA);
+const createTable = dbSchema.table;
+```
+Note: make sure the schema is exported
+
+---
+
+### Task 7: Design Database Schema
 
 **Files:**
 - Modify: `src/server/db/schema.ts`
@@ -229,14 +269,9 @@ Based on the user's app requirements, add the necessary Drizzle table definition
 
 ---
 
-### Task 7: Push Schema to Database
+### Task 8: Push Schema to Database
 
-**Step 1: Wait for database to be ready**
-
-Check that the database status is `READY` using the `service_get` MCP tool (or `tiger service list -o json` if the tiger MCP server is unavailable).
-If not ready, poll every 10 seconds for up to 2 minutes.
-
-**Step 2: Push schema**
+**Step 1: Push schema**
 
 ```bash
 npm run db:push
@@ -246,7 +281,7 @@ npm run db:push
 
 ## Phase 4: Backend Implementation
 
-### Task 8: Implement tRPC Backend
+### Task 9: Implement tRPC Backend
 
 **Files:**
 - Create/Modify: `src/server/api/routers/*.ts`
@@ -266,9 +301,98 @@ Add new routers to `src/server/api/root.ts`.
 
 ---
 
-## Phase 5: Frontend Implementation
+## Phase 5: Backend Testing
 
-### Task 9: Install Required shadcn Components
+Ask the user (yes/no) **default: yes**: "Do you want to add backend testing? This sets up isolated integration tests that run against a separate database schema - so you can confidently iterate without breaking things."
+Only continue with this phase if the answer is Yes. Otherwise, skip Task 10,11,12.
+
+### Task 10: Set Up Testing Infrastructure
+
+**Step 1: Set up testing**
+
+Use the `setup_testing` MCP tool to set up integration testing:
+
+```
+setup_testing(application_directory: ".", service_id: "<service_id from Task 2>")
+```
+
+This creates:
+- A `test_schema` schema isolated from production data
+- A `test_user` database user with permissions only on the test schema
+- `vitest.config.ts` configured to load `.env.test`
+- `src/test/global-setup.ts` that runs `drizzle-kit push` before tests
+- `.env.test` with `DATABASE_URL` pointing to the test schema
+
+### Task 11: Install Vitest and Add Scripts
+
+**Step 1: Install Vitest**
+
+```bash
+npm install -D vitest dotenv
+```
+
+**Step 2: Add test scripts to package.json**
+
+```json
+{
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  }
+}
+```
+
+### Task 12: Write Integration Tests for tRPC Routers
+
+**Step 1: Write router tests**
+
+Create a test file for each router. Example `src/server/api/routers/example.test.ts`:
+
+```typescript
+import { describe, it, expect } from "vitest";
+import { appRouter } from "~/server/api/root";
+import { createCallerFactory } from "~/server/api/trpc";
+import { db } from "~/server/db";
+
+const createCaller = createCallerFactory(appRouter);
+
+const caller = createCaller({
+  session: null,
+  db,
+  headers: new Headers(),
+});
+
+describe("exampleRouter", () => {
+
+  describe("getAll", () => {
+    it("returns empty array when no items exist", async () => {
+      const result = await caller.example.getAll();
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe("create", () => {
+    it("creates a new item", async () => {
+      const result = await caller.example.create({ title: "Test" });
+      expect(result.title).toBe("Test");
+    });
+  });
+});
+```
+
+**Step 2: Run tests**
+
+```bash
+npm test
+```
+
+Ensure all tests pass before proceeding.
+
+---
+
+## Phase 6: Frontend Implementation
+
+### Task 13: Install Required shadcn Components
 
 **Step 1: Install shadcn**
 
@@ -279,7 +403,7 @@ npx shadcn@latest init --base-color=neutral
 **Step 2: Set Orange Theme**
 
 ```
-cp src/styles/global.css.orange src/styles/global.css
+cp src/styles/globals.css.orange src/styles/globals.css
 ```
 
 **Step 2: Identify needed components**
@@ -294,7 +418,7 @@ npx shadcn@latest add button card input label form
 
 ---
 
-### Task 10: Implement Frontend Pages
+### Task 14: Implement Frontend Pages
 
 **Files:**
 - Create/Modify: `src/app/**/*.tsx`
@@ -328,11 +452,12 @@ Replace any hardcoded T3 template colors with shadcn CSS variables. Examples:
 
 ---
 
-## Phase 6: Stricter Checks
+## Phase 7: Stricter Checks
 
-Important: tell the user: "Now I'll configure stricter TypeScript and linting checks. These catch bugs that standard TypeScript misses, which is especially important for AI-assisted development where code is generated quickly and may have subtle issues."
+Ask the user (yes/no) **Default: Yes**: "Do you want to enable stricter TypeScript checks? These catch bugs that standard TypeScript misses - especially useful when iterating quickly with AI assistance."
+Only continue with this phase if the answer is Yes. Otherwise, skip Task 15.
 
-### Task 11: Configure Stricter TypeScript and Linting
+### Task 15: Configure Stricter TypeScript and Linting
 
 **Step 1: Add stricter compiler options**
 
@@ -381,9 +506,9 @@ npm run check
 
 ---
 
-## Phase 7: Run and Verify
+## Phase 8: Run and Verify
 
-### Task 12: Run and Verify
+### Task 16: Run and Verify
 
 **Step 1: Start the dev server**
 
@@ -397,7 +522,7 @@ Use the `open_app` MCP tool to open http://localhost:3000 in a browser and verif
 
 ---
 
-### Task 13: Finish Up
+### Task 17: Finish Up
 
 **Step 1: Review CLAUDE.md**
 
@@ -416,7 +541,7 @@ git commit -m "Initial commit: <app_name>"
 
 ---
 
-### Task 14: Summarization
+### Task 18: Summarization
 
 **Step 1: Highlight the next steps**
 

@@ -1,5 +1,5 @@
 import { exec } from "node:child_process";
-import { readFile, unlink, writeFile } from "node:fs/promises";
+import { unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import type { ApiFactory } from "@tigerdata/mcp-boilerplate";
@@ -11,10 +11,6 @@ const execAsync = promisify(exec);
 
 const inputSchema = {
   app_name: z.string().describe("Application name"),
-  db_service_id: z
-    .string()
-    .optional()
-    .describe("Database service ID to connect to"),
   use_auth: z.boolean().default(false).describe("Enable authentication"),
   product_brief: z
     .string()
@@ -40,27 +36,6 @@ type OutputSchema = {
   path?: string;
 };
 
-/**
- * Replace the value of a variable in a .env file
- */
-async function replaceEnvValue(
-  envPath: string,
-  key: string,
-  value: string,
-): Promise<void> {
-  const envData = await readFile(envPath, "utf-8");
-  const lines = envData.split("\n");
-
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i].startsWith(`${key}=`)) {
-      lines[i] = `${key}=${value}`;
-      break;
-    }
-  }
-
-  await writeFile(envPath, lines.join("\n"));
-}
-
 export const createWebAppFactory: ApiFactory<
   ServerContext,
   typeof inputSchema,
@@ -77,19 +52,11 @@ export const createWebAppFactory: ApiFactory<
     },
     fn: async ({
       app_name,
-      db_service_id,
       use_auth,
       product_brief,
       future_features,
     }): Promise<OutputSchema> => {
       const appName = app_name;
-
-      if (!db_service_id) {
-        return {
-          success: false,
-          message: "db_service_id is required",
-        };
-      }
 
       try {
         // Create T3 app
@@ -114,34 +81,6 @@ export const createWebAppFactory: ApiFactory<
 
         await execAsync(t3Args.join(" "));
 
-        /*// Initialize shadcn UI
-        await execAsync("npx shadcn@latest init --base-color=neutral", {
-          cwd: appName,
-        });*/
-
-        // Get database connection string from Tiger
-        const { stdout: serviceJson } = await execAsync(
-          `tiger service get ${db_service_id} --with-password -o json`,
-        );
-        const serviceDetails = JSON.parse(serviceJson) as {
-          connection_string?: string;
-        };
-
-        if (!serviceDetails.connection_string) {
-          return {
-            success: false,
-            message: "connection_string not found in service details",
-          };
-        }
-
-        // Update .env with database connection
-        const envPath = join(appName, ".env");
-        await replaceEnvValue(
-          envPath,
-          "DATABASE_URL",
-          serviceDetails.connection_string,
-        );
-
         // Remove start-database script if it exists
         try {
           await unlink(join(appName, "start-database.sh"));
@@ -149,7 +88,7 @@ export const createWebAppFactory: ApiFactory<
           // Ignore if file doesn't exist
         }
 
-        // Copy app templates (CLAUDE.md, globals.css)
+        // Copy app templates (CLAUDE.md, globals.css, etc.)
         await writeAppTemplates(appName, {
           app_name: appName,
           use_auth,

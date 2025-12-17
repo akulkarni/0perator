@@ -38,6 +38,7 @@
     "gray-matter": "^4.0.3",
     "handlebars": "^4.7.8",
     "picocolors": "^1.1.1",
+    "postgres": "^3.4.7",
     "zod": "^3.25.76"
   },
   "devDependencies": {

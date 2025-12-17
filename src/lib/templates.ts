@@ -8,6 +8,9 @@ export interface AppTemplateVars {
   use_auth: boolean;
   product_brief?: string | undefined;
   future_features?: string | undefined;
+  db_schema?: string | undefined;
+  db_user?: string | undefined;
+  has_backend_testing?: boolean | undefined;
 }
 
 type ContentTransform = (content: string) => string;
@@ -64,4 +67,17 @@ export async function writeAppTemplates(
  */
 export async function writeTestingTemplates(destDir: string): Promise<void> {
   await copyTemplateDir("testing", destDir);
+}
+
+/**
+ * Write CLAUDE.md template with Handlebars templating
+ */
+export async function writeClaudeMdTemplate(
+  destDir: string,
+  vars: AppTemplateVars,
+): Promise<void> {
+  await copyTemplateDir("claude-md", destDir, (content) => {
+    const template = Handlebars.compile(content);
+    return template(vars);
+  });
 }

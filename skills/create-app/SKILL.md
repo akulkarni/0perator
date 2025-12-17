@@ -5,7 +5,7 @@ description: 'Use this skill whenever creating a new application. IMPORTANT: Thi
 
 # Create App Implementation Plan
 
-> **For Claude:** Follow this plan task-by-task. If any step fails, notify the user and ask for next steps.
+> **For Claude Code:** Follow this plan task-by-task. If any step fails, notify the user and ask for next steps. When I tell you to use a subagent, that means you MUST use the Task Tool. 
 
 **Goal:** Scaffold a production-ready fullstack web application with database, optional auth, and polished UI.
 
@@ -18,7 +18,6 @@ description: 'Use this skill whenever creating a new application. IMPORTANT: Thi
 ## Phase 1: Project Setup
 
 ### Task 1: Gather Requirements And Understand The Project
-
 Before asking any questions tell the user:
 
 "Let's start by planning a minimal v0/demo version of your app. We'll focus on the core features needed to get something working, then we can iterate from there.
@@ -152,60 +151,27 @@ Use the `create_web_app` MCP tool with:
 cd <app_name>
 ```
 
-**Step 3: Upgrade dependencies**
-
-```bash
-npx npm-check-updates -u --reject drizzle-orm
-npm install
-```
-
-**Step 4: Read project context**
-
-Read the `CLAUDE.md` file in the newly created app directory into your context.
-
 ---
 
 ## Phase 2: Auth Configuration (If Multi-User)
 
 ### Task 4: Configure Auth Providers
 
-**Files:**
-- Modify: `src/server/better-auth/config.ts`
-- Modify: `src/env.js`, `.env` , `.env.example`
+**IMPORTANT: Spawn a subagent for the following:** The subagent should configure auth by:
 
-**Step 1: Pass the drizzle schemas into drizzleAdapter**
+1. Pass the drizzle schemas into `drizzleAdapter` in `src/server/better-auth/config.ts`:
+   ```typescript
+   import * as schema from "~/server/db/schema";
 
-```typescript
-import * as schema from "~/server/db/schema";
+   drizzleAdapter(db, {
+     provider: "pg",
+     schema,
+   })
+   ```
 
-//when initiating the drizzle adapterb pass in the schema
-  drizzleAdapter(db, {
-    provider: "pg",
-    schema,
-})
-```
+2. Update the Better Auth configuration to enable only the providers the user requested (email, GitHub, Google)
 
-
-**Step 1: Edit auth config**
-
-Update the Better Auth configuration to enable only the providers the user requested:
-
-```typescript
-// Example for email + github
-export const authConfig = {
-  providers: [
-    emailProvider(),
-    githubProvider({
-      clientId: process.env.GITHUB_CLIENT_ID!,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-    }),
-  ],
-};
-```
-
-**Step 2: Update env files**
-
-Update the `src/env.js`,`.env` and `.env.example` files to set the environment variables for the auth providers.
+3. Update `src/env.js`, `.env`, and `.env.example` with the required environment variables for the auth providers
 
 ---
 
@@ -304,89 +270,50 @@ Add new routers to `src/server/api/root.ts`.
 ## Phase 5: Backend Testing
 
 Ask the user (yes/no) **default: yes**: "Do you want to add backend testing? This sets up isolated integration tests that run against a separate database schema - so you can confidently iterate without breaking things."
-Only continue with this phase if the answer is Yes. Otherwise, skip Task 10,11,12.
 
-### Task 10: Set Up Testing Infrastructure
+If no, skip this phase.
 
-**Step 1: Set up testing**
+If yes, spawn a subagent to set up backend testing. The subagent should:
 
-Use the `setup_testing` MCP tool to set up integration testing:
+1. Use the `setup_testing` MCP tool:
+   ```
+   setup_testing(application_directory: ".", service_id: "<service_id from Task 2>")
+   ```
 
-```
-setup_testing(application_directory: ".", service_id: "<service_id from Task 2>")
-```
+2. Install Vitest:
+   ```bash
+   npm install -D vitest dotenv
+   ```
 
-This creates:
-- A `test_schema` schema isolated from production data
-- A `test_user` database user with permissions only on the test schema
-- `vitest.config.ts` configured to load `.env.test`
-- `src/test/global-setup.ts` that runs `drizzle-kit push` before tests
-- `.env.test` with `DATABASE_URL` pointing to the test schema
+3. Add test scripts to package.json:
+   ```json
+   {
+     "scripts": {
+       "test": "vitest run",
+       "test:watch": "vitest"
+     }
+   }
+   ```
 
-### Task 11: Install Vitest and Add Scripts
+4. Write integration tests for each tRPC router (example pattern):
+   ```typescript
+   import { describe, it, expect } from "vitest";
+   import { appRouter } from "~/server/api/root";
+   import { createCallerFactory } from "~/server/api/trpc";
+   import { db } from "~/server/db";
 
-**Step 1: Install Vitest**
+   const createCaller = createCallerFactory(appRouter);
+   const caller = createCaller({ session: null, db, headers: new Headers() });
 
-```bash
-npm install -D vitest dotenv
-```
+   describe("exampleRouter", () => {
+     it("returns data", async () => {
+       const result = await caller.example.getAll();
+       expect(result).toBeDefined();
+     });
+   });
+   ```
 
-**Step 2: Add test scripts to package.json**
-
-```json
-{
-  "scripts": {
-    "test": "vitest run",
-    "test:watch": "vitest"
-  }
-}
-```
-
-### Task 12: Write Integration Tests for tRPC Routers
-
-**Step 1: Write router tests**
-
-Create a test file for each router. Example `src/server/api/routers/example.test.ts`:
-
-```typescript
-import { describe, it, expect } from "vitest";
-import { appRouter } from "~/server/api/root";
-import { createCallerFactory } from "~/server/api/trpc";
-import { db } from "~/server/db";
-
-const createCaller = createCallerFactory(appRouter);
-
-const caller = createCaller({
-  session: null,
-  db,
-  headers: new Headers(),
-});
-
-describe("exampleRouter", () => {
-
-  describe("getAll", () => {
-    it("returns empty array when no items exist", async () => {
-      const result = await caller.example.getAll();
-      expect(result).toEqual([]);
-    });
-  });
-
-  describe("create", () => {
-    it("creates a new item", async () => {
-      const result = await caller.example.create({ title: "Test" });
-      expect(result.title).toBe("Test");
-    });
-  });
-});
-```
-
-**Step 2: Run tests**
-
-```bash
-npm test
-```
-
-Ensure all tests pass before proceeding.
+5. Run `npm test` and ensure all tests pass before completing
 
 ---
 
@@ -490,19 +417,11 @@ Add these additional strict options to `tsconfig.json` under `compilerOptions`:
 
 Note: tsconfig.check.json already exists don't try to create it.
 
-**Step 3: Auto-fix issues**
+**Step 3: Fix all issues in a subagent**
 
-```bash
-npm run check:unsafe
-```
+Spawn a subagent to fix all linting and type errors. The subagent should run `npm run check:unsafe && npm run check` in a loop, fixing issues until it passes.
 
-Fix any remaining issues. NEVER disable any checks in biome, tsconfig.json or tsconfig.check.json. Instead, fix the code to not violate the check.
-
-**Step 3: Run checks**
-
-```bash
-npm run check
-```
+IMPORTANT: NEVER disable any checks in biome, tsconfig.json or tsconfig.check.json. Instead, fix the code to not violate the check.
 
 ---
 
@@ -524,11 +443,23 @@ Use the `open_app` MCP tool to open http://localhost:3000 in a browser and verif
 
 ### Task 17: Finish Up
 
-**Step 1: Review CLAUDE.md**
+**Step 1: Generate CLAUDE.md**
 
-Read the `CLAUDE.md` file. Make sure it is accurate. Fix if needed.
+Use the `write_claude_md` MCP tool to generate the project guide:
+- `application_directory`: "."
+- `app_name`: The app name from Task 1
+- `use_auth`: Whether auth is enabled (from Task 1)
+- `product_brief`: The product brief from Task 1, Step 4
+- `future_features`: The future features from Task 1, Step 4 (if any)
+- `db_schema`: The schema name returned by `setup_app_schema` in Task 5
+- `db_user`: The user name returned by `setup_app_schema` in Task 5
+- `has_backend_testing`: Whether backend testing was set up (Phase 5)
 
-**Step 2: Offer to commit**
+**Step 2: Review CLAUDE.md**
+
+Read the generated `CLAUDE.md` file. Make sure it is accurate. Fix if needed.
+
+**Step 3: Offer to commit**
 
 Ask the user "Do you want to commit this initial version to git?".
 

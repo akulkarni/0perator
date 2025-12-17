@@ -88,13 +88,18 @@ export const createWebAppFactory: ApiFactory<
           // Ignore if file doesn't exist
         }
 
-        // Copy app templates (CLAUDE.md, globals.css, etc.)
+        // Copy app templates (globals.css, etc.)
         await writeAppTemplates(appName, {
           app_name: appName,
           use_auth,
           product_brief,
           future_features,
         });
+
+        // Upgrade dependencies (except drizzle-orm which has compatibility issues)
+        await execAsync(
+          `cd ${appName} && npx npm-check-updates -u --reject drizzle-orm && npm install`,
+        );
 
         return {
           success: true,

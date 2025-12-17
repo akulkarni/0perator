@@ -81,7 +81,7 @@ export const setupTestingFactory: ApiFactory<
     config: {
       title: "Setup Testing",
       description:
-        "🧪 Set up integration testing infrastructure. Creates an isolated PostgreSQL schema and user, copies Vitest config and test setup files, and writes DATABASE_URL to .env.test.",
+        "🧪 Set up integration testing infrastructure. Creates an isolated PostgreSQL schema and user, copies Vitest config and test setup files, and writes DATABASE_URL to .env.test.local.",
       inputSchema,
       outputSchema,
     },
@@ -92,13 +92,13 @@ export const setupTestingFactory: ApiFactory<
       test_user,
     }): Promise<OutputSchema> => {
       const appDir = resolve(process.cwd(), application_directory);
-      const envTestPath = join(appDir, ".env.test");
+      const envTestPath = join(appDir, ".env.test.local");
 
-      // Check if .env.test already exists
+      // Check if .env.test.local already exists
       if (existsSync(envTestPath)) {
         return {
           success: true,
-          message: `.env.test already exists. Delete it and re-run if you need to regenerate.`,
+          message: `.env.test.local already exists. Delete it and re-run if you need to regenerate.`,
           schema_name,
           test_user,
         };
@@ -145,7 +145,7 @@ export const setupTestingFactory: ApiFactory<
           await sql.end();
           return {
             success: false,
-            message: `Test user '${test_user}' already exists but .env.test does not. Either create .env.test manually with the correct DATABASE_URL, or use a different test_user name.`,
+            message: `Test user '${test_user}' already exists but .env.test.local does not. Either create .env.test.local manually with the correct DATABASE_URL, or use a different test_user name.`,
           };
         }
 
@@ -185,7 +185,7 @@ export const setupTestingFactory: ApiFactory<
 
         await sql.end();
 
-        // Build test connection string and write to .env.test
+        // Build test connection string and write to .env.test.local
         const testDatabaseUrl = buildTestConnectionString(
           adminConnectionString,
           test_user,
@@ -207,7 +207,7 @@ export const setupTestingFactory: ApiFactory<
 
       return {
         success: true,
-        message: `Created test schema '${schema_name}' and user '${test_user}'. Vitest config and .env.test written.`,
+        message: `Created test schema '${schema_name}' and user '${test_user}'. Vitest config and .env.test.local written.`,
         schema_name,
         test_user,
       };

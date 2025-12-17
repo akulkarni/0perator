@@ -2,7 +2,7 @@
 
 ## Overview
 
-Full-stack {{app_name}} app built with the T3 Stack (Next.js 15, tRPC, Drizzle ORM{{#if use_auth}}, Better Auth{{/if}}).
+Full-stack {{app_name}} app built with the T3 Stack (Next.js 16, tRPC, Drizzle ORM{{#if use_auth}}, Better Auth{{/if}}).
 
 {{#if product_brief}}
 ## Product Brief
@@ -22,10 +22,53 @@ The app is now in development and has not been deployed to production yet
 
 ## Tech Stack
 
-- **Frontend**: Next.js 15.2.3 (App Router), React 19, TypeScript, Tailwind CSS 4
-- **Backend**: tRPC v11{{#if use_auth}}, Better Auth v1.3{{/if}}
-- **Database**: PostgreSQL with Drizzle ORM v0.41
+- **Frontend**: Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4
+- **Backend**: tRPC {{#if use_auth}}, Better Auth{{/if}}
+- **Database**: PostgreSQL with Drizzle ORM
 - **State Management**: TanStack Query (React Query) v5
+
+{{#if db_schema}}
+## Database
+
+This app uses a dedicated PostgreSQL schema and user for isolation:
+
+- **Schema**: `{{db_schema}}`
+- **User**: `{{db_user}}`
+
+The app user only has access to its own schema (no access to `public` schema). 
+
+All tables are created within this schema using `pgSchema()` in `src/server/db/schema.ts`.
+{{/if}}
+
+{{#if has_backend_testing}}
+## Testing
+
+This app uses Vitest for backend integration testing with an isolated test database schema.
+
+**Test infrastructure:**
+- Tests run against a separate PostgreSQL schema (see `DATABASE_SCHEMA` in `.env.test.local`)
+- A dedicated test user has permissions only on the test schema
+- Schema is automatically pushed before tests via global setup
+- Tests use `.env.test.local` for database configuration (gitignored)
+
+**Writing tests:**
+```typescript
+import { describe, it, expect } from "vitest";
+import { appRouter } from "~/server/api/root";
+import { createCallerFactory } from "~/server/api/trpc";
+import { db } from "~/server/db";
+
+const createCaller = createCallerFactory(appRouter);
+const caller = createCaller({ session: null, db, headers: new Headers() });
+
+describe("myRouter", () => {
+  it("returns data", async () => {
+    const result = await caller.my.getData();
+    expect(result).toBeDefined();
+  });
+});
+```
+{{/if}}
 
 ## Commands
 
@@ -37,38 +80,11 @@ npm run db:generate  # Generate Drizzle migrations (must use this for production
 npm run db:migrate   # Run pending migrations (must use this for production-deployed apps)
 npm run db:push      # Push schema changes (only do this while the app hasn't been deployed to production)
 npm run db:studio    # Open Drizzle Studio UI
-```
-
-## Project Structure
-
-```
-src/
-├── app/                    # Next.js App Router
-│   ├── api/
-{{#if use_auth}}
-│   │   ├── auth/[...all]/ # Better Auth handler
+{{#if has_backend_testing}}
+npm test             # Run tests once
+npm run test:watch   # Run tests in watch mode
 {{/if}}
-│   │   └── trpc/[trpc]/   # tRPC endpoint
-│   ├── _components/       # Client components
-│   ├── page.tsx           # Home page (Server Component)
-│   └── layout.tsx         # Root layout with providers
-├── server/
-│   ├── api/
-│   │   ├── root.ts        # tRPC router aggregation
-│   │   ├── trpc.ts        # tRPC context & procedures
-│   │   └── routers/       # tRPC sub-routers
-│   ├── db/
-│   │   ├── schema.ts      # Drizzle schema definitions
-│   │   └── index.ts       # Database connection
-{{#if use_auth}}
-│   └── better-auth/       # Auth configuration
-{{/if}}
-├── trpc/
-│   ├── server.ts          # RSC tRPC helpers
-│   ├── react.tsx          # Client tRPC provider
-│   └── query-client.ts    # React Query config
-├── lib/utils.ts           # Utility functions (cn)
-└── env.js                 # Environment validation
+npm run check        # Run linter and type checks
 ```
 
 ## Key Patterns
@@ -141,6 +157,11 @@ const userId = ctx.session.user.id;
 
 This project uses [shadcn/ui](https://ui.shadcn.com/) for UI components. Components are installed to `src/components/ui/`.
 
+**List available components:**
+```bash
+npx shadcn@latest list @shadcn
+```
+
 **Adding new components:**
 ```bash
 npx shadcn@latest add button card input form table
@@ -168,6 +189,9 @@ Browse available components at https://ui.shadcn.com/docs/components
 ### New tRPC Router
 1. Create router in `src/server/api/routers/`
 2. Add to `appRouter` in `src/server/api/root.ts`
+{{#if has_backend_testing}}
+3. Add tests in `src/test/routers`
+{{/if}}
 
 ### New Database Table
 1. Add schema in `src/server/db/schema.ts`

@@ -135,7 +135,6 @@ function runVercelEnvAddSingle(
 
     // Send the secret through stdin so it never appears on the command line
     child.stdin.write(value);
-    child.stdin.write("\n");
     child.stdin.end();
   });
 }

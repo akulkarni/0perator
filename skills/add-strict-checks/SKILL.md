@@ -48,7 +48,7 @@ Add a check script to `package.json`:
 
 ## Task 3: Fix All Issues
 
-Run `npm run check:unsafe && npm run check` in a loop, fixing issues until it passes.
+Run `npm run check:write && npm run check` in a loop, fixing issues until it passes.
 
 IMPORTANT: NEVER disable any checks in biome, tsconfig.json or tsconfig.check.json. Instead, fix the code to not violate the check.
 

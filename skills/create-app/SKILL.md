@@ -7,6 +7,12 @@ description: 'Use this skill whenever creating a new application. IMPORTANT: Thi
 
 > **For Claude Code:** Follow this plan phase-by-phase. If any step fails, notify the user and ask for next steps.
 
+**Phase Summary Template:** At the end of each phase, print a detailed summary (2-3 paragraphs) for the user that includes:
+- What was accomplished in this phase
+- Key files/directories created or modified
+- Important values to remember (service_id, schema names, etc.)
+- Brief preview of what's coming next
+
 **Goal:** Scaffold a production-ready fullstack web application with database, optional auth, and polished UI.
 
 **Architecture:** T3 stack (Next.js + tRPC + Drizzle) with Timescale Cloud database and shadcn/ui components.
@@ -98,7 +104,7 @@ If yes, create and confirm a list of "future features".
    - `product_brief` from Phase 1
    - `future_features` from Phase 1 (if any)
 4. Change into the app directory: `cd <app_name>`
-5. Print a summary of Phase 2 to the user, framed as "scaffolding set up" (database, app framework, etc.)
+5. Print phase summary (see template above)
 
 ---
 
@@ -117,7 +123,7 @@ Skip this phase if the app is single-user.
    ```
 2. Update the Better Auth configuration to enable only the providers the user requested (email, GitHub, Google)
 3. Update `src/env.js`, `.env`, and `.env.example` with the required environment variables for the auth providers
-4. Print a summary of Phase 3 to the user, framed as "auth configured" (providers enabled, env vars set, etc.)
+4. Print phase summary (see template above)
 
 ---
 
@@ -149,7 +155,7 @@ Skip this phase if the app is single-user.
 
 8. Push schema to database: `npm run db:push`
 
-9. Print a summary of Phase 4 to the user, framed as "database schema set up" (tables created, schema pushed, etc.)
+9. Print phase summary (see template above)
 
 ---
 
@@ -159,7 +165,7 @@ Skip this phase if the app is single-user.
 2. Create tRPC routers for CRUD operations on the app's data models in `src/server/api/routers/`
 3. Register new routers in `src/server/api/root.ts`
 4. Verify with `npx tsc --noEmit -p tsconfig.server.json` (checks only server code, avoids frontend errors)
-5. Print a summary of Phase 5 to the user, framed as "backend implemented" (routers created, endpoints available, etc.)
+5. Print phase summary (see template above)
 
 ---
 
@@ -190,13 +196,13 @@ Skip this phase if the app is single-user.
 
 7. Verify with `npm run build` and fix any errors
 
-8. Print a summary of Phase 6 to the user, framed as "frontend implemented" (pages built, components installed, etc.)
+8. Print phase summary (see template above)
 
 ---
 
 ## Phase 7: Run, Verify, and Commit
 
-1. Run `npm run check:unsafe` to auto-fix formatting issues, then verify `npm run check` passes
+1. Run `npm run check:write` to auto-fix formatting issues, then verify `npm run check` passes
 
 2. Start the dev server: `npm run dev`
 

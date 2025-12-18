@@ -15,7 +15,7 @@ description: 'Use this skill whenever creating a new application. IMPORTANT: Thi
 
 ---
 
-## Phase 1: Project Setup
+## Phase 1: Project Requirements
 
 ### Task 1: Gather Requirements And Understand The Project
 Before asking any questions tell the user:
@@ -125,6 +125,8 @@ Be flexible - Go back and clarify when something doesn't make sense
 
 ---
 
+## Phase 2: Project Setup
+
 ### Task 2: Create Database
 
 **Step 1: Create database**
@@ -153,13 +155,15 @@ Use the `create_web_app` MCP tool with:
 cd <app_name>
 ```
 
+**Step 2: Summarize everything done in Phase 2**
+
+Print a summary to the user of everything done in Phase 2
+
 ---
 
-## Phase 2: Auth Configuration (If Multi-User)
+## Phase 3: Auth Configuration (If Multi-User)
 
 ### Task 4: Configure Auth Providers
-
-**IMPORTANT: Spawn a subagent for the following:** The subagent should configure auth by:
 
 1. Pass the drizzle schemas into `drizzleAdapter` in `src/server/better-auth/config.ts`:
    ```typescript
@@ -175,9 +179,11 @@ cd <app_name>
 
 3. Update `src/env.js`, `.env`, and `.env.example` with the required environment variables for the auth providers
 
+4. Print a summary to the user of everything done in Phase 3 
+
 ---
 
-## Phase 3: Database Schema
+## Phase 4: Database Schema
 
 ### Task 5: Set Up Database Connection
 
@@ -245,26 +251,31 @@ Based on the user's app requirements, add the necessary Drizzle table definition
 npm run db:push
 ```
 
+**Step 2: Summarize everything done in Phase 4**
+
+Print a summary to the user of everything done in Phase 4
+
 ---
 
-## Phase 4: Backend Implementation
+
+## Phase 5: Backend Implementation
 
 ### Task 9: Implement tRPC Backend
 
-**IMPORTANT: Spawn a subagent for the following:** The subagent should implement the tRPC backend by:
-
+Implement this task by:
 1. Removing any example/post router that references the old post model
 2. Creating tRPC routers for CRUD operations on the app's data models in `src/server/api/routers/`
 3. Registering new routers in `src/server/api/root.ts`
 4. Verify with `npx tsc --noEmit -p tsconfig.server.json` (checks only server code, avoids frontend errors)
+5. Print a summary to the user of everything done in Phase 5
 
 ---
 
-## Phase 5: Frontend Implementation
+## Phase 6: Frontend Implementation
 
 ### Task 10: Implement Frontend
 
-**IMPORTANT: Spawn a subagent for the following:** The subagent should implement the frontend by:
+Implement this task by:
 
 1. Installing and configuring shadcn:
    ```bash
@@ -291,9 +302,10 @@ npm run db:push
 
 7. Verify with `npm run build` and fix any errors
 
+8. Print a summary to the user of everything done in Phase 6
 ---
 
-## Phase 6: Run, Verify, and Commit
+## Phase 7: Run, Verify, and Commit
 
 ### Task 11: Run and Verify
 
@@ -364,28 +376,22 @@ If the user wants to skip hardening, the skill is complete.
 
 ---
 
-## Phase 7: Backend Testing (Optional Hardening)
+## Phase 8: Backend Testing (Optional Hardening)
 
 Ask the user (yes/no): "Do you want to add backend testing?"
 
 If no, skip this phase.
 
-**IMPORTANT: Spawn a subagent for the following:** The subagent should:
-
-1. Read `CLAUDE.md` to understand the project
-2. Use the `view_skill` MCP tool to read the `add-backend-testing` skill
-3. Follow the skill with `service_id` from Task 2
+1. Use the `view_skill` MCP tool to read the `add-backend-testing` skill
+2. Follow the skill with `service_id` from Task 2
 
 ---
 
-## Phase 8: Stricter Checks (Optional Hardening)
+## Phase 9: Stricter Checks (Optional Hardening)
 
 Ask the user (yes/no): "Do you want to enable stricter TypeScript checks?"
 
 If no, skip this phase.
 
-**IMPORTANT: Spawn a subagent for the following:** The subagent should:
-
-1. Read `CLAUDE.md` to understand the project
-2. Use the `view_skill` MCP tool to read the `add-strict-checks` skill
-3. Follow the skill
+1. Use the `view_skill` MCP tool to read the `add-strict-checks` skill
+2. Follow the skill

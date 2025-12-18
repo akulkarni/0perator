@@ -40,36 +40,6 @@ The app user only has access to its own schema (no access to `public` schema).
 All tables are created within this schema using `pgSchema()` in `src/server/db/schema.ts`.
 {{/if}}
 
-{{#if has_backend_testing}}
-## Testing
-
-This app uses Vitest for backend integration testing with an isolated test database schema.
-
-**Test infrastructure:**
-- Tests run against a separate PostgreSQL schema (see `DATABASE_SCHEMA` in `.env.test.local`)
-- A dedicated test user has permissions only on the test schema
-- Schema is automatically pushed before tests via global setup
-- Tests use `.env.test.local` for database configuration (gitignored)
-
-**Writing tests:**
-```typescript
-import { describe, it, expect } from "vitest";
-import { appRouter } from "~/server/api/root";
-import { createCallerFactory } from "~/server/api/trpc";
-import { db } from "~/server/db";
-
-const createCaller = createCallerFactory(appRouter);
-const caller = createCaller({ session: null, db, headers: new Headers() });
-
-describe("myRouter", () => {
-  it("returns data", async () => {
-    const result = await caller.my.getData();
-    expect(result).toBeDefined();
-  });
-});
-```
-{{/if}}
-
 ## Commands
 
 ```bash
@@ -80,10 +50,6 @@ npm run db:generate  # Generate Drizzle migrations (must use this for production
 npm run db:migrate   # Run pending migrations (must use this for production-deployed apps)
 npm run db:push      # Push schema changes (only do this while the app hasn't been deployed to production)
 npm run db:studio    # Open Drizzle Studio UI
-{{#if has_backend_testing}}
-npm test             # Run tests once
-npm run test:watch   # Run tests in watch mode
-{{/if}}
 npm run check        # Run linter and type checks
 ```
 
@@ -189,9 +155,6 @@ Browse available components at https://ui.shadcn.com/docs/components
 ### New tRPC Router
 1. Create router in `src/server/api/routers/`
 2. Add to `appRouter` in `src/server/api/root.ts`
-{{#if has_backend_testing}}
-3. Add tests in `src/test/routers`
-{{/if}}
 
 ### New Database Table
 1. Add schema in `src/server/db/schema.ts`

@@ -28,10 +28,6 @@ const inputSchema = {
     .string()
     .optional()
     .describe("Database user name (from setup_app_schema)"),
-  has_backend_testing: z
-    .boolean()
-    .default(false)
-    .describe("Whether backend testing is enabled"),
 } as const;
 
 const outputSchema = {
@@ -66,7 +62,6 @@ export const writeClaudeMdFactory: ApiFactory<
       future_features,
       db_schema,
       db_user,
-      has_backend_testing,
     }): Promise<OutputSchema> => {
       const appDir = resolve(process.cwd(), application_directory);
       try {
@@ -77,7 +72,6 @@ export const writeClaudeMdFactory: ApiFactory<
           future_features,
           db_schema,
           db_user,
-          has_backend_testing,
         });
 
         return {

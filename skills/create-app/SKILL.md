@@ -28,11 +28,13 @@ Here's how we'll build this:
 3. 🔐 **Configure auth** (if needed) - Set up user authentication
 4. 🗄️ **Design the database** - Create tables for your data
 5. ⚙️ **Build the backend** - Create API endpoints with tRPC
-6. 🧪 **Add testing** (if wanted) - Set up integration tests with Vitest
-7. 🎨 **Build the frontend** - Create pages and components with shadcn/ui
-8. 🔍 **Configure strict checks** (if wanted) - Set up stricter TypeScript and linting to catch AI-generated code issues, and fix any issues in the scaffold
-9. ✅ **Run and verify** - Make sure everything works
-10. 💾 **Commit** - Save this initial version so we can iterate from here
+6. 🎨 **Build the frontend** - Create pages and components with shadcn/ui
+7. ✅ **Run and verify** - Make sure everything works
+8. 💾 **Commit** - Save this initial version so we can iterate from here
+
+**Optional hardening (after initial commit):**
+9. 🧪 **Add testing** - Set up integration tests with Vitest
+10. 🔍 **Configure strict checks** - Set up stricter TypeScript and linting to catch AI-generated code issues
 
 Let's start with understanding your product."
 
@@ -249,185 +251,51 @@ npm run db:push
 
 ### Task 9: Implement tRPC Backend
 
-**Files:**
-- Create/Modify: `src/server/api/routers/*.ts`
-- Modify: `src/server/api/root.ts`
+**IMPORTANT: Spawn a subagent for the following:** The subagent should implement the tRPC backend by:
 
-**Step 1: Remove example post router**
-
-Delete any tRPC routes that reference the old post model.
-
-**Step 2: Create routers**
-
-Add tRPC routers for CRUD operations on your data models. Follow the patterns in existing routers.
-
-**Step 3: Register routers**
-
-Add new routers to `src/server/api/root.ts`.
+1. Removing any example/post router that references the old post model
+2. Creating tRPC routers for CRUD operations on the app's data models in `src/server/api/routers/`
+3. Registering new routers in `src/server/api/root.ts`
+4. Verify with `npx tsc --noEmit -p tsconfig.server.json` (checks only server code, avoids frontend errors)
 
 ---
 
-## Phase 5: Backend Testing
+## Phase 5: Frontend Implementation
 
-Ask the user (yes/no) **default: yes**: "Do you want to add backend testing? This sets up isolated integration tests that run against a separate database schema - so you can confidently iterate without breaking things."
+### Task 10: Implement Frontend
 
-If no, skip this phase.
+**IMPORTANT: Spawn a subagent for the following:** The subagent should implement the frontend by:
 
-If yes, spawn a subagent to set up backend testing. The subagent should:
-
-1. Use the `setup_testing` MCP tool:
-   ```
-   setup_testing(application_directory: ".", service_id: "<service_id from Task 2>")
-   ```
-
-2. Install Vitest:
+1. Installing and configuring shadcn:
    ```bash
-   npm install -D vitest dotenv
+   npx shadcn@latest init --base-color=neutral
+   cp src/styles/globals.css.orange src/styles/globals.css
    ```
 
-3. Add test scripts to package.json:
-   ```json
-   {
-     "scripts": {
-       "test": "vitest run",
-       "test:watch": "vitest"
-     }
-   }
+2. Installing required shadcn components (button, card, input, form, table, etc.):
+   ```bash
+   npx shadcn@latest add <component1> <component2> ...
    ```
 
-4. Write integration tests for each tRPC router (example pattern):
-   ```typescript
-   import { describe, it, expect } from "vitest";
-   import { appRouter } from "~/server/api/root";
-   import { createCallerFactory } from "~/server/api/trpc";
-   import { db } from "~/server/db";
+3. Building the pages needed for the app using shadcn components (ensure all buttons have a type attribute)
 
-   const createCaller = createCallerFactory(appRouter);
-   const caller = createCaller({ session: null, db, headers: new Headers() });
+4. Connecting pages to the backend using tRPC hooks to fetch and mutate data
 
-   describe("exampleRouter", () => {
-     it("returns data", async () => {
-       const result = await caller.example.getAll();
-       expect(result).toBeDefined();
-     });
-   });
-   ```
+5. Creating a sign-in form component at `src/components/auth/sign-in-form.tsx` (if multi-user) supporting all requested auth methods (email, GitHub, Google)
 
-5. Run `npm test` and ensure all tests pass before completing
+6. Replacing hardcoded T3 template colors with shadcn CSS variables:
+   - `bg-gradient-to-b from-slate-900 to-slate-800` → `bg-background`
+   - `text-white` → `text-foreground`
+   - `bg-white/10` → `bg-muted`
+   - `border-white/20` → `border-border`
+
+7. Verify with `npm run build` and fix any errors
 
 ---
 
-## Phase 6: Frontend Implementation
+## Phase 6: Run, Verify, and Commit
 
-### Task 13: Install Required shadcn Components
-
-**Step 1: Install shadcn**
-
-```bash
-npx shadcn@latest init --base-color=neutral
-```
-
-**Step 2: Set Orange Theme**
-
-```
-cp src/styles/globals.css.orange src/styles/globals.css
-```
-
-**Step 2: Identify needed components**
-
-Determine which shadcn components are needed for the app (button, card, input, form, table, etc.)
-
-**Step 3: Install components**
-
-```bash
-npx shadcn@latest add button card input label form
-```
-
----
-
-### Task 14: Implement Frontend Pages
-
-**Files:**
-- Create/Modify: `src/app/**/*.tsx`
-- Create: `src/components/*.tsx`
-
-**Step 1: Create page components**
-
-Build the pages needed for your app using shadcn components. Make sure all buttons have a type.
-
-**Step 2: Connect to backend**
-
-Use tRPC hooks to fetch and mutate data from your routers.
-
-**Step 3: Create sign-in component (if multi-user)**
-
-Build a reusable sign-in form component at `src/components/auth/sign-in-form.tsx` using shadcn components that supports all auth methods the user requested:
-- Email: email/password form fields
-- GitHub: "Sign in with GitHub" button
-- Google: "Sign in with Google" button
-
-**Step 4: Fix color scheme**
-
-Replace any hardcoded T3 template colors with shadcn CSS variables. Examples:
-
-| Replace | With |
-|---------|------|
-| `bg-gradient-to-b from-slate-900 to-slate-800` | `bg-background` |
-| `text-white` | `text-foreground` |
-| `bg-white/10` | `bg-muted` |
-| `border-white/20` | `border-border` |
-
----
-
-## Phase 7: Stricter Checks
-
-Ask the user (yes/no) **Default: Yes**: "Do you want to enable stricter TypeScript checks? These catch bugs that standard TypeScript misses - especially useful when iterating quickly with AI assistance."
-Only continue with this phase if the answer is Yes. Otherwise, skip Task 15.
-
-### Task 15: Configure Stricter TypeScript and Linting
-
-**Step 1: Add stricter compiler options**
-
-Add these additional strict options to `tsconfig.json` under `compilerOptions`:
-
-```json
-{
-  "compilerOptions": {
-    // ... existing options ...
-
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    "noImplicitOverride": true,
-    "forceConsistentCasingInFileNames": true,
-    "exactOptionalPropertyTypes": true,
-    "useUnknownInCatchVariables": true
-  }
-}
-```
-
-**Step 2: Add check script to package.json**
-
-```json
-{
-  "scripts": {
-    "check": "biome check . && tsc --noEmit -p tsconfig.check.json"
-  }
-}
-```
-
-Note: tsconfig.check.json already exists don't try to create it.
-
-**Step 3: Fix all issues in a subagent**
-
-Spawn a subagent to fix all linting and type errors. The subagent should run `npm run check:unsafe && npm run check` in a loop, fixing issues until it passes.
-
-IMPORTANT: NEVER disable any checks in biome, tsconfig.json or tsconfig.check.json. Instead, fix the code to not violate the check.
-
----
-
-## Phase 8: Run and Verify
-
-### Task 16: Run and Verify
+### Task 11: Run and Verify
 
 **Step 1: Start the dev server**
 
@@ -441,7 +309,7 @@ Use the `open_app` MCP tool to open http://localhost:3000 in a browser and verif
 
 ---
 
-### Task 17: Finish Up
+### Task 12: Finish Up
 
 **Step 1: Generate CLAUDE.md**
 
@@ -453,13 +321,16 @@ Use the `write_claude_md` MCP tool to generate the project guide:
 - `future_features`: The future features from Task 1, Step 4 (if any)
 - `db_schema`: The schema name returned by `setup_app_schema` in Task 5
 - `db_user`: The user name returned by `setup_app_schema` in Task 5
-- `has_backend_testing`: Whether backend testing was set up (Phase 5)
 
 **Step 2: Review CLAUDE.md**
 
 Read the generated `CLAUDE.md` file. Make sure it is accurate. Fix if needed.
 
-**Step 3: Offer to commit**
+**Step 3: Run checks**
+
+Run `npm run check:unsafe` to auto-fix formatting issues, then verify `npm run check` passes.
+
+**Step 4: Offer to commit**
 
 Ask the user "Do you want to commit this initial version to git?".
 
@@ -472,10 +343,49 @@ git commit -m "Initial commit: <app_name>"
 
 ---
 
-### Task 18: Summarization
+### Task 13: Congratulate and Offer Next Steps
 
-**Step 1: Highlight the next steps**
+Tell the user:
 
-Highlight the next steps a user can take:
-- Plan out the next steps for the app development using superpowers:brainstorming
-- Use the deploy-app skill to deploy the app
+"🎉 Congrats! Your app is set up and committed. You have a working demo you can iterate on.
+
+**🛡️ Optional hardening (recommended):**
+These checks act like a reward signal for AI-assisted development - they catch mistakes early and help guide me toward correct solutions faster. Without them, bugs can compound silently:
+- **Backend testing** - Integration tests with an isolated test database
+- **Stricter TypeScript** - Additional type checks that catch common AI-generated code issues
+
+Would you like to set these up now? (You can always ask for these later)
+
+**Or skip and continue with:**
+- 🧠 **Brainstorm** - Plan your next features
+- 🚀 **Deploy** - Ship to Vercel"
+
+If the user wants to skip hardening, the skill is complete.
+
+---
+
+## Phase 7: Backend Testing (Optional Hardening)
+
+Ask the user (yes/no): "Do you want to add backend testing?"
+
+If no, skip this phase.
+
+**IMPORTANT: Spawn a subagent for the following:** The subagent should:
+
+1. Read `CLAUDE.md` to understand the project
+2. Use the `view_skill` MCP tool to read the `add-backend-testing` skill
+3. Follow the skill with `service_id` from Task 2
+
+---
+
+## Phase 8: Stricter Checks (Optional Hardening)
+
+Ask the user (yes/no): "Do you want to enable stricter TypeScript checks?"
+
+If no, skip this phase.
+
+**IMPORTANT: Spawn a subagent for the following:** The subagent should:
+
+1. Read `CLAUDE.md` to understand the project
+2. Use the `view_skill` MCP tool to read the `add-strict-checks` skill
+3. Follow the skill

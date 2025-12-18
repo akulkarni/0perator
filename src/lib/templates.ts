@@ -10,7 +10,6 @@ export interface AppTemplateVars {
   future_features?: string | undefined;
   db_schema?: string | undefined;
   db_user?: string | undefined;
-  has_backend_testing?: boolean | undefined;
 }
 
 type ContentTransform = (content: string) => string;

@@ -7,7 +7,7 @@ description: 'Use this skill whenever creating a new application. IMPORTANT: Thi
 
 > **For Claude Code:** Follow this plan phase-by-phase. If any step fails, notify the user and ask for next steps.
 
-**Phase Summary Template:** At the end of each phase, print a detailed summary (2-3 paragraphs) for the user that includes:
+**Phase Summary Template:** At the end of each phase, output to the user a detailed summary (2-3 paragraphs) that includes:
 - What was accomplished in this phase
 - Key files/directories created or modified
 - Important values to remember (service_id, schema names, etc.)
@@ -28,18 +28,17 @@ Before asking any questions tell the user:
 "Let's start by planning a minimal v0/demo version of your app. We'll focus on the core features needed to get something working, then we can iterate from there.
 
 Here's how we'll build this:
-1. 🎯 **Understand the product** - I'll ask a few questions to understand what you're building
-2. 🏗️ **Scaffold the app** - Create a cloud database and scaffold the app with Next.js, tRPC, and Drizzle
-3. 🔐 **Configure auth** (if needed) - Set up user authentication
-4. 🗄️ **Design the database** - Create tables for your data
-5. ⚙️ **Build the backend** - Create API endpoints with tRPC
-6. 🎨 **Build the frontend** - Create pages and components with shadcn/ui
-7. ✅ **Run and verify** - Make sure everything works
-8. 💾 **Commit** - Save this initial version so we can iterate from here
+1. 🎯 **Phase 1: Understand the product** - I'll ask a few questions to understand what you're building
+2. 🏗️ **Phase 2: Scaffold the app** - Create a cloud database and scaffold the app with Next.js, tRPC, and Drizzle
+3. 🔐 **Phase 3: Configure auth** (if needed) - Set up user authentication
+4. 🗄️ **Phase 4: Design the database** - Create tables for your data
+5. ⚙️ **Phase 5: Build the backend** - Create API endpoints with tRPC
+6. 🎨 **Phase 6: Build the frontend** - Create pages and components with shadcn/ui
+7. ✅ **Phase 7: Run, verify, and commit** - Make sure everything works and save to git
 
 **Optional hardening (after initial commit):**
-9. 🧪 **Add testing** - Set up integration tests with Vitest
-10. 🔍 **Configure strict checks** - Set up stricter TypeScript and linting to catch AI-generated code issues
+8. 🧪 **Phase 8: Add testing** - Set up integration tests with Vitest
+9. 🔍 **Phase 9: Configure strict checks** - Set up stricter TypeScript and linting to catch AI-generated code issues
 
 Let's start with understanding your product."
 
@@ -104,7 +103,7 @@ If yes, create and confirm a list of "future features".
    - `product_brief` from Phase 1
    - `future_features` from Phase 1 (if any)
 4. Change into the app directory: `cd <app_name>`
-5. Print phase summary (see template above)
+5. Output a  phase summary to the user using the template.
 
 ---
 
@@ -123,7 +122,7 @@ Skip this phase if the app is single-user.
    ```
 2. Update the Better Auth configuration to enable only the providers the user requested (email, GitHub, Google)
 3. Update `src/env.js`, `.env`, and `.env.example` with the required environment variables for the auth providers
-4. Print phase summary (see template above)
+4. Output a  phase summary to the user using the template.
 
 ---
 
@@ -155,7 +154,7 @@ Skip this phase if the app is single-user.
 
 8. Push schema to database: `npm run db:push`
 
-9. Print phase summary (see template above)
+9. Output a  phase summary to the user using the template.
 
 ---
 
@@ -165,7 +164,7 @@ Skip this phase if the app is single-user.
 2. Create tRPC routers for CRUD operations on the app's data models in `src/server/api/routers/`
 3. Register new routers in `src/server/api/root.ts`
 4. Verify with `npx tsc --noEmit -p tsconfig.server.json` (checks only server code, avoids frontend errors)
-5. Print phase summary (see template above)
+5. Output a  phase summary to the user using the template.
 
 ---
 
@@ -196,7 +195,7 @@ Skip this phase if the app is single-user.
 
 7. Verify with `npm run build` and fix any errors
 
-8. Print phase summary (see template above)
+8. Output a  phase summary to the user using the template.
 
 ---
 
@@ -230,16 +229,14 @@ Skip this phase if the app is single-user.
 
 "🎉 Congrats! Your app is set up and committed. You have a working demo you can iterate on.
 
-**🛡️ Optional hardening (recommended):**
-These checks act like a reward signal for AI-assisted development - they catch mistakes early and help guide me toward correct solutions faster. Without them, bugs can compound silently:
-- **Backend testing** - Integration tests with an isolated test database
-- **Stricter TypeScript** - Additional type checks that catch common AI-generated code issues
-
-Would you like to set these up now? (You can always ask for these later)
-
-**Or skip and continue with:**
+**Next steps:**
+- 🛡️ **Harden** - Add testing and stricter checks (recommended)
 - 🧠 **Brainstorm** - Plan your next features
-- 🚀 **Deploy** - Ship to Vercel"
+- 🚀 **Deploy** - Ship to Vercel
+
+**Why harden?** These checks act like a reward signal for AI-assisted development - they catch mistakes early and help guide me toward correct solutions faster. Without them, bugs can compound silently.
+
+Shall we add hardening now?"
 
 If the user wants to skip hardening, the skill is complete.
 
@@ -253,6 +250,7 @@ If no, skip this phase.
 
 1. Use the `view_skill` MCP tool to read the `add-backend-testing` skill
 2. Follow the skill with `service_id` from Phase 2
+3. Offer to git commit these changes
 
 ---
 
@@ -264,3 +262,4 @@ If no, skip this phase.
 
 1. Use the `view_skill` MCP tool to read the `add-strict-checks` skill
 2. Follow the skill
+3. Offer to git commit these changes

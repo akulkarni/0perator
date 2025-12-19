@@ -10,7 +10,11 @@ Build full-stack applications with AI: real code you own and ship.
 
 **Unlike plain AI coding,** you don't have to research the best modern stack or how to wire it together. 0perator gives AI assistants deep, specific guidance on exact patterns—how to structure tRPC routers, which Drizzle patterns to use, how auth integrates with the database. The result is idiomatic, high-quality code with less manual steps.
 
-We also provide optional hardening: backend integration tests and stricter TypeScript checks. These act as a feedback signal—when AI makes a mistake, tests fail and type errors surface immediately, helping it iterate toward correct solutions faster.
+**We don't just build your app scaffold, we support the full development lifecycle:**
+- **Hardening** - Intgration tests and strict type checks that catch AI mistakes early
+- **Deploying** - Ship to production with popular providers like Vercel
+- **Iterating** - Plan and build new features with AI guidance (coming soon)
+- **Maintaining** - Keep code health high as your app grows (coming soon)
 
 ## Example Queries
 
@@ -89,10 +93,9 @@ Because we're opinionated about the stack, we can write skills with precise, bat
 
 **Tools** handle atomic operations that skills orchestrate. Examples:
 - `view_skill` - Load a skill to guide the current workflow
+- `open_app` - Open app in browser
 - `create_database` - Provision Tiger Cloud PostgreSQL
 - `create_web_app` - Scaffold T3 Stack app with database connection
-- `open_app` - Open app in browser
-- `upload_env_to_vercel` - Upload .env variables to Vercel
 
 ## Development
 

@@ -21,32 +21,40 @@ description: 'Use this skill whenever creating a new application. IMPORTANT: Thi
 
 ---
 
-## Phase 1: Project Requirements
+## Getting Started
 
-Before asking any questions tell the user:
+Tell the user:
 
-"Let's start by planning a minimal v0/demo version of your app. We'll focus on the core features needed to get something working, then we can iterate from there.
+"Let's build a minimal v0/demo version of your app. We'll focus on the core features needed to get something working, then iterate from there.
 
 Here's how we'll build this:
-1. 🎯 **Phase 1: Understand the product** - I'll ask a few questions to understand what you're building
-2. 🏗️ **Phase 2: Scaffold the app** - Create a cloud database and scaffold the app with Next.js, tRPC, and Drizzle
-3. 🔐 **Phase 3: Configure auth** (if needed) - Set up user authentication
-4. 🗄️ **Phase 4: Design the database** - Create tables for your data
-5. ⚙️ **Phase 5: Build the backend** - Create API endpoints with tRPC
-6. 🎨 **Phase 6: Build the frontend** - Create pages and components with shadcn/ui
-7. ✅ **Phase 7: Run, verify, and commit** - Make sure everything works and save to git
+- 🎯 **Phase 1: Understand the product** - I'll ask a few questions about what you're building
+- 🏗️ **Phase 2: Scaffold the app** - Create a cloud database and app with Next.js, tRPC, and Drizzle
+- 🔐 **Phase 3: Configure auth** (if needed) - Set up user authentication
+- 🗄️ **Phase 4: Design the database** - Create tables for your data
+- ⚙️ **Phase 5: Build the backend** - Create API endpoints with tRPC
+- 🎨 **Phase 6: Build the frontend** - Create pages and components with shadcn/ui
+- ✅ **Phase 7: Run, verify, and commit** - Make sure everything works and save to git
 
-**Optional hardening (after initial commit):**
-8. 🧪 **Phase 8: Add testing** - Set up integration tests with Vitest
-9. 🔍 **Phase 9: Configure strict checks** - Set up stricter TypeScript and linting to catch AI-generated code issues
+**Optional hardening (after commit):**
+- 🧪 **Phase 8: Add testing** - Integration tests with Vitest
+- 🔍 **Phase 9: Strict checks** - Stricter TypeScript and linting
 
-Let's start with understanding your product."
+Let's go!"
 
-Stress that this will be a v0/demo version we'll iterate
+---
 
-DO NOT ask multiple questions in the same prompt.
+## Phase 1: Understand the Product
 
-1. **Determine app type** - If it is not clear from the prompt, ask the user: "Is this a multi-user app (requires user accounts/login)?"
+**Key Principles:**
+- One question at a time - Don't overwhelm with multiple questions
+- Multiple choice preferred - Easier to answer than open-ended when possible
+- YAGNI ruthlessly - Remove unnecessary features from all designs
+- Explore alternatives - Always propose 2-3 approaches before settling
+- Incremental validation - Present design in sections, validate each
+- Be flexible - Go back and clarify when something doesn't make sense
+
+1. **Determine app type** - If not clear from the prompt, ask: "Is this a multi-user app (requires user accounts/login)?"
 
 2. **Gather auth requirements (if multi-user)** - Ask the user: "Which authentication methods do you want? Pick one or more:" Email signup, GitHub OAuth, Google OAuth
 
@@ -82,14 +90,6 @@ Ask the user: "Is this product brief correct?"
 After the user confirms the product brief, ask: "Are there any features not in the v0/demo that might affect how we build this? For example: offline support, real-time sync, multi-tenancy, or specific integrations. These won't be built now, but knowing them helps us make the right architectural choices upfront."
 
 If yes, create and confirm a list of "future features".
-
-**Key Principles:**
-- One question at a time - Don't overwhelm with multiple questions
-- Multiple choice preferred - Easier to answer than open-ended when possible
-- YAGNI ruthlessly - Remove unnecessary features from all designs
-- Explore alternatives - Always propose 2-3 approaches before settling
-- Incremental validation - Present design in sections, validate each
-- Be flexible - Go back and clarify when something doesn't make sense
 
 ---
 

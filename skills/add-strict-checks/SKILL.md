@@ -50,7 +50,15 @@ Add a check script to `package.json`:
 
 Run `npm run check:write && npm run check` in a loop, fixing issues until it passes.
 
-IMPORTANT: NEVER disable any checks in biome, tsconfig.json or tsconfig.check.json. Instead, fix the code to not violate the check.
+IMPORTANT: NEVER disable any checks:
+- NEVER disable any biome checks,
+- NEVER edit tsconfig.json to remove or disable a check
+- NEVER edit tsconfig.check.json to remove or disable a check
+- NEVER edit package.json to remove a check from a script
+
+NEVER disable checks, even temporarily for any reason (including for easier work with third-party libraries)
+
+Instead, fix the code to not violate the check.
 
 ---
 

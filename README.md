@@ -1,10 +1,16 @@
 # 0perator
 
-Build full-stack applications instantly through natural conversation.
+Build full-stack applications with AI: real code you own and ship.
 
 ## Overview
 
-0perator helps you build modern, well-designed full-stack apps without worrying about the tech stack. We've chosen a best-in-class TypeScript stack and built world-class AI support through MCP. You focus on product functionality and design—we handle the infrastructure.
+0perator helps you build modern, well-designed full-stack apps without worrying about the tech stack. You focus on product functionality and design—we handle the infrastructure.
+
+**Unlike vibe-coding platforms,** you own the code: it lives in your local repo with professional workflows like git, branches, and PR reviews. You get full-stack apps with real databases and auth, not just UI prototypes. No vendor lock-in: change providers, add any library, extend beyond what we support.
+
+**Unlike plain AI coding,** you don't have to research the best modern stack or how to wire it together. 0perator gives AI assistants deep, specific guidance on exact patterns—how to structure tRPC routers, which Drizzle patterns to use, how auth integrates with the database. The result is idiomatic, high-quality code with less manual steps.
+
+We also provide optional hardening: backend integration tests and stricter TypeScript checks. These act as a feedback signal—when AI makes a mistake, tests fail and type errors surface immediately, helping it iterate toward correct solutions faster.
 
 ## Example Queries
 
@@ -20,7 +26,14 @@ Once your app is built, we also support deployment:
 
 - "Deploy my app to Vercel"
 
-(More deployment options coming soon)
+And hardening for better AI-assisted development:
+
+- "Add backend testing"
+- "Add stricter TypeScript checks"
+
+Finally, we support you all the way to production:
+
+- "Make this application production ready" (coming soon)
 
 ## Installation
 
@@ -53,54 +66,33 @@ The init command will:
 
 0perator creates apps using the **T3 Stack**:
 
-- **Next.js 15** with App Router and React 19
-- **tRPC v11** for end-to-end type-safe APIs
+- **Next.js** with App Router
+- **tRPC** for end-to-end type-safe APIs
 - **Drizzle ORM** for type-safe database queries
 - **Better Auth** for authentication (optional)
-- **Tailwind CSS 4** with shadcn/ui components
+- **Tailwind CSS** with shadcn/ui components
 - **Tiger Cloud PostgreSQL** with TimescaleDB
 
 Everything is configured and connected automatically.
 
-## Direct Tools (What Claude Sees)
+## How it Works
 
-```
-🚀 create_web_app        - Create T3 Stack app with database connection
-🗄️  create_database       - Tiger Cloud PostgreSQL (free tier)
-🌐 open_app              - Open app in browser
-📤 upload_env_to_vercel  - Upload .env variables to Vercel
-📖 view_skill            - View step-by-step instructions for complex tasks
-```
+0perator provides AI assistants with tools and skills via MCP (Model Context Protocol).
 
-### Skills
+Because we're opinionated about the stack, we can write skills with precise, battle-tested instructions—not generic advice that works across many frameworks. This is why being opinionated matters: it lets us teach AI exactly how to build with this stack.
 
-Skills provide step-by-step instructions for complex workflows:
+**Skills** are step-by-step guides for complex workflows. AI accesses them via the `view_skill` tool:
+- `create-app` - Full app creation: database, auth, shadcn components
+- `deploy-app` - Deploy to Vercel with environment configuration
+- `add-backend-testing` - Vitest integration tests with isolated test database
+- `add-strict-checks` - Stricter TypeScript and linting
 
-| Skill | Description |
-|-------|-------------|
-| `create-app` | Full app creation workflow: database setup, auth configuration, shadcn components |
-| `deploy-app` | Deploy your app to Vercel with environment configuration |
-
-
-
-### What's Different?
-
-**Before (Traditional Tools):**
-```
-- Create app
-- "Now cd into directory"
-- "Run npm install"
-- "Create a .env file"
-- "Run the database migrations"
-- "Start the dev server"
-- 😩 10 manual steps later...
-```
-
-**Now (0perator):**
-```
-- Create app with auth and database
-- 🎉 Your app is running at http://localhost:3000!
-```
+**Tools** handle atomic operations that skills orchestrate. Examples:
+- `view_skill` - Load a skill to guide the current workflow
+- `create_database` - Provision Tiger Cloud PostgreSQL
+- `create_web_app` - Scaffold T3 Stack app with database connection
+- `open_app` - Open app in browser
+- `upload_env_to_vercel` - Upload .env variables to Vercel
 
 ## Development
 
@@ -114,25 +106,22 @@ When testing app creation, verify that the AI coding agent calls `view_skill('cr
 
 ## Design Philosophy
 
-**Humans design product not infrastructure:** The developers should think about the product experience, AI should know how to set up the best infrastucture possible. 
+**You own the code:** No platform lock-in. Your code lives in your repo, runs on your infrastructure, and you can change anything—even replace us entirely.
+
+**Humans design product not infrastructure:** You think about the product experience, AI handles the infrastructure decisions.
 
 **Agentic Ergonomics:** Abstraction layers that help humans can hinder AI agents. 0perator embraces direct, parameter-driven interfaces that AI can use efficiently.
-
-**Zero Config:** When you create something, it should work immediately. No manual steps.
 
 **Best Practices Built-in:** T3 Stack provides type-safety from database to UI with tRPC and Drizzle.
 
 ## Success Metrics
 
-- **Speed**: Full-stack app deployed locally in under 30 seconds (after it's well specified).
+- **Quality without the effort**: Production-ready code with TypeScript, error handling, best practices
 - **Completeness**: Auth includes UI, database includes schema, everything works
-- **Zero Config**: No manual steps, no .env editing, no npm install
-- **Quality**: Production-ready code with TypeScript, error handling, best practices
+- **Minimal Config**: No manual steps, no .env editing, no npm install
 
 ## Future
 
-- Cloud deployment tools
 - More UI themes
 - Payment integration
 - Real-time features
-- Testing tools

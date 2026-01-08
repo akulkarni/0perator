@@ -41,11 +41,32 @@ Finally, we support you all the way to production:
 
 ## Installation
 
+### Claude Code Plugin (Recommended)
+
+```bash
+claude plugin marketplace add akulkarni/0perator
+claude plugin install 0perator
+```
+
+This gives you:
+- **Slash commands**: `/0perator:create-app`, `/0perator:deploy`
+- **Skills**: Auto-invoked guidance for app creation, deployment, testing
+- **MCP tools**: Database provisioning, app scaffolding, and more
+
+For local development/testing:
+```bash
+claude --plugin-dir /path/to/0perator
+```
+
+### MCP Server (Cursor, other IDEs)
+
+For IDEs that support MCP but not Claude plugins:
+
 ```bash
 npx 0perator@latest init
 ```
 
-This will configure your IDE with the MCP servers. Select which IDE to configure when prompted.
+Select your IDE when prompted.
 
 ### Init Options
 
@@ -81,21 +102,25 @@ Everything is configured and connected automatically.
 
 ## How it Works
 
-0perator provides AI assistants with tools and skills via MCP (Model Context Protocol).
+0perator provides AI assistants with tools and skills via Claude Code plugins (or MCP for other IDEs).
 
 Because we're opinionated about the stack, we can write skills with precise, battle-tested instructions—not generic advice that works across many frameworks. This is why being opinionated matters: it lets us teach AI exactly how to build with this stack.
 
-**Skills** are step-by-step guides for complex workflows. AI accesses them via the `view_skill` tool:
+**Skills** are step-by-step guides for complex workflows that Claude automatically invokes when relevant:
 - `create-app` - Full app creation: database, auth, shadcn components
 - `deploy-app` - Deploy to Vercel with environment configuration
 - `add-backend-testing` - Vitest integration tests with isolated test database
 - `add-strict-checks` - Stricter TypeScript and linting
 
-**Tools** handle atomic operations that skills orchestrate. Examples:
-- `view_skill` - Load a skill to guide the current workflow
-- `open_app` - Open app in browser
+**Slash Commands** let you explicitly trigger workflows:
+- `/0perator:create-app` - Start a new application
+- `/0perator:deploy` - Deploy to production
+
+**Tools** handle atomic operations that skills orchestrate:
 - `create_database` - Provision Tiger Cloud PostgreSQL
 - `create_web_app` - Scaffold T3 Stack app with database connection
+- `setup_app_schema` - Configure database schema and credentials
+- `open_app` - Open app in browser
 
 ## Development
 

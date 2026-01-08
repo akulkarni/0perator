@@ -202,3 +202,26 @@ npm run dev -- init
 - `src/commands/` - CLI command implementations
 - `src/mcp/tools/index.ts` - MCP tool factories
 - `src/mcp/server.ts` - MCP server startup
+
+### Claude Code Plugin
+
+This project is also a Claude Code plugin. Test locally with:
+
+```bash
+claude --plugin-dir /path/to/0perator
+```
+
+Plugin files:
+- `.claude-plugin/plugin.json` - Plugin manifest
+- `.claude-plugin/marketplace.json` - Marketplace definition
+- `.mcp.json` - MCP server config for plugin
+- `commands/` - Slash commands (`/0perator:create-app`, `/0perator:deploy`)
+- `skills/` - Native plugin skills
+
+### TODO: Before Publishing Plugin for External Users
+
+The `.mcp.json` currently uses `npx tsx` to run from source (for dev convenience). Before publishing for external users, either:
+
+1. **Switch to built version**: Change `.mcp.json` to use `node ${CLAUDE_PLUGIN_ROOT}/dist/index.js`
+2. **Or add tsx as dependency**: Move `tsx` from devDependencies to dependencies
+3. **Or create separate configs**: Have `.mcp.json` (prod) and `.mcp.dev.json` (dev), swap in plugin.json

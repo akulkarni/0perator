@@ -1,0 +1,12 @@
+{
+  "name": "0perator",
+  "version": "0.3.0",
+  "description": "Build full-stack applications instantly through natural conversation. Create databases, scaffold Next.js apps, and deploy to production.",
+  "author": {
+    "name": "Tiger Data"
+  },
+  "homepage": "https://github.com/akulkarni/0perator",
+  "keywords": ["database", "postgresql", "nextjs", "fullstack", "scaffolding", "deployment"],
+  "skills": "./skills",
+  "mcpServers": "./.mcp.json"
+}

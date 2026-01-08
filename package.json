@@ -8,6 +8,8 @@
     "0perator": "dist/index.js"
   },
   "files": [
+    ".claude-plugin",
+    ".mcp.json",
     "dist",
     "skills",
     "templates"

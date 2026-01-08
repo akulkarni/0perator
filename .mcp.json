@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "0perator": {
+      "command": "npx",
+      "args": [
+        "tsx",
+        "${CLAUDE_PLUGIN_ROOT}/src/index.ts",
+        "mcp",
+        "start",
+        "--disable-view-skill"
+      ],
+      "env": {}
+    }
+  }
+}

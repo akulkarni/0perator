@@ -1,0 +1,21 @@
+{
+  "name": "0perator",
+  "owner": {
+    "name": "Tiger Data"
+  },
+  "metadata": {
+    "description": "Build full-stack applications instantly through natural conversation"
+  },
+  "plugins": [
+    {
+      "name": "0perator",
+      "source": ".",
+      "description": "Build full-stack applications with database, auth, and UI. Create and deploy Next.js apps through conversation.",
+      "version": "0.3.0",
+      "author": {
+        "name": "Tiger Data"
+      },
+      "keywords": ["database", "postgresql", "nextjs", "fullstack", "scaffolding", "deployment"]
+    }
+  ]
+}

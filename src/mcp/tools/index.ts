@@ -7,8 +7,14 @@ import { uploadEnvToVercelFactory } from "./uploadEnvToVercel.js";
 import { getViewSkillFactory } from "./viewSkill.js";
 import { writeClaudeMdFactory } from "./writeClaudeMd.js";
 
-export async function getApiFactories() {
-  const viewSkillFactory = await getViewSkillFactory();
+export interface GetApiFactoriesOptions {
+  disableViewSkill?: boolean;
+}
+
+export async function getApiFactories(options: GetApiFactoriesOptions = {}) {
+  const viewSkillFactory = options.disableViewSkill
+    ? null
+    : await getViewSkillFactory();
 
   return [
     createDatabaseFactory,
@@ -17,7 +23,7 @@ export async function getApiFactories() {
     setupAppSchemaFactory,
     setupTestingFactory,
     uploadEnvToVercelFactory,
-    viewSkillFactory,
+    ...(viewSkillFactory ? [viewSkillFactory] : []),
     writeClaudeMdFactory,
   ] as const;
 }

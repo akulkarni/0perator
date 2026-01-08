@@ -33,8 +33,11 @@ src/
         └── index.ts
 
 skills/                # Skill markdown files
-└── create-app/
-    └── SKILL.md
+├── add-backend-testing/
+├── add-strict-checks/
+├── create-app/
+├── deploy-app/
+└── frontend-design/
 
 templates/             # App templates copied to new projects
 └── app/

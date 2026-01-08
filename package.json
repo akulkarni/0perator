@@ -10,6 +10,7 @@
   "files": [
     ".claude-plugin",
     ".mcp.json",
+    "agents",
     "dist",
     "skills",
     "templates"

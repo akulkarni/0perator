@@ -6,7 +6,14 @@
     "name": "Tiger Data"
   },
   "homepage": "https://github.com/akulkarni/0perator",
-  "keywords": ["database", "postgresql", "nextjs", "fullstack", "scaffolding", "deployment"],
-  "skills": "./skills",
+  "keywords": [
+    "database",
+    "postgresql",
+    "nextjs",
+    "fullstack",
+    "scaffolding",
+    "deployment"
+  ],
+  "skills": "./skills/",
   "mcpServers": "./.mcp.json"
 }

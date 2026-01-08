@@ -30,15 +30,14 @@ Tell the user:
 Here's how we'll build this:
 - 🎯 **Phase 1: Understand the product** - I'll ask a few questions about what you're building
 - 🏗️ **Phase 2: Scaffold the app** - Create a cloud database and app with Next.js, tRPC, and Drizzle
-- 🔐 **Phase 3: Configure auth** (if needed) - Set up user authentication
-- 🗄️ **Phase 4: Design the database** - Create tables for your data
-- ⚙️ **Phase 5: Build the backend** - Create API endpoints with tRPC
-- 🎨 **Phase 6: Build the frontend** - Create pages and components with shadcn/ui
-- ✅ **Phase 7: Run, verify, and commit** - Make sure everything works and save to git
+- 📋 **Phase 3: Plan the architecture** - Generate schema, API, and frontend plans in parallel
+- 🔐 **Phase 4: Configure auth** (if needed) - Set up user authentication
+- 🛠️ **Phase 5: Build everything** - Database, backend, and frontend in parallel
+- ✅ **Phase 6: Run, verify, and commit** - Make sure everything works and save to git
 
 **Optional hardening (after commit):**
-- 🧪 **Phase 8: Add testing** - Integration tests with Vitest
-- 🔍 **Phase 9: Strict checks** - Stricter TypeScript and linting
+- 🧪 **Phase 7: Add testing** - Integration tests with Vitest
+- 🔍 **Phase 8: Strict checks** - Stricter TypeScript and linting
 
 Let's go!"
 
@@ -92,7 +91,6 @@ After the user confirms the product brief, ask: "Are there any features not in t
 If yes, create and confirm a list of "future features".
 
 ---
-
 ## Phase 2: Project Setup
 
 1. Use the `create_database` MCP tool to provision a new Timescale Cloud database
@@ -103,129 +101,85 @@ If yes, create and confirm a list of "future features".
    - `product_brief` from Phase 1
    - `future_features` from Phase 1 (if any)
 4. Change into the app directory: `cd <app_name>`
-5. Output a  phase summary to the user using the template.
+5. Write a brief `CLAUDE.md` with the product context (planning agents will read this):
+   ```markdown
+   # <App Name>
+
+   ## Product Brief
+   <product brief from Phase 1>
+
+   ## Features (v0/demo)
+   <minimal features list from Phase 1>
+
+   ## Future Features
+   <future features from Phase 1, or "None identified yet">
+   ```
+6. Output a phase summary to the user using the template.
+
+
+## Phase 3: Planning
+
+1. **Run planning agents in parallel** - Use the Task tool to launch these three agents simultaneously, passing the **full application path** in each prompt:
+   - `0perator:schema-designer` - Creates `<app_path>/docs/plan/schema.sql`
+   - `0perator:api-planner` - Creates `<app_path>/docs/plan/trpc-api.md`
+   - `0perator:frontend-planner` - Creates `<app_path>/docs/plan/frontend-plan.md`
+
+   **Important:** Include the full path (e.g., `/path/to/todo-app/docs/plan/`) in each agent's prompt, not relative paths.
+
+2. **Verify and fix plans** - After all three complete, use the Task tool to run:
+   - `0perator:plan-verifier` - Cross-checks all plans and fixes inconsistencies
+
+3. **Review with user** - Briefly summarize the planned schema, API, and frontend structure. Ask: "Does this plan look good, or would you like to adjust anything before we start building?"
 
 ---
 
-## Phase 3: Auth Configuration (If Multi-User)
+## Phase 4: Auth Configuration (If Multi-User)
 
 Skip this phase if the app is single-user.
 
-1. Pass the drizzle schemas into `drizzleAdapter` in `src/server/better-auth/config.ts`:
-   ```typescript
-   import * as schema from "~/server/db/schema";
-
-   drizzleAdapter(db, {
-     provider: "pg",
-     schema,
-   })
-   ```
-2. Update the Better Auth configuration to enable only the providers the user requested (email, GitHub, Google)
-3. Update `src/env.js`, `.env`, and `.env.example` with the required environment variables for the auth providers
-4. Output a  phase summary to the user using the template.
+1. Use the Task tool to run the `0perator:auth-configurator` agent, passing the **full application path** in the prompt.
+2. Output a phase summary to the user using the template.
 
 ---
 
-## Phase 4: Database Schema
+## Phase 5: Build Database, Backend, and Frontend
 
-1. Check that the database status is `READY` using the `service_get` MCP tool with the `service_id` from Phase 2. If not ready, poll every 10 seconds for up to 2 minutes.
+1. **Run build agents in parallel**, passing the **full application path** in each prompt:
+   - `0perator:database-setup` - Also pass the `service_id` from Phase 2
+   - `0perator:backend-builder` - Creates tRPC routers
+   - `0perator:frontend-builder` - Creates pages and components
 
-2. Use the `setup_app_schema` MCP tool with:
-   - `application_directory`: "."
-   - `service_id` from Phase 2
-   - `app_name` (use the same name, converted to lowercase with underscores)
+2. **After all complete**, run the `0perator:code-checker` agent to fix formatting and verify checks pass.
 
-   This creates a PostgreSQL schema and user, and writes `DATABASE_URL` and `DATABASE_SCHEMA` to `.env`
-
-3. In `src/env.js` add DATABASE_SCHEMA variable (use the `schema_name` returned by `setup_app_schema` as default) to both the server and runtimeEnv sections
-
-4. Modify `drizzle.config.ts` to remove the tablesFilter and add a schemasFilter with the value of the DATABASE_SCHEMA env variable
-
-5. In `src/server/db/schema.ts`, remove pgTableCreator pattern and instead create all tables (including auth tables, if present) using:
-   ```typescript
-   export const dbSchema = pgSchema(env.DATABASE_SCHEMA);
-   const createTable = dbSchema.table;
-   ```
-   Note: make sure the schema is exported
-
-6. Delete the example `post` table definition - it was only there as a template
-
-7. Based on the user's app requirements, add the necessary Drizzle table definitions to `src/server/db/schema.ts`
-
-8. Push schema to database: `npm run db:push`
-
-9. Output a  phase summary to the user using the template.
+3. Output a phase summary to the user using the template.
 
 ---
 
-## Phase 5: Backend Implementation
+## Phase 6: Run, Verify, and Commit
 
-1. Remove any example/post router that references the old post model
-2. Create tRPC routers for CRUD operations on the app's data models in `src/server/api/routers/`
-3. Register new routers in `src/server/api/root.ts`
-4. Verify with `npx tsc --noEmit -p tsconfig.server.json` (checks only server code, avoids frontend errors)
-5. Output a  phase summary to the user using the template.
+1. Start the dev server: `npm run dev`
 
----
+2. Use the `open_app` MCP tool to open http://localhost:3000 in a browser and verify the app works as expected
 
-## Phase 6: Frontend Implementation
-
-1. Install and configure shadcn:
-   ```bash
-   npx shadcn@latest init --base-color=neutral
-   cp src/styles/globals.css.orange src/styles/globals.css
-   ```
-
-2. Install required shadcn components (button, card, input, form, table, etc.):
-   ```bash
-   npx shadcn@latest add <component1> <component2> ...
-   ```
-
-3. Build the pages needed for the app using shadcn components (ensure all buttons have a type attribute)
-
-4. Connect pages to the backend using tRPC hooks to fetch and mutate data
-
-5. Create a sign-in form component at `src/components/auth/sign-in-form.tsx` (if multi-user) supporting all requested auth methods (email, GitHub, Google)
-
-6. Replace hardcoded T3 template colors with shadcn CSS variables:
-   - `bg-gradient-to-b from-slate-900 to-slate-800` → `bg-background`
-   - `text-white` → `text-foreground`
-   - `bg-white/10` → `bg-muted`
-   - `border-white/20` → `border-border`
-
-7. Verify with `npm run build` and fix any errors
-
-8. Output a  phase summary to the user using the template.
-
----
-
-## Phase 7: Run, Verify, and Commit
-
-1. Run `npm run check:write` to auto-fix formatting issues, then verify `npm run check` passes
-
-2. Start the dev server: `npm run dev`
-
-3. Use the `open_app` MCP tool to open http://localhost:3000 in a browser and verify the app works as expected
-
-4. Use the `write_claude_md` MCP tool to generate the project guide:
+3. Use the `write_claude_md` MCP tool to generate the project guide:
    - `application_directory`: "."
    - `app_name`: from Phase 1
    - `use_auth`: Whether auth is enabled
    - `product_brief`: from Phase 1
    - `future_features`: from Phase 1 (if any)
-   - `db_schema`: from `setup_app_schema` in Phase 4
-   - `db_user`: from `setup_app_schema` in Phase 4
+   - `db_schema`: from `setup_app_schema` in Phase 5
+   - `db_user`: from `setup_app_schema` in Phase 5
 
-5. Read the generated `CLAUDE.md` file. Make sure it is accurate. Fix if needed.
+4. Read the generated `CLAUDE.md` file. Make sure it is accurate. Fix if needed.
 
-6. Ask the user "Do you want to commit this initial version to git?". If yes:
+5. Ask the user "Do you want to commit this initial version to git?". If yes:
    ```bash
    git init
    git add .
    git commit -m "Initial commit: <app_name>"
    ```
 
-7. Tell the user:
+6. Tell the user:
 
 "🎉 Congrats! Your app is set up and committed. You have a working demo you can iterate on.
 
@@ -242,7 +196,7 @@ If the user wants to skip hardening, the skill is complete.
 
 ---
 
-## Phase 8: Backend Testing (Optional Hardening)
+## Phase 7: Backend Testing (Optional Hardening)
 
 Ask the user (yes/no): "Do you want to add backend testing?"
 
@@ -254,7 +208,7 @@ If no, skip this phase.
 
 ---
 
-## Phase 9: Stricter Checks (Optional Hardening)
+## Phase 8: Stricter Checks (Optional Hardening)
 
 Ask the user (yes/no): "Do you want to enable stricter TypeScript checks?"
 

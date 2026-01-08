@@ -14,58 +14,42 @@ Set up shadcn/ui and create the pages and components based on the planned fronte
 
 1. **Read the frontend plan**: Use the Read tool to read `docs/plan/frontend-plan.md` to see what pages and components need to be created.
 
-2. **Read the product spec**: Read `CLAUDE.md` to understand if auth is enabled and what features are needed.
+2. **Read the API plan**: Read `docs/plan/trpc-api.md` to understand what tRPC procedures are available.
 
-3. **Initialize shadcn**: Set up shadcn/ui with the project's theme:
+3. **Read the product spec**: Read `CLAUDE.md` to understand if auth is enabled and what features are needed.
+
+4. **Clean up T3 scaffold**: Delete the example files that may be replaced:
+   - Delete `src/app/_components/post.tsx`
+   - Delete `src/app/page.tsx` (will be recreated from plan)
+
+5. **Initialize shadcn**: Set up shadcn/ui with the project's theme:
    ```bash
    npx shadcn@latest init --base-color=neutral
    cp src/styles/globals.css.orange src/styles/globals.css
    ```
 
-4. **Install components**: Based on the frontend plan, install required shadcn components:
-   ```bash
-   npx shadcn@latest add button card input form table dialog dropdown-menu avatar badge
-   ```
-   Add other components as needed (sheet, tabs, select, textarea, etc.)
+6. **Install components**: Run the shadcn install command from the frontend plan's "shadcn/ui Dependencies" section. If additional components are needed during implementation, install them as you go.
 
-5. **Create layouts**: Create layout components in `src/app/`:
-   - Marketing layout for public pages
-   - App layout with navigation for authenticated pages
-   - Auth layout for login/signup pages
+7. **Create route groups**: Create the route groups from the frontend plan's "Route Groups" section. Each group needs a `layout.tsx` with the specified shell components.
 
-6. **Create pages**: For each page in the frontend plan:
-   - Create the route at `src/app/<route>/page.tsx`
-   - Use appropriate layout
-   - Add loading and error states for protected pages
+8. **Create pages**: For each page in the frontend plan's "Pages" section, create the file at the specified `file:` path. The plan specifies route, auth level, data fetching strategy, and components.
 
-7. **Create components**: For each component in the frontend plan:
-   - Create at `src/components/<component>.tsx`
-   - Use shadcn/ui primitives where possible
-   - Ensure all buttons have a `type` attribute
+9. **Create components**: For each component in the frontend plan's "Components" section, create the file at the specified `file:` path.
 
-8. **Connect to backend**: Use tRPC hooks to fetch and mutate data:
-   ```typescript
-   import { api } from "~/trpc/react";
+---
 
-   // Query
-   const { data, isLoading } = api.<router>.<procedure>.useQuery();
+## General Guidance
 
-   // Mutation
-   const mutation = api.<router>.<procedure>.useMutation();
-   ```
+- **Use shadcn CSS variables for colors** - Never use hardcoded colors like `text-white` or `bg-slate-900`. Use semantic variables:
+  - `bg-background`, `bg-muted`, `bg-card`
+  - `text-foreground`, `text-muted-foreground`
+  - `border-border`
+- **All buttons need `type` attribute** - Always specify `type="button"`, `type="submit"`, or `type="reset"`
+- **Prefer Server Components** - Only use `"use client"` when interactivity requires it
+- **Import tRPC correctly** - Server: `~/trpc/server`, Client: `~/trpc/react`
+- **Import shadcn/ui components** - From `~/components/ui/<component>`
 
-9. **Create auth forms** (if multi-user): Create sign-in form at `src/components/auth/sign-in-form.tsx`:
-   - Support all requested auth methods (email, GitHub, Google)
-   - Use Better Auth client hooks
-   - Handle loading and error states
-
-10. **Fix template colors**: Replace hardcoded T3 template colors with shadcn CSS variables:
-    - `bg-gradient-to-b from-slate-900 to-slate-800` → `bg-background`
-    - `text-white` → `text-foreground`
-    - `bg-white/10` → `bg-muted`
-    - `border-white/20` → `border-border`
-
-11. **Verify**: Run `npm run build` and fix any errors.
+---
 
 ## Component Templates
 

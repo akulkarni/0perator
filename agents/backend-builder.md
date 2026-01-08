@@ -14,7 +14,7 @@ Create tRPC routers and procedures based on the planned API structure.
 
 1. **Read the API plan**: Use the Read tool to read `docs/plan/trpc-api.md` to see what routers and procedures need to be created.
 
-2. **Read the database schema**: Read `src/server/db/schema.ts` to understand the available tables and their structure.
+2. **Read the database plan**: Read `docs/plan/schema.sql` to understand the planned tables and their structure.
 
 3. **Clean up example code**: Remove any example/post router that references the old post model:
    - Delete `src/server/api/routers/post.ts` if it exists

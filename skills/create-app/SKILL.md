@@ -45,6 +45,8 @@ Let's go!"
 
 ## Phase 1: Understand the Product
 
+**Pre-flight check:** If a `CLAUDE.md` file already exists in the current directory, stop and tell the user: "A CLAUDE.md already exists here. Please run this from an empty directory or one without an existing project."
+
 **Key Principles:**
 - One question at a time - Don't overwhelm with multiple questions
 - Multiple choice preferred - Easier to answer than open-ended when possible
@@ -100,8 +102,14 @@ If yes, create and confirm a list of "future features".
    - `use_auth: true` if multi-user app
    - `product_brief` from Phase 1
    - `future_features` from Phase 1 (if any)
-4. Change into the app directory: `cd <app_name>`
-5. Write a brief `CLAUDE.md` with the product context (planning agents will read this):
+4. Write a pointer `CLAUDE.md` in the current directory (before changing into the app):
+   ```markdown
+   ## In Progress
+
+   Building an app at `./<app_name>/`. See `./<app_name>/CLAUDE.md` for details.
+   ```
+5. Change into the app directory: `cd <app_name>`
+6. Write a brief `CLAUDE.md` with the product context (planning agents will read this):
    ```markdown
    # <App Name>
 
@@ -113,8 +121,17 @@ If yes, create and confirm a list of "future features".
 
    ## Future Features
    <future features from Phase 1, or "None identified yet">
+
+   ## Database
+   Service ID: <service_id from step 2>
+
+   ## Status
+   We are in the middle of building an app using the `create-app` skill from 0perator. If you've just loaded this file for a new session ask the user:
+   "Looks like you are in the middle of building an app, continue where you left off?" If yes, then load the `create-app` 0perator skill and resume at the current phase.
+
+   Current Phase: Phase 3
    ```
-6. Output a phase summary to the user using the template.
+7. Output a phase summary to the user using the template.
 
 
 ## Phase 3: Planning
@@ -131,6 +148,10 @@ If yes, create and confirm a list of "future features".
 
 3. **Review with user** - Briefly summarize the planned schema, API, and frontend structure. Ask: "Does this plan look good, or would you like to adjust anything before we start building?"
 
+4. **Update status** - Update `CLAUDE.md` to set `Current Phase: Phase 4`
+
+5. Output a phase summary to the user using the template.
+
 ---
 
 ## Phase 4: Auth Configuration (If Multi-User)
@@ -138,7 +159,8 @@ If yes, create and confirm a list of "future features".
 Skip this phase if the app is single-user.
 
 1. Use the Task tool to run the `0perator:auth-configurator` agent, passing the **full application path** in the prompt.
-2. Output a phase summary to the user using the template.
+2. **Update status** - Update `CLAUDE.md` to set `Current Phase: Phase 5`
+3. Output a phase summary to the user using the template.
 
 ---
 
@@ -153,7 +175,9 @@ Skip this phase if the app is single-user.
 
 3. **After all agents complete**, run the `0perator:code-checker` agent to fix formatting and verify checks pass.
 
-4. Output a phase summary to the user using the template.
+4. **Update status** - Update `CLAUDE.md` to set `Current Phase: Phase 6`
+
+5. Output a phase summary to the user using the template.
 
 ---
 

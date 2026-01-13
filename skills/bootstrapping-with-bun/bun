@@ -1,0 +1,20 @@
+#!/bin/bash
+set -e
+
+# Pin to specific version or use "latest"
+# See https://github.com/oven-sh/bun/tags for available versions
+version="${BUN_VERSION:-bun-v1.3.6}"
+
+downloadDir="./download/bun/${version}"
+bunPath="${downloadDir}/bin/bun"
+
+if [ ! -f "${bunPath}" ]; then
+  mkdir -p "${downloadDir}"
+  if [ "${version}" = "latest" ]; then
+    curl -fsSL https://bun.sh/install | bash -s -- --no-modify-path --install-dir "${downloadDir}"
+  else
+    curl -fsSL https://bun.sh/install | bash -s -- --no-modify-path --install-dir "${downloadDir}" "${version}"
+  fi
+fi
+
+exec "${bunPath}" "$@"

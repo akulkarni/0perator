@@ -12,6 +12,7 @@ dist/
 .idea/
 *.swp
 *.swo
+.claude/*.local.*
 
 # OS
 .DS_Store

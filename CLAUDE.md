@@ -135,24 +135,24 @@ Skills are automatically loaded and accessible via the `view_skill` tool.
 ### Development Commands
 
 ```bash
-npm run dev           # Run CLI in development mode
-npm run dev:mcp       # Run MCP server in development mode
-npm run build         # Build for production
-npm run watch         # Watch mode - recompile on changes
-npm run start         # Run production CLI
-npm run inspector     # Open MCP inspector
-npm run lint          # Run Biome linter
-npm run format        # Format with Biome
-npm test              # Run tests
-npm run test:watch    # Run tests in watch mode
+./bun run dev           # Run CLI in development mode
+./bun run dev:mcp       # Run MCP server in development mode
+./bun run build         # Build for production
+./bun run watch         # Watch mode - recompile on changes
+./bun run start         # Run production CLI
+./bun run inspector     # Open MCP inspector
+./bun run lint          # Run Biome linter
+./bun run lint --write  # Apply Biome fixes and formatting
+./bun test              # Run tests
+./bun test --watch      # Run tests in watch mode
 ```
 
 ### Before Committing
 
-Always run tests and check before every commit:
+Always run checks before every commit:
 
 ```bash
-npm test && npm run check
+./bun run check
 ```
 
 ### Version Bumping
@@ -172,7 +172,7 @@ This automatically creates a commit with message `chore: bump version to <versio
 Test and debug the MCP server in a web UI:
 
 ```bash
-npm run inspector
+./bun run inspector
 ```
 
 Opens at http://127.0.0.1:6274 where you can:
@@ -185,15 +185,15 @@ Opens at http://127.0.0.1:6274 where you can:
 When developing, use `--dev` so code changes take effect without rebuilding:
 
 ```bash
-npm run dev -- init --dev
+./bun run dev -- init --dev
 ```
 
-This configures IDEs to run the MCP server via `npx tsx` from source instead of the installed binary. After making code changes, just restart your IDE to pick them up.
+This configures IDEs to run the MCP server from source instead of the installed binary. After making code changes, just restart your IDE to pick them up.
 
 To switch back to production mode, run `init` without `--dev`:
 
 ```bash
-npm run dev -- init
+./bun run dev -- init
 ```
 
 ### Key Files

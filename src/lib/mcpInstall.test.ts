@@ -1,3 +1,4 @@
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import {
   existsSync,
   mkdirSync,
@@ -7,7 +8,6 @@ import {
 } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { addMCPServerViaJSON, expandPath } from "./mcpInstall.js";
 
 describe("addMCPServerViaJSON", () => {
@@ -264,7 +264,6 @@ describe("expandPath", () => {
   const originalEnv = process.env;
 
   beforeEach(() => {
-    vi.resetModules();
     process.env = { ...originalEnv };
   });
 

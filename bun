@@ -1,0 +1,18 @@
+#!/bin/bash
+
+# recommended to pin to a specific version
+# See https://github.com/oven-sh/bun/tags
+version="bun-v1.3.6"
+downloadDir=$(pwd)/download/bun/${version}
+bunCmd="$downloadDir/bin/bun"
+
+if [ ! -f "$bunCmd" ]; then
+    echo Installing bun to "$bunCmd"
+    bashArgs=()
+    if [ "$version" != "latest" ]; then
+        bashArgs=(-s "$version")
+    fi
+    curl -fsSL https://bun.sh/install | BUN_INSTALL="$downloadDir" bash "${bashArgs[@]}"
+fi
+
+exec "$bunCmd" "$@"

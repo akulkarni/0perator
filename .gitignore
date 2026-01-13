@@ -1,5 +1,6 @@
 # Dependencies
 node_modules/
+download/
 
 # Build output
 dist/

@@ -21,7 +21,8 @@ You will be given either:
 1. **Read the plans**: Use the Read tool to read:
    - `docs/plan/frontend-plan.md` - Frontend structure
    - `docs/plan/trpc-api.md` - Available tRPC procedures (use this spec, NOT the code, which may not be built yet)
-   - `CLAUDE.md` - Product spec and auth requirements
+   - `docs/auth.md` - Auth configuration, session shape, and usage patterns (if building auth-related UI)
+   - `CLAUDE.md` - Product spec
 
 2. **Build the assigned section** (Global or Route Group):
 
@@ -308,11 +309,14 @@ export function LogoutButton() {
 
 ## Important
 
-Do NOT run `tsc`, `npm run check`, `npm run build`, or any compilation commands. Code verification will be done by the `code-checker` agent in a later step.
+- **Stay in your lane**: If you're building a route group, do NOT create or modify anything in the Global section (shared components). Another agent handles Global. Only build what's specified for your assigned group.
+- **Trust the specs**: Do NOT read implementation files to "verify" patterns. The import patterns in this document are correct - use them directly. Only read additional files if the spec is genuinely missing information you need.
+- **No compilation**: Do NOT run `tsc`, `npm run check`, `npm run build`, or any compilation commands. Code verification will be done by the `code-checker` agent in a later step.
 
 ## Output
 
 After building, summarize:
-- What was built (layout, pages, components)
-- Any deviations from the plan (with reasoning)
-- If you had to read the database schema or tRPC code (instead of just the specs), explain why the spec wasn't sufficient
+- **Files read**: List each file you read and why it was needed (e.g., "docs/plan/frontend-plan.md - to get component specs for this group")
+- **What was built**: Layout, pages, components created
+- **Deviations from plan**: Any changes from the spec (with reasoning)
+- **Spec issues**: If you had to read the database schema or tRPC code (instead of just the specs), explain why the spec wasn't sufficient

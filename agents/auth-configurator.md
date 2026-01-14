@@ -39,6 +39,30 @@ Configure Better Auth with the requested authentication providers (email, GitHub
    - **Google**: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
    - **Email**: No additional env vars (uses existing auth secret)
 
+5. **Write auth spec**: Create `docs/auth.md` with the following sections:
+
+   **# Authentication** - Title
+
+   **## Providers** - List the enabled providers (e.g., "Email/password", "GitHub OAuth", "Google OAuth")
+
+   **## Session Shape** - Document the session object structure:
+   - `session.user.id` (string)
+   - `session.user.email` (string)
+   - `session.user.name` (string)
+   - `session.user.image` (string, optional)
+
+   **## Server-Side Auth** - Show how to check auth in server components:
+   - Import: `import { auth } from "~/server/better-auth/config"`
+   - Usage: `const session = await auth.api.getSession({ headers: await headers() })`
+   - Note that session is null if not authenticated
+
+   **## Client-Side Auth** - Show authClient usage:
+   - Import: `import { authClient } from "~/server/better-auth/client"`
+   - Sign in: `await authClient.signIn.email({ email, password })`
+   - Sign up: `await authClient.signUp.email({ name, email, password })`
+   - Sign out: `await authClient.signOut()`
+   - OAuth (if enabled): `await authClient.signIn.social({ provider: "github" })`
+
 ## Example Better Auth Config
 
 ```typescript

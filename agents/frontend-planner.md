@@ -85,8 +85,25 @@ This is a **design-time proposal**, not extracted from existing code.
 ## Component Line Format
 
 ```
-<name> | <type> | <summary> | file: <path> | runtime: <server|client> | props: <key props> | data: <none|props|server(...)|client(...)> | notes: <optional>
+<name> | <type> | <summary> | file: <path> | runtime: <server|client> | props: <typed props> | data: <none|props|server(...)|client(...)> | notes: <optional>
 ```
+
+### Props Format
+
+**Always include TypeScript types for props.** This eliminates ambiguity between agents building components and agents using them.
+
+```
+props: none
+props: title: string, isLoading: boolean
+props: user: AppUser, onDelete: (id: string) => void
+props: cta: { text: string; href: string }, items: Array<{ id: string; name: string }>
+```
+
+- Primitives: `title: string`, `count: number`, `isOpen: boolean`
+- Objects: `cta: { text: string; href: string }`
+- Arrays: `items: Array<{ id: string; name: string }>` or `items: Project[]`
+- Callbacks: `onSubmit: (data: FormData) => void`, `onClick: () => void`
+- Domain types: Reference types from `~/server/auth` (e.g., `AppUser`) or `~/trpc/react` (e.g., `RouterOutputs["project"]["list"][number]`)
 
 ---
 
@@ -166,13 +183,13 @@ Assumptions:
 Shared components used across route groups:
 
 ### UI
-- Hero | ui | Landing page hero | file: src/components/hero.tsx | runtime: server | props: title, subtitle, cta | data: none
-- StatCard | ui | Single stat display | file: src/components/stat-card.tsx | runtime: server | props: label, value, trend | data: none
-- ProjectCard | ui | Project summary | file: src/components/project-card.tsx | runtime: server | props: project | data: props
+- Hero | ui | Landing page hero | file: src/components/hero.tsx | runtime: server | props: title: string, subtitle: string, cta: { text: string; href: string } | data: none
+- StatCard | ui | Single stat display | file: src/components/stat-card.tsx | runtime: server | props: label: string, value: number | string, trend?: { direction: "up" | "down"; percent: number } | data: none
+- ProjectCard | ui | Project summary | file: src/components/project-card.tsx | runtime: server | props: project: RouterOutputs["project"]["list"][number] | data: props
 
 ### Navigation
-- AppNav | nav | Main app navigation | file: src/components/app-nav.tsx | runtime: server | props: user | data: props
-- Sidebar | nav | App sidebar | file: src/components/sidebar.tsx | runtime: server | props: currentPath | data: props
+- AppNav | nav | Main app navigation | file: src/components/app-nav.tsx | runtime: server | props: user: AppUser | data: props
+- Sidebar | nav | App sidebar | file: src/components/sidebar.tsx | runtime: server | props: currentPath: string | data: props
 - MarketingNav | nav | Public site navigation | file: src/components/marketing-nav.tsx | runtime: server | props: none | data: none
 
 ---
@@ -195,8 +212,8 @@ Authentication flow | auth: public | layout: src/app/(auth)/layout.tsx | shell: 
 - /signup | page | User registration | file: src/app/(auth)/signup/page.tsx | data: none | components: SignupForm
 
 ### Components
-- LoginForm | form | Email/password login | file: src/components/auth/login-form.tsx | runtime: client | props: onSuccess | data: client(auth.login) | notes: react-hook-form + zod
-- SignupForm | form | Account creation | file: src/components/auth/signup-form.tsx | runtime: client | props: onSuccess | data: client(auth.signup)
+- LoginForm | form | Email/password login | file: src/app/(auth)/_components/login-form.tsx | runtime: client | props: onSuccess?: () => void | data: client(auth.login) | notes: react-hook-form + zod
+- SignupForm | form | Account creation | file: src/app/(auth)/_components/signup-form.tsx | runtime: client | props: onSuccess?: () => void | data: client(auth.signup)
 
 ---
 
@@ -216,9 +233,9 @@ Authenticated application | auth: protected | layout: src/app/(app)/layout.tsx |
 - /settings | page | User settings | file: src/app/(app)/settings/page.tsx | data: server(user.me) | components: SettingsForm
 
 ### Components
-- ProjectForm | form | Create/edit project | file: src/app/(app)/projects/_components/project-form.tsx | runtime: client | props: project?, onSubmit | data: client(project.upsert)
+- ProjectForm | form | Create/edit project | file: src/app/(app)/projects/_components/project-form.tsx | runtime: client | props: project?: RouterOutputs["project"]["getById"], onSuccess?: () => void | data: client(project.create, project.update)
 - ProjectList | data | Project list with filters | file: src/app/(app)/projects/_components/project-list.tsx | runtime: client | props: none | data: client(project.list)
-- RecentActivity | data | Activity feed | file: src/app/(app)/dashboard/_components/recent-activity.tsx | runtime: server | props: activities | data: props
+- RecentActivity | data | Activity feed | file: src/app/(app)/dashboard/_components/recent-activity.tsx | runtime: server | props: activities: Array<{ id: string; action: string; timestamp: Date }> | data: props
 
 ## shadcn/ui Dependencies
 

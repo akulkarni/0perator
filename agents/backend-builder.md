@@ -49,6 +49,16 @@ Create tRPC routers and procedures based on the planned API structure.
    });
    ```
 
+## Coding Standards
+
+**Never use non-null assertions (`!`)** - The project linter forbids them. Instead:
+
+1. **For database returns**: Always check for null and throw an appropriate error
+2. **For optional inputs with guards**: Use nullish coalescing (`??`) with a fallback
+3. **For array indexing in loops**: Use type assertion (`as Type`) when index is guaranteed valid
+
+**Always handle the "not found" case** for queries and mutations that target specific records.
+
 ## Procedure Templates
 
 **Query (list)**:
@@ -64,7 +74,34 @@ getById: protectedProcedure
   .input(z.object({ id: z.number() }))
   .query(async ({ ctx, input }) => {
     const [item] = await db.select().from(items).where(eq(items.id, input.id));
-    if (!item) throw new TRPCError({ code: "NOT_FOUND" });
+    if (!item) {
+      throw new TRPCError({ code: "NOT_FOUND" });
+    }
+    return item;
+  }),
+```
+
+**Query (get by optional params)**:
+```typescript
+get: publicProcedure
+  .input(z.object({
+    id: z.number().optional(),
+    slug: z.string().optional()
+  }))
+  .query(async ({ ctx, input }) => {
+    if (!input.id && !input.slug) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "id or slug required" });
+    }
+
+    const [item] = await db.select().from(items)
+      .where(input.id
+        ? eq(items.id, input.id)
+        : eq(items.slug, input.slug ?? "")  // Use ?? not !
+      );
+
+    if (!item) {
+      throw new TRPCError({ code: "NOT_FOUND" });
+    }
     return item;
   }),
 ```
@@ -78,6 +115,13 @@ create: protectedProcedure
       ...input,
       userId: ctx.session.user.id,
     }).returning();
+
+    if (!item) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to create item"
+      });
+    }
     return item;
   }),
 ```
@@ -91,6 +135,10 @@ update: protectedProcedure
       .set({ name: input.name, updatedAt: new Date() })
       .where(eq(items.id, input.id))
       .returning();
+
+    if (!item) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Item not found" });
+    }
     return item;
   }),
 ```
@@ -103,6 +151,15 @@ delete: protectedProcedure
     await db.delete(items).where(eq(items.id, input.id));
     return { success: true };
   }),
+```
+
+**Loop with array indexing**:
+```typescript
+for (let i = 0; i < input.ids.length; i++) {
+  await db.update(items)
+    .set({ order: i + 1 })
+    .where(eq(items.id, input.ids[i] as number));  // Use 'as Type' not !
+}
 ```
 
 ## Output

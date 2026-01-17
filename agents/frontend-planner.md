@@ -90,20 +90,35 @@ This is a **design-time proposal**, not extracted from existing code.
 
 ### Props Format
 
-**Always include TypeScript types for props.** This eliminates ambiguity between agents building components and agents using them.
+**Default to inline fields.** For each component, ask: "What fields will this component actually render or use?" Only include those fields.
 
 ```
 props: none
 props: title: string, isLoading: boolean
-props: user: AppUser, onDelete: (id: string) => void
-props: cta: { text: string; href: string }, items: Array<{ id: string; name: string }>
+props: user: { name: string | null; email: string }
+props: instruction: { id: number; title: string; category: { name: string; slug: string } }
 ```
 
+**Never use type names** - they hide what's actually needed and can't be verified:
+```
+props: user: AppUser                 ❌
+props: instruction: Instruction      ❌
+```
+
+**Always inline the fields** - explicit and verifiable:
+```
+props: user: { name: string | null; email: string }                              ✓
+props: instruction: { id: number; title: string; category: { name: string } }    ✓
+```
+
+#### Field Syntax
+
 - Primitives: `title: string`, `count: number`, `isOpen: boolean`
-- Objects: `cta: { text: string; href: string }`
-- Arrays: `items: Array<{ id: string; name: string }>` or `items: Project[]`
+- Objects: `user: { name: string | null; email: string }`
+- Nested objects: `instruction: { id: number; category: { name: string } }`
+- Arrays: `items: Array<{ id: string; name: string }>`
 - Callbacks: `onSubmit: (data: FormData) => void`, `onClick: () => void`
-- Domain types: Reference types from `~/server/auth` (e.g., `AppUser`) or `~/trpc/react` (e.g., `RouterOutputs["project"]["list"][number]`)
+- Optional: `trend?: { direction: "up" | "down"; percent: number }`
 
 ---
 
@@ -185,10 +200,10 @@ Shared components used across route groups:
 ### UI
 - Hero | ui | Landing page hero | file: src/components/hero.tsx | runtime: server | props: title: string, subtitle: string, cta: { text: string; href: string } | data: none
 - StatCard | ui | Single stat display | file: src/components/stat-card.tsx | runtime: server | props: label: string, value: number | string, trend?: { direction: "up" | "down"; percent: number } | data: none
-- ProjectCard | ui | Project summary | file: src/components/project-card.tsx | runtime: server | props: project: RouterOutputs["project"]["list"][number] | data: props
+- ProjectCard | ui | Project summary | file: src/components/project-card.tsx | runtime: server | props: project: { id: number; name: string; description: string | null; updatedAt: Date } | data: props
 
 ### Navigation
-- AppNav | nav | Main app navigation | file: src/components/app-nav.tsx | runtime: server | props: user: AppUser | data: props
+- AppNav | nav | Main app navigation | file: src/components/app-nav.tsx | runtime: server | props: user: { name: string | null; email: string; image?: string | null } | data: props
 - Sidebar | nav | App sidebar | file: src/components/sidebar.tsx | runtime: server | props: currentPath: string | data: props
 - MarketingNav | nav | Public site navigation | file: src/components/marketing-nav.tsx | runtime: server | props: none | data: none
 
@@ -233,9 +248,10 @@ Authenticated application | auth: protected | layout: src/app/(app)/layout.tsx |
 - /settings | page | User settings | file: src/app/(app)/settings/page.tsx | data: server(user.me) | components: SettingsForm
 
 ### Components
-- ProjectForm | form | Create/edit project | file: src/app/(app)/projects/_components/project-form.tsx | runtime: client | props: project?: RouterOutputs["project"]["getById"], onSuccess?: () => void | data: client(project.create, project.update)
+- ProjectForm | form | Create/edit project | file: src/app/(app)/projects/_components/project-form.tsx | runtime: client | props: project?: { id: number; name: string; description: string | null }, onSuccess?: () => void | data: client(project.create, project.update)
 - ProjectList | data | Project list with filters | file: src/app/(app)/projects/_components/project-list.tsx | runtime: client | props: none | data: client(project.list)
 - RecentActivity | data | Activity feed | file: src/app/(app)/dashboard/_components/recent-activity.tsx | runtime: server | props: activities: Array<{ id: string; action: string; timestamp: Date }> | data: props
+- SettingsForm | form | User settings | file: src/app/(app)/settings/_components/settings-form.tsx | runtime: client | props: user: { name: string | null; email: string } | data: client(user.update)
 
 ## shadcn/ui Dependencies
 

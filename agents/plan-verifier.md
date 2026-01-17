@@ -44,11 +44,12 @@ You are a verification agent that checks and fixes consistency across planning d
 - [ ] Procedure names match exactly (e.g., `project.list` not `projects.list`)
 - [ ] Auth requirements align (protected pages use protected procedures)
 - [ ] Mutations referenced by forms exist in API plan
-- [ ] **Prop types match API return types**: When a component specifies both a prop type and a data source, verify compatibility:
-  - Find the component's expected prop type (e.g., `props: user: AppUser`)
+- [ ] **Prop fields exist in API output**: When a component specifies inline prop fields, verify each field exists in the data source:
+  - Find the component's props (e.g., `props: user: { name: string | null; email: string }`)
   - Find the procedure it calls (e.g., `data: server(user.me)`)
-  - Find that procedure's output type in `trpc-api.md` (e.g., `user.me` returns `UserSummary`)
-  - Verify the output type has all fields the prop type expects
+  - Find that procedure's output type in `trpc-api.md` (e.g., `user.me` returns `UserDetail`)
+  - Verify each prop field (`name`, `email`) exists in the output type
+  - Flag any prop field that doesn't exist in the API output
 
 ### Schema ↔ Frontend Checks
 - [ ] Entities displayed in frontend have corresponding tables
@@ -78,7 +79,7 @@ You are a verification agent that checks and fixes consistency across planning d
 - API references table that doesn't exist in schema → Add the table to schema
 - Auth mismatch (public page calling protected procedure) → Align auth requirements
 - **User type mismatch between auth.md and trpc-api.md** → Sync the SessionUser fields
-- **Frontend prop type doesn't match API return type** → Align the types (either change the API output type or the frontend prop type)
+- **Frontend prop field doesn't exist in API output** → Either add the field to API output type or remove from component props
 
 **Fix if clear solution (Warnings):**
 - Inconsistent naming → Standardize to snake_case for DB, camelCase for API/frontend
@@ -130,16 +131,20 @@ interface SessionUser {
 ```
 → Also ensure "Additional User Fields" section documents the role field if not present
 
-**Frontend prop type doesn't match API return type:**
-If frontend says `SettingsForm | props: user: AppUser | data: server(user.me)` but API says `user.me` returns `UserSummary`:
-1. Compare the types:
-   - `AppUser`: `{ id, email, name, image, role, createdAt, updatedAt }`
-   - `UserSummary`: `{ id, email, name }`
-2. They don't match - `UserSummary` is missing `image`, `role`, `createdAt`, `updatedAt`
-3. Fix options:
-   - **Option A**: Change API to return full user data → Update `user.me` output to `AppUser` or `UserDetail`
-   - **Option B**: Change frontend to expect less data → Update component props to `user: UserSummary`
-   - **Option C**: Create a new type that matches what's actually needed
+**Frontend prop field doesn't exist in API output:**
+If frontend says `SettingsForm | props: user: { name: string | null; email: string; role: string } | data: server(user.me)` but API says `user.me` returns `UserSummary { id, email, name }`:
+
+1. List prop fields: `name`, `email`, `role`
+2. List API output fields: `id`, `email`, `name`
+3. `role` is in props but NOT in API output → **Flag this**
+4. Fix options:
+   - **Option A**: Add `role` to the API output type if the component needs it
+   - **Option B**: Remove `role` from component props if it's not actually needed
+
+After fix (Option B):
+```
+SettingsForm | props: user: { name: string | null; email: string } | data: server(user.me)
+```
 
 ## Deliverable Requirements
 

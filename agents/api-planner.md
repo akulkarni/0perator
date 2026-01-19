@@ -39,8 +39,9 @@ You are a coding agent helping plan a brand-new T3 (tRPC) app. During planning, 
 2. Scope statement (1–3 bullets)
 3. Assumptions (optional, short)
 4. **Type Definitions** (Domain Entities, API Response Types, API Input Types, Common Patterns)
-5. Format + Legend (exact vocab below)
-6. Proposed routers and procedures (grouped by router, referencing defined types)
+5. **Shared Implementation** (mapper functions, helpers to create)
+6. Format + Legend (exact vocab below)
+7. Proposed routers and procedures (grouped by router, referencing defined types)
 
 ---
 
@@ -158,6 +159,75 @@ interface DeleteResult {
 4. **Input types must be explicit** - Never use `Partial<Entity>`, always define exact optional fields
 5. **Reference types by name in procedure tables** - e.g., `PaginatedResponse<PostSummary>`
 6. **Use generics for common patterns** - Pagination, standard responses, etc.
+
+---
+
+## Shared Implementation Section
+
+After defining types, identify what shared code the backend-builder should create. This prevents code duplication.
+
+### Mapper Functions
+
+List response types that will be returned by multiple procedures:
+
+```markdown
+## Shared Implementation
+
+### Mapper Functions
+
+| Function | Type | Used By |
+|----------|------|---------|
+| `mapInstructionSummary` | `InstructionSummary` | instruction.list, instruction.search, admin.listInstructions |
+| `mapInstructionDetail` | `InstructionDetail` | instruction.getBySlug, instruction.getById, instruction.create, instruction.update, instruction.publish |
+| `mapCategorySummary` | `CategorySummary` | category.list, category.getById |
+```
+
+### Pagination Helper
+
+If `PaginatedResponse<T>` is in Common Patterns, note which procedures use it:
+
+```markdown
+### Pagination Helper
+
+Create `paginateResults<T>()` helper. Used by:
+- instruction.list
+- instruction.search
+- admin.listInstructions
+```
+
+### Shared Schemas
+
+If the same input schema (like pagination, filters) is used by multiple routers:
+
+```markdown
+### Shared Schemas
+
+Create `src/server/api/shared/schemas.ts` with:
+- `paginationSchema` - Used by: instruction, category, admin routers
+- `difficultySchema` - Used by: instruction, admin routers
+```
+
+### Relation Configs
+
+If the same `with` clause (Drizzle relations) is used multiple times:
+
+```markdown
+### Relation Configs
+
+| Config | Relations | Used By |
+|--------|-----------|---------|
+| `instructionWithRelations` | category, steps, createdBy | instruction.getBySlug, instruction.getById, instruction.create, instruction.update, admin.getInstruction |
+```
+
+### Type Definitions for Enums
+
+If enum types need casting in responses, note the proper type:
+
+```markdown
+### Enum Types
+
+- `Difficulty = "easy" | "medium" | "hard"` - Define as TypeScript type, use in mapper return types to avoid repeated `as` casts
+```
 
 ---
 
@@ -516,6 +586,38 @@ interface MutationResult {
   success: boolean
 }
 ```
+
+---
+
+## Shared Implementation
+
+### Mapper Functions
+
+| Function | Type | Used By |
+|----------|------|---------|
+| `mapPostSummary` | `PostSummary` | post.list |
+| `mapPostDetail` | `PostDetail` | post.get, post.create, post.update |
+
+### Pagination Helper
+
+Create `paginateResults<T>()` helper. Used by:
+- post.list
+
+### Shared Schemas
+
+Schemas reused within `post` router (no cross-router sharing needed for this simple example):
+- `paginationSchema`
+- `listFilterSchema`
+
+### Relation Configs
+
+| Config | Relations | Used By |
+|--------|-----------|---------|
+| `postWithRelations` | author, category | post.get, post.create, post.update |
+
+### Enum Types
+
+None needed for this example.
 
 ---
 

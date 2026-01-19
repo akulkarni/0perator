@@ -20,7 +20,15 @@ Create tRPC routers and procedures based on the planned API structure.
    - Delete `src/server/api/routers/post.ts` if it exists
    - Remove the post router import and registration from `src/server/api/root.ts`
 
-4. **Create routers**: For each router in the API plan, create a file at `src/server/api/routers/<router>.ts`:
+4. **Create shared code**: Read the "Shared Implementation" section of the API plan:
+   - Create **mapper functions** listed in the Mapper Functions table
+   - Create the **pagination helper** if specified
+   - Create **relation configs** (reusable `with` objects) listed in Relation Configs table
+   - Define **enum types** (e.g., `type Difficulty = "easy" | "medium" | "hard"`) to use in mapper return types instead of `as` casts
+   - Create `src/server/api/shared/schemas.ts` if cross-router schemas are listed
+   - Define these at the top of router files (or in shared file if cross-router)
+
+5. **Create routers**: For each router in the API plan, create a file at `src/server/api/routers/<router>.ts`:
    ```typescript
    import { z } from "zod";
    import { createTRPCRouter, protectedProcedure, publicProcedure } from "~/server/api/trpc";
@@ -33,13 +41,16 @@ Create tRPC routers and procedures based on the planned API structure.
    });
    ```
 
-5. **Implement procedures**: For each procedure in the API plan:
+6. **Implement procedures**: For each procedure in the API plan:
    - Use `publicProcedure` or `protectedProcedure` based on auth requirements
-   - Add input validation with Zod schemas
+   - Add input validation with Zod schemas (use shared schemas where specified)
    - Implement the database operations using Drizzle
+   - **Use relation configs** for `with` clauses (don't duplicate relation structures)
+   - **Use mapper functions** for return values (don't duplicate response shaping)
+   - **Use pagination helper** for paginated queries
    - Handle errors with TRPCError
 
-6. **Register routers**: Update `src/server/api/root.ts` to import and register all new routers:
+7. **Register routers**: Update `src/server/api/root.ts` to import and register all new routers:
    ```typescript
    import { <router>Router } from "~/server/api/routers/<router>";
 

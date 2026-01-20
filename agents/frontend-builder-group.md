@@ -296,6 +296,49 @@ export default async function ProtectedPage() {
 - **Add explicit type annotations** for variables assigned from async calls
 - **Don't name functions after globals** - avoid `Error`, `Array`, `Object`, etc.
 
+### React Lists
+- **Never use array index as key** - use a unique identifier from the data instead
+- **Don't hide index in template strings** - linter catches `key={`item-${index}`}` too
+
+### Accessibility
+- **Don't use `<label>` for display text** - only use `<label>` when it's associated with a form input
+
+```tsx
+// WRONG - label without associated input
+<label className="font-medium text-sm">Member Since</label>
+<p>{user.createdAt}</p>
+
+// CORRECT - use span/p for display labels
+<span className="font-medium text-sm">Member Since</span>
+<p>{user.createdAt}</p>
+
+// CORRECT - label with associated input
+<label htmlFor="email" className="font-medium text-sm">Email</label>
+<input id="email" type="email" />
+```
+
+```tsx
+// WRONG - index as key
+{items.map((item, index) => (
+  <div key={index}>{item.name}</div>
+))}
+
+// WRONG - index hidden in template string (linter still catches this)
+{materials.map((material, index) => (
+  <span key={`material-${material}-${index}`}>{material}</span>
+))}
+
+// CORRECT - unique id as key
+{items.map((item) => (
+  <div key={item.id}>{item.name}</div>
+))}
+
+// CORRECT - for string arrays, use the value itself as key (if values are unique)
+{tags.map((tag) => (
+  <span key={tag}>{tag}</span>
+))}
+```
+
 ### Type Inference (Critical)
 
 **Never manually define interfaces for tRPC response data.**
@@ -549,17 +592,27 @@ export default function ItemsPage() {
 }
 ```
 
-**Form with mutation**:
+**Form with mutation** (using shadcn/ui Form components):
 ```typescript
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { z } from "zod";
 import { api } from "~/trpc/react";
 import { Button } from "~/components/ui/button";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "~/components/ui/form";
 import { Input } from "~/components/ui/input";
 
+const createItemSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+});
+
 export function CreateItemForm() {
-  const form = useForm();
+  const form = useForm<z.infer<typeof createItemSchema>>({
+    resolver: zodResolver(createItemSchema),
+    defaultValues: { name: "" },
+  });
   const utils = api.useUtils();
   const createItem = api.item.create.useMutation({
     onSuccess: () => {
@@ -569,12 +622,20 @@ export function CreateItemForm() {
   });
 
   return (
-    <form onSubmit={form.handleSubmit((data) => createItem.mutate(data))}>
-      <Input {...form.register("name")} placeholder="Item name" />
-      <Button type="submit" disabled={createItem.isPending}>
-        {createItem.isPending ? "Creating..." : "Create"}
-      </Button>
-    </form>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit((data) => createItem.mutate(data))} className="space-y-4">
+        <FormField control={form.control} name="name" render={({ field }) => (
+          <FormItem>
+            <FormLabel>Name</FormLabel>
+            <FormControl><Input placeholder="Item name" {...field} /></FormControl>
+            <FormMessage />
+          </FormItem>
+        )} />
+        <Button type="submit" disabled={createItem.isPending}>
+          {createItem.isPending ? "Creating..." : "Create"}
+        </Button>
+      </form>
+    </Form>
   );
 }
 ```

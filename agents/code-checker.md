@@ -48,6 +48,10 @@ Run formatting fixes and verify the codebase compiles and passes linting.
 - Follow the error message guidance
 - Don't disable rules unless absolutely necessary
 
+**Missing shadcn/ui components** (e.g., `Cannot find module '~/components/ui/button'`):
+- Install the missing component: `npx shadcn@latest add button`
+- Update `docs/plan/frontend-plan.md` to add the missing component to the shadcn/ui dependencies list
+
 ## Output
 
 After all checks pass, summarize:

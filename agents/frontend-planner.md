@@ -142,7 +142,7 @@ For admin/management interfaces, **prefer dialog-based CRUD on list pages**:
 3. Assumptions (optional, short)
 4. Global (root layout, shared components, AND flat routes that don't need a route group)
 5. Route groups (one `## Group: (name)` section per group, only when needed for shared auth/layout)
-6. shadcn/ui dependencies
+6. shadcn/ui dependencies (derived from the union of all `deps` fields across components and pages)
 7. Summary (key design decisions, file count estimate)
 
 ---
@@ -150,21 +150,23 @@ For admin/management interfaces, **prefer dialog-based CRUD on list pages**:
 ## Page Line Format
 
 ```
-<route> | <type> | <summary> | file: <path> | auth: <public|protected|protected(role:name)> | data: <server(...)|client(...)|none> | mutations: <procedure.list> | features: <list> | notes: <optional>
+<route> | <type> | <summary> | file: <path> | auth: <public|protected|protected(role:name)> | data: <server(...)|client(...)|none> | mutations: <procedure.list> | deps: <shadcn-components> | features: <list> | notes: <optional>
 ```
 
 **The `features` field describes what the page does, not implementation components.**
 
 **The `mutations` field lists tRPC procedures for write operations.** This tells AI agents what procedures to wire up without duplicating field definitions (which live in the tRPC router's Zod schemas).
 
+**The `deps` field lists shadcn/ui components needed for this page.** Infer from features: tables need `table`, dialogs need `dialog`, forms need `input, label, button`, etc.
+
 For dialog-based CRUD pages:
 ```
-data: client(category.list) | mutations: category.create, category.update, category.delete | features: table, create-dialog, edit-dialog, delete-confirm
+data: client(category.list) | mutations: category.create, category.update, category.delete | deps: table, dialog, button, input, label, textarea | features: table, create-dialog, edit-dialog, delete-confirm
 ```
 
 For display pages (no mutations):
 ```
-data: server(instruction.getById) | features: header, step-list, materials-list
+data: server(instruction.getById) | deps: card, badge, separator | features: header, step-list, materials-list
 ```
 
 ---
@@ -172,7 +174,31 @@ data: server(instruction.getById) | features: header, step-list, materials-list
 ## Component Line Format
 
 ```
-<name> | <type> | <summary> | file: <path> | runtime: <server|client> | props: <typed props> | data: <none|props|server(...)|client(...)> | notes: <optional>
+<name> | <type> | <summary> | file: <path> | runtime: <server|client> | deps: <shadcn-components> | props: <typed props> | data: <none|props|server(...)|client(...)> | notes: <optional>
+```
+
+### deps Field
+
+The `deps` field lists shadcn/ui components this component needs. Infer from the component's purpose:
+
+| Component Purpose | Likely deps |
+|-------------------|-------------|
+| Form with inputs | `form, input, button` |
+| Form with select/dropdown | `form, select` |
+| Form with checkbox/toggle | `form, checkbox` or `form, switch` |
+| Form with textarea | `form, textarea` |
+| Dialog/modal | `dialog, button` |
+| Data table | `table` |
+| Card display | `card` |
+| Navigation with dropdown | `dropdown-menu` |
+| Badges/tags | `badge` |
+| Separators | `separator` |
+
+Note: The `form` component includes shadcn/ui's Form, FormField, FormItem, FormLabel, FormControl, FormMessage wrappers plus installs react-hook-form and @hookform/resolvers.
+
+Example: A category management page with table, create dialog, and edit dialog:
+```
+deps: table, dialog, button, form, input, select, textarea
 ```
 
 ### Props Format
@@ -307,18 +333,18 @@ Shared components, root layout, and flat routes (no route group needed):
 ### Components
 
 #### Navigation
-- Header | nav | Public header with auth status | file: src/components/header.tsx | runtime: server | props: user: { name: string; email: string } | null | data: props
-- AdminSidebar | nav | Admin navigation sidebar | file: src/components/admin-sidebar.tsx | runtime: server | props: currentPath: string | data: props
+- Header | nav | Public header with auth status | file: src/components/header.tsx | runtime: server | deps: button, dropdown-menu | props: user: { name: string; email: string } | null | data: props
+- AdminSidebar | nav | Admin navigation sidebar | file: src/components/admin-sidebar.tsx | runtime: server | deps: button, separator | props: currentPath: string | data: props
 
 #### UI
-- CategoryCard | ui | Category summary card | file: src/components/category-card.tsx | runtime: server | props: category: { id: number; name: string; slug: string; description: string | null; instructionCount: number } | data: props
-- InstructionCard | ui | Instruction summary card | file: src/components/instruction-card.tsx | runtime: server | props: instruction: { id: number; title: string; description: string | null; category: { name: string; slug: string } } | data: props
+- CategoryCard | ui | Category summary card | file: src/components/category-card.tsx | runtime: server | deps: card, badge | props: category: { id: number; name: string; slug: string; description: string | null; instructionCount: number } | data: props
+- InstructionCard | ui | Instruction summary card | file: src/components/instruction-card.tsx | runtime: server | deps: card, badge | props: instruction: { id: number; title: string; description: string | null; category: { name: string; slug: string } } | data: props
 
 ### Pages (flat routes)
-- / | page | Landing with categories grid | file: src/app/page.tsx | auth: public | data: server(category.list) | features: hero, category-grid
-- /sign-in | page | Auth with sign-in/sign-up toggle | file: src/app/sign-in/page.tsx | auth: public | data: none | features: auth-form
-- /category/[slug] | page(dynamic) | Category with instructions | file: src/app/category/[slug]/page.tsx | auth: public | data: server(category.getBySlug) | features: category-header, instruction-list
-- /instruction/[id] | page(dynamic) | Full instruction with steps | file: src/app/instruction/[id]/page.tsx | auth: public | data: server(instruction.getById) | features: instruction-header, step-list, materials-list
+- / | page | Landing with categories grid | file: src/app/page.tsx | auth: public | data: server(category.list) | deps: button | features: hero, category-grid
+- /sign-in | page | Auth with sign-in/sign-up toggle | file: src/app/sign-in/page.tsx | auth: public | data: none | deps: card, form, input, button | features: auth-form
+- /category/[slug] | page(dynamic) | Category with instructions | file: src/app/category/[slug]/page.tsx | auth: public | data: server(category.getBySlug) | deps: none | features: category-header, instruction-list
+- /instruction/[id] | page(dynamic) | Full instruction with steps | file: src/app/instruction/[id]/page.tsx | auth: public | data: server(instruction.getById) | deps: badge, separator | features: instruction-header, step-list, materials-list
 
 ---
 
@@ -331,15 +357,17 @@ Admin management pages | auth: protected(role:admin) | layout: src/app/(admin)/l
 - error | Error boundary for admin | file: src/app/(admin)/error.tsx
 
 ### Pages
-- /admin | page | Admin dashboard | file: src/app/(admin)/admin/page.tsx | data: server(admin.stats) | features: stat-cards, quick-links
-- /admin/categories | page | Category management | file: src/app/(admin)/admin/categories/page.tsx | data: client(category.list) | mutations: category.create, category.update, category.delete | features: table, create-dialog, edit-dialog, delete-confirm
-- /admin/instructions | page | Instruction management | file: src/app/(admin)/admin/instructions/page.tsx | data: client(instruction.list) | mutations: instruction.create, instruction.update, instruction.delete | features: table, create-dialog, edit-dialog, delete-confirm
-- /admin/settings | page | Admin settings | file: src/app/(admin)/admin/settings/page.tsx | data: server(user.me) | mutations: user.update | features: settings-form
+- /admin | page | Admin dashboard | file: src/app/(admin)/admin/page.tsx | data: server(admin.stats) | deps: card | features: stat-cards, quick-links
+- /admin/categories | page | Category management | file: src/app/(admin)/admin/categories/page.tsx | data: client(category.list) | mutations: category.create, category.update, category.delete | deps: table, dialog, button, form, input, textarea | features: table, create-dialog, edit-dialog, delete-confirm
+- /admin/instructions | page | Instruction management | file: src/app/(admin)/admin/instructions/page.tsx | data: client(instruction.list) | mutations: instruction.create, instruction.update, instruction.delete | deps: table, dialog, button, form, input, textarea, select | features: table, create-dialog, edit-dialog, delete-confirm
+- /admin/settings | page | Admin settings | file: src/app/(admin)/admin/settings/page.tsx | data: server(user.me) | mutations: user.update | deps: form, input, button | features: settings-form
 
 ## shadcn/ui Dependencies
 
+Derived from union of all `deps` fields above:
+
 ```bash
-npx shadcn@latest add button card input label dialog table select textarea badge separator dropdown-menu
+npx shadcn@latest add badge button card dialog dropdown-menu form input select separator table textarea
 ```
 
 ## Summary

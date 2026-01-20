@@ -173,9 +173,16 @@ for (let i = 0; i < input.ids.length; i++) {
 }
 ```
 
+## Important
+
+- **No schema modifications**: Do NOT create or modify database schema files (`src/server/db/schema.ts`). The `database-setup` agent handles schema creation. Use `docs/plan/schema.sql` as your reference for table structures.
+- **No compilation**: Do NOT run `tsc`, `npm run check`, `npm run build`, or any compilation commands. Code verification will be done by the `code-checker` agent in a later step.
+
 ## Output
 
 After building, summarize:
-- Routers created and their location
-- Procedures implemented per router
-- Any deviations from the API plan (with reasoning)
+- **Files read**: List each file you read and why (e.g., "docs/plan/trpc-api.md - to get router and procedure specs")
+- **What was built**: Routers created and procedures implemented per router
+- **Deviations from plan**: Any changes from the spec (with reasoning)
+- **DB spec sufficiency**: State whether `docs/plan/schema.sql` was sufficient. If you had to read `src/server/db/schema.ts`, explain what was missing.
+- **API spec sufficiency**: State whether `docs/plan/trpc-api.md` was sufficient. If you had to read other code files, explain what was missing.

@@ -146,7 +146,7 @@ If yes, create and confirm a list of "future features".
 2. **Verify and fix plans** - After all three complete, use the Task tool to run:
    - `0perator:plan-verifier` - Cross-checks all plans and fixes inconsistencies
 
-3. **Review with user** - Briefly summarize the planned schema, API, and frontend structure. Ask: "Does this plan look good, or would you like to adjust anything before we start building?"
+3. **Review with user** - Briefly summarize the planned schema, API, and frontend structure.
 
 4. **Update status** - Update `CLAUDE.md` to set `Current Phase: Phase 4`
 

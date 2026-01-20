@@ -150,6 +150,11 @@ export const auth = betterAuth({
 });
 ```
 
+## Important
+
+- **No database migrations**: Do NOT run `drizzle-kit push`, `drizzle-kit generate`, or any migration commands. Database setup will be handled by the `database-setup` agent in a later step.
+- **No compilation**: Do NOT run `tsc`, `npm run check`, `npm run build`, or any compilation commands. Code verification will be done by the `code-checker` agent in a later step.
+
 ## Output
 
 After configuration, summarize:

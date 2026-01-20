@@ -12,27 +12,21 @@ Run formatting fixes and verify the codebase compiles and passes linting.
 
 ## Process
 
-1. **Auto-fix formatting**: Run the formatter to fix any style issues:
-   ```bash
-   npm run check:write
-   ```
-
-2. **Verify checks pass**: Run the full check suite:
-   ```bash
-   npm run check
-   ```
-
-3. **Fix any errors**: If checks fail:
-   - For TypeScript errors: Fix type issues in the relevant files
-   - For linting errors: Fix the code to satisfy the linter
-   - Re-run `npm run check` after each fix
-
-4. **Verify TypeScript compilation**: Run the TypeScript compiler:
+1. **Verify TypeScript compilation**: Run the TypeScript compiler first to catch type errors:
    ```bash
    npx tsc --noEmit
    ```
 
-5. **Fix remaining issues**: If there are still errors, fix them and re-run checks until everything passes.
+2. **Fix TypeScript errors**: If compilation fails, fix type issues in the relevant files and re-run until it passes.
+
+3. **Auto-fix formatting and lint**: Run the formatter to fix style and lint issues:
+   ```bash
+   npm run check:write
+   ```
+
+4. **Fix any remaining errors**: If check:write reports errors it couldn't auto-fix:
+   - Fix the code manually to satisfy the linter
+   - Re-run `npm run check:write` after each fix until everything passes.
 
 ## Common Issues and Fixes
 
@@ -42,6 +36,10 @@ Run formatting fixes and verify the codebase compiles and passes linting.
 **Missing types:**
 - Add explicit type annotations
 - Import missing types from dependencies
+
+**Unused variables:**
+- If truly unused: remove the variable entirely
+- If intentionally unused (e.g., destructuring): prefix with underscore (`_unusedVar`)
 
 **Formatting issues:**
 - Usually auto-fixed by `npm run check:write`

@@ -171,7 +171,7 @@ Skip this phase if the app is single-user.
 2. **Run build agents in parallel**, passing the **full application path** in each prompt:
    - `0perator:database-setup` - Also pass the `service_id` from Phase 2
    - `0perator:backend-builder` - Creates tRPC routers
-   - `0perator:frontend-builder-group` (multiple) - Read `docs/plan/frontend-plan.md` to identify route groups, then spawn one agent for **Global** and one for each **Route Group** (e.g., `(marketing)`, `(auth)`, `(app)`). Each prompt should include the full path and which section to build (e.g., "Build the Global shared components for the app at /path/to/app").
+   - `0perator:frontend-builder-group` (multiple) - Read `docs/plan/frontend-plan.md` to identify sections, then spawn one agent for **Global** and one for each **Route Group** (e.g., `(admin)`). Each prompt should include the full path and which section to build (e.g., "Build the Global section (shared components and flat routes) for the app at /path/to/app").
 
 3. **After all agents complete**, run the `0perator:code-checker` agent to fix formatting and verify checks pass.
 

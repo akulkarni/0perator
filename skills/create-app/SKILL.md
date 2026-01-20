@@ -168,10 +168,10 @@ Skip this phase if the app is single-user.
 
 1. **Set up frontend scaffolding** - Run the `0perator:frontend-builder` agent to clean up T3 scaffold and install shadcn/ui components.
 
-2. **Run build agents in parallel**, passing the **full application path** in each prompt:
-   - `0perator:database-setup` - Also pass the `service_id` from Phase 2
-   - `0perator:backend-builder` - Creates tRPC routers
-   - `0perator:frontend-builder-group` (multiple) - Read `docs/plan/frontend-plan.md` to identify sections, then spawn one agent for **Global** and one for each **Route Group** (e.g., `(admin)`). Each prompt should include the full path and which section to build (e.g., "Build the Global section (shared components and flat routes) for the app at /path/to/app").
+2. **Run build agents sequentially**, passing the **full application path** in each prompt:
+   1. `0perator:database-setup` - Also pass the `service_id` from Phase 2
+   2. `0perator:backend-builder` - Creates tRPC routers
+   3. `0perator:frontend-builder-group` (multiple) - Read `docs/plan/frontend-plan.md` to identify sections, then spawn one agent for **Global** and one for each **Route Group** (e.g., `(admin)`). Each prompt should include the full path and which section to build (e.g., "Build the Global section (shared components and flat routes) for the app at /path/to/app"). These can run in parallel with each other.
 
 3. **After all agents complete**, run the `0perator:code-checker` agent to fix formatting and verify checks pass.
 

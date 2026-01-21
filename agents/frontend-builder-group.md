@@ -128,7 +128,7 @@ export default function Loading() {
 // error.tsx - Error boundary for route segment
 "use client";
 
-export default function Error({ error, reset }: { error: Error; reset: () => void }) {
+export default function ErrorBoundary({ error, reset }: { error: Error; reset: () => void }) {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4">
       <h2 className="text-lg font-semibold">Something went wrong</h2>
@@ -462,6 +462,8 @@ This eliminates biome-ignore comments and provides proper type safety.
 
 ### Form Patterns
 
+All forms use Zod 4 and shadcn form elements.
+
 #### Zod + React Hook Form
 
 **Zod v4 syntax** - Use `error` not `required_error`:
@@ -494,6 +496,85 @@ const form = useForm({
   }
 });
 ```
+
+#### Zod 4 + React Hook Form: Numeric Fields
+
+**1. Avoid transformed output types in form state**
+
+Zod transforms (transform, pipe, coerce, preprocess) change the output type. In interactive forms, this conflicts with React Hook Form field typing (especially with shadcn/ui FormField).
+
+Prefer a single form value type that matches what the UI emits, and convert at submit time:
+```typescript
+// ❌ Bad - transforms cause type mismatch with form fields
+const formSchema = z.object({
+  categoryId: z.string().transform(Number).pipe(z.number()),
+});
+
+// ✅ Good - form schema matches UI, no transforms
+const formSchema = z.object({
+  categoryId: z.string().min(1, { message: "Required" }),
+});
+
+type FormValues = z.infer<typeof formSchema>;
+
+useForm<FormValues>({
+  resolver: zodResolver(formSchema),
+});
+```
+
+NEVER use transform, pipe, coerce, preprocess in form schemas.
+
+**2. For `<Select>`, keep value as string and use a submit schema**
+
+Both native `<select>` and shadcn Select emit strings. Validate presence in the form schema, convert to number in a submit schema:
+```typescript
+const formSchema = z.object({
+  categoryId: z.string().min(1, { message: "Select a category" }),
+});
+
+const submitSchema = formSchema.extend({
+  categoryId: z.coerce.number().int().min(1),
+});
+
+type FormValues = z.infer<typeof formSchema>;
+
+// Parse at submit time
+form.handleSubmit((values) => {
+  const parsed = submitSchema.parse(values);
+  mutation.mutate(parsed);  // categoryId is number
+});
+```
+
+This keeps form state aligned with UI behavior while enforcing numeric correctness.
+
+**3. Use `valueAsNumber` only when form state should be numeric**
+
+With `{ valueAsNumber: true }`, RHF stores numbers directly. Use `z.number()`, skip transforms:
+```typescript
+const schema = z.object({
+  amount: z.number().int().min(1),
+});
+type FormValues = z.infer<typeof schema>;
+
+useForm<FormValues>({ resolver: zodResolver(schema) });
+
+<Input type="number" {...register("amount", { valueAsNumber: true })} />
+```
+
+Use only for native numeric inputs. If field can be cleared, preprocess NaN to undefined.
+
+**4. Prefer `pipe` over `refine` when validating transformed values**
+
+When a schema performs a transform, validate the result using `pipe`:
+```typescript
+// ✅ Recommended
+z.string().transform(Number).pipe(z.number().min(1))
+
+// ❌ Avoid
+z.string().transform(Number).refine((n) => n >= 1)
+```
+
+`pipe` preserves type inference, error paths, and validation semantics.
 
 ### Images
 Always use Next.js `<Image>` component instead of `<img>` tags:

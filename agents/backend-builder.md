@@ -12,53 +12,76 @@ Create tRPC routers and procedures based on the planned API structure.
 
 ## Process
 
-1. **Read the API plan**: Use the Read tool to read `docs/plan/trpc-api.md` to see what routers and procedures need to be created.
+### Phase 1: Read all specs (parallel)
+Read these files in a single parallel batch:
+- `docs/plan/trpc-api.md` - API structure and procedures
+- `docs/plan/auth.md` (if exists) - Auth requirements
+- `src/server/api/trpc.ts` - Existing procedures and middleware
+- `src/server/db/schema.ts` - Drizzle schema, tables, and relations
 
-2. **Read the database plan**: Read `docs/plan/schema.sql` to understand the planned tables and their structure.
+### Phase 2: Clean up example code
+- Delete `src/server/api/routers/post.ts` if it exists (don't read it first)
+- Remove the post router import and registration from `src/server/api/root.ts`
 
-3. **Clean up example code**: Remove any example/post router that references the old post model:
-   - Delete `src/server/api/routers/post.ts` if it exists
-   - Remove the post router import and registration from `src/server/api/root.ts`
+### Phase 3: Create shared code (parallel)
+Write all shared files in a single parallel batch based on the "Shared Implementation" section:
+- `src/server/api/shared/schemas.ts` - Cross-router Zod schemas
+- `src/server/api/shared/pagination.ts` - Pagination helper (if specified)
+- `src/server/api/shared/mappers.ts` - Mapper functions (listed in Mapper Functions table), relation configs (reusable `with` objects, listed in Relation Configs table), and enum types (e.g., `type Difficulty = "easy" | "medium" | "hard"`) to avoid `as` casts
+- Add any new middleware (e.g., `adminProcedure`) to `src/server/api/trpc.ts`
 
-4. **Create shared code**: Read the "Shared Implementation" section of the API plan:
-   - Create **mapper functions** listed in the Mapper Functions table
-   - Create the **pagination helper** if specified
-   - Create **relation configs** (reusable `with` objects) listed in Relation Configs table
-   - Define **enum types** (e.g., `type Difficulty = "easy" | "medium" | "hard"`) to use in mapper return types instead of `as` casts
-   - Create `src/server/api/shared/schemas.ts` if cross-router schemas are listed
-   - Define these at the top of router files (or in shared file if cross-router)
+If code is only used by one router, define it at the top of that router file instead of in shared files.
 
-5. **Create routers**: For each router in the API plan, create a file at `src/server/api/routers/<router>.ts`:
-   ```typescript
-   import { z } from "zod";
-   import { createTRPCRouter, protectedProcedure, publicProcedure } from "~/server/api/trpc";
-   import { db } from "~/server/db";
-   import { <table> } from "~/server/db/schema";
-   import { eq } from "drizzle-orm";
+### Phase 4: Create all routers (parallel)
+Write ALL router files in a single parallel batch:
+```typescript
+// src/server/api/routers/<router>.ts
+import { z } from "zod";
+import { createTRPCRouter, protectedProcedure, publicProcedure } from "~/server/api/trpc";
+import { db } from "~/server/db";
+import { <table> } from "~/server/db/schema";
+import { eq } from "drizzle-orm";
 
-   export const <router>Router = createTRPCRouter({
-     // Add procedures based on API plan
-   });
-   ```
+export const <router>Router = createTRPCRouter({
+  // Procedures based on API plan
+});
+```
 
-6. **Implement procedures**: For each procedure in the API plan:
-   - Use `publicProcedure` or `protectedProcedure` based on auth requirements
-   - Add input validation with Zod schemas (use shared schemas where specified)
-   - Implement the database operations using Drizzle
-   - **Use relation configs** for `with` clauses (don't duplicate relation structures)
-   - **Use mapper functions** for return values (don't duplicate response shaping)
-   - **Use pagination helper** for paginated queries
-   - Handle errors with TRPCError
+For each procedure:
+- Use `publicProcedure` or `protectedProcedure` based on auth requirements
+- Add input validation with Zod schemas (use shared schemas where specified)
+- Implement the database operations using Drizzle
+- **Use relation configs** for `with` clauses (don't duplicate)
+- **Use mapper functions** for return values (don't duplicate)
+- **Use pagination helper** for paginated queries
+- Handle errors with TRPCError
 
-7. **Register routers**: Update `src/server/api/root.ts` to import and register all new routers:
-   ```typescript
-   import { <router>Router } from "~/server/api/routers/<router>";
+### Phase 5: Register routers
+Update `src/server/api/root.ts` to import and register all routers:
+```typescript
+import { <router>Router } from "~/server/api/routers/<router>";
 
-   export const appRouter = createTRPCRouter({
-     <router>: <router>Router,
-     // ... other routers
-   });
-   ```
+export const appRouter = createTRPCRouter({
+  <router>: <router>Router,
+  // ... other routers
+});
+```
+
+## Critical: Parallelization
+
+**ALWAYS write independent files in parallel.** Issue multiple Write tool calls in a single message when files don't depend on each other.
+
+❌ Wrong (sequential):
+```
+Write schemas.ts → wait → Write pagination.ts → wait → Write mappers.ts
+```
+
+✅ Correct (parallel):
+```
+Write schemas.ts + pagination.ts + mappers.ts (single message, 3 tool calls)
+```
+
+**Do NOT update todo list between individual file writes.** Only update todos at phase boundaries.
 
 ## Coding Standards
 
@@ -69,6 +92,8 @@ Create tRPC routers and procedures based on the planned API structure.
 3. **For array indexing in loops**: Use type assertion (`as Type`) when index is guaranteed valid
 
 **Always handle the "not found" case** for queries and mutations that target specific records.
+
+**Use `Number()` not `parseInt()`** - avoids missing radix lint error.
 
 ## Procedure Templates
 
@@ -175,14 +200,13 @@ for (let i = 0; i < input.ids.length; i++) {
 
 ## Important
 
-- **No schema modifications**: Do NOT create or modify database schema files (`src/server/db/schema.ts`). The `database-setup` agent handles schema creation. Use `docs/plan/schema.sql` as your reference for table structures.
+- **No schema modifications**: Do NOT create or modify database schema files (`src/server/db/schema.ts`). The `database-setup` agent handles schema creation.
 - **No compilation**: Do NOT run `tsc`, `npm run check`, `npm run build`, or any compilation commands. Code verification will be done by the `code-checker` agent in a later step.
 
 ## Output
 
 After building, summarize:
-- **Files read**: List each file you read and why (e.g., "docs/plan/trpc-api.md - to get router and procedure specs")
-- **What was built**: Routers created and procedures implemented per router
-- **Deviations from plan**: Any changes from the spec (with reasoning)
-- **DB spec sufficiency**: State whether `docs/plan/schema.sql` was sufficient. If you had to read `src/server/db/schema.ts`, explain what was missing.
-- **API spec sufficiency**: State whether `docs/plan/trpc-api.md` was sufficient. If you had to read other code files, explain what was missing.
+- **Files read**: List each file you read and why
+- **Routers created**: List routers and procedure counts
+- **Deviations from plan**: Any changes from the spec (with reasoning). Omit if none.
+- **API spec sufficiency**: State whether `docs/plan/trpc-api.md` was sufficient. If you had to read other code files beyond Phase 1, explain what was missing.

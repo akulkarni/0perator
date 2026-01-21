@@ -10,7 +10,7 @@ export interface McpServerOptions {
  * Start the MCP server in stdio mode
  */
 export async function startMcpServer(
-  options: McpServerOptions = {}
+  options: McpServerOptions = {},
 ): Promise<void> {
   const factoryOptions: import("./tools/index.js").GetApiFactoriesOptions = {};
   if (options.disableViewSkill) {

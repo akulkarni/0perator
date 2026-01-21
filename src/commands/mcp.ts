@@ -13,7 +13,7 @@ export function createMcpCommand(): Command {
     .description("Start the MCP server")
     .option(
       "--disable-view-skill",
-      "Disable the view_skill tool (use when skills are provided natively by a plugin)"
+      "Disable the view_skill tool (use when skills are provided natively by a plugin)",
     )
     .action(async (options: McpStartOptions) => {
       const serverOptions: import("../mcp/server.js").McpServerOptions = {};

@@ -1,5 +1,11 @@
-import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, join, relative } from "node:path";
+import {
+  copyFile,
+  mkdir,
+  readdir,
+  readFile,
+  writeFile,
+} from "node:fs/promises";
+import { dirname, extname, join, relative } from "node:path";
 import Handlebars from "handlebars";
 import { templatesDir } from "../config.js";
 
@@ -13,6 +19,23 @@ export interface AppTemplateVars {
 }
 
 type ContentTransform = (content: string) => string;
+
+// Binary file extensions that should be copied without transformation
+const BINARY_EXTENSIONS = new Set([
+  ".ico",
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".gif",
+  ".webp",
+  ".svg",
+  ".woff",
+  ".woff2",
+  ".ttf",
+  ".eot",
+  ".otf",
+  ".pdf",
+]);
 
 /**
  * Copy a template directory to destination, optionally transforming file contents
@@ -38,9 +61,14 @@ async function copyTemplateDir(
       } else {
         await mkdir(dirname(destPath), { recursive: true });
 
-        const content = await readFile(srcPath, "utf-8");
-        const output = transform ? transform(content) : content;
-        await writeFile(destPath, output);
+        // Copy binary files directly without transformation
+        if (BINARY_EXTENSIONS.has(extname(entry.name).toLowerCase())) {
+          await copyFile(srcPath, destPath);
+        } else {
+          const content = await readFile(srcPath, "utf-8");
+          const output = transform ? transform(content) : content;
+          await writeFile(destPath, output);
+        }
       }
     }
   }

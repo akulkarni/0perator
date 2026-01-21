@@ -1,13 +1,16 @@
 import { exec } from "node:child_process";
-import { unlink } from "node:fs/promises";
-import { join } from "node:path";
-import { promisify } from "node:util";
 import type { ApiFactory } from "@tigerdata/mcp-boilerplate";
 import { z } from "zod";
 import { writeAppTemplates } from "../../lib/templates.js";
 import type { ServerContext } from "../../types.js";
 
-const execAsync = promisify(exec);
+const execAsync = (cmd: string) =>
+  new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
+    exec(cmd, (error, stdout, stderr) => {
+      if (error) reject(Object.assign(error, { stderr }));
+      else resolve({ stdout, stderr });
+    });
+  });
 
 const inputSchema = {
   app_name: z.string().describe("Application name"),
@@ -59,36 +62,7 @@ export const createWebAppFactory: ApiFactory<
       const appName = app_name;
 
       try {
-        // Create T3 app
-        const t3Args = [
-          "npx",
-          "create-t3-app@latest",
-          appName,
-          "--noInstall", //avoids dependency conflicts that could result
-          "--noGit",
-          "--CI",
-          "--tailwind",
-          "--drizzle",
-          "--trpc",
-          "--dbProvider",
-          "postgres",
-          "--appRouter",
-          "--biome",
-        ];
-        if (use_auth) {
-          t3Args.push("--betterAuth");
-        }
-
-        await execAsync(t3Args.join(" "));
-
-        // Remove start-database script if it exists
-        try {
-          await unlink(join(appName, "start-database.sh"));
-        } catch {
-          // Ignore if file doesn't exist
-        }
-
-        // Copy app templates (globals.css, etc.)
+        // Copy app template
         await writeAppTemplates(appName, {
           app_name: appName,
           use_auth,
@@ -96,10 +70,8 @@ export const createWebAppFactory: ApiFactory<
           future_features,
         });
 
-        // Upgrade dependencies (except drizzle-orm which has compatibility issues)
-        await execAsync(
-          `cd ${appName} && npx npm-check-updates -u --reject drizzle-orm && npm install`,
-        );
+        // Install dependencies
+        await execAsync(`cd ${appName} && npm install`);
 
         return {
           success: true,

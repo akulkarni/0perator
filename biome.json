@@ -6,7 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["src/**", "*.json"]
+    "includes": ["src/**", "*.json", "!!templates/app/biome.jsonc"]
   },
   "assist": {
     "actions": {

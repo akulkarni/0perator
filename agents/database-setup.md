@@ -27,52 +27,41 @@ Before starting, you need:
 
    This creates a PostgreSQL schema and user, and writes `DATABASE_URL` and `DATABASE_SCHEMA` to `.env`
 
-3. **Update env.js**: In `src/env.js`, add `DATABASE_SCHEMA` variable to both the `server` schema and `runtimeEnv` sections:
+3. **Read the planned schema**: Read `docs/plan/schema.sql` to see what tables need to be created.
+
+4. **Create Drizzle tables**: Based on the planned schema, add the necessary Drizzle table definitions to `src/server/db/schema.ts`. Use the `createTable` helper (which is `schema.table`) to ensure tables are in the correct schema.
+
+   Example table definition:
    ```typescript
-   // In server schema:
-   DATABASE_SCHEMA: z.string().default("<schema_name>"),
-
-   // In runtimeEnv:
-   DATABASE_SCHEMA: process.env.DATABASE_SCHEMA,
+   export const categories = createTable(
+     "categories",
+     {
+       id: bigint("id", { mode: "number" })
+         .primaryKey()
+         .generatedAlwaysAsIdentity(),
+       name: text("name").notNull().unique(),
+       slug: text("slug").notNull().unique(),
+       description: text("description"),
+       displayOrder: integer("display_order").notNull().default(0),
+       createdAt: timestamp("created_at", { withTimezone: true })
+         .notNull()
+         .defaultNow(),
+       updatedAt: timestamp("updated_at", { withTimezone: true })
+         .notNull()
+         .defaultNow(),
+     },
+     (t) => [index("categories_display_order_idx").on(t.displayOrder)],
+   );
    ```
-   Use the `schema_name` returned by `setup_app_schema` as the default.
 
-4. **Update drizzle.config.ts**: Remove `tablesFilter` and add `schemaFilter`:
-   ```typescript
-   export default {
-     // ... other config
-     schemaFilter: [process.env.DATABASE_SCHEMA],
-     // Remove: tablesFilter: ["myapp_*"],
-   } satisfies Config;
-   ```
+   SQL to Drizzle type mappings:
+   - `BIGINT GENERATED ALWAYS AS IDENTITY` → `bigint("col", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity()`
+   - `TEXT` → `text("col")`
+   - `TIMESTAMPTZ` → `timestamp("col", { withTimezone: true })`
+   - `BOOLEAN` → `boolean("col")`
+   - `INTEGER` → `integer("col")`
 
-5. **Update schema.ts**: In `src/server/db/schema.ts`, replace `pgTableCreator` pattern with schema-based tables:
-   ```typescript
-   import { pgSchema } from "drizzle-orm/pg-core";
-   import { env } from "~/env";
-
-   export const dbSchema = pgSchema(env.DATABASE_SCHEMA);
-   const createTable = dbSchema.table;
-
-   // Now use createTable instead of pgTable for all tables
-   ```
-   
-   Auth tables, if present, should also use `createTable`.
-   
-   Note: The schema must be exported for Better Auth to use it.
-
-6. **Remove example table**: Delete the example `post` table definition - it was only a template.
-
-7. **Read the planned schema**: Read `docs/plan/schema.sql` to see what tables need to be created.
-
-8. **Create Drizzle tables**: Based on the planned schema, add the necessary Drizzle table definitions to `src/server/db/schema.ts`. Convert SQL types to Drizzle equivalents:
-   - `BIGINT GENERATED ALWAYS AS IDENTITY` → `bigint().primaryKey().generatedAlwaysAsIdentity()`
-   - `TEXT` → `text()`
-   - `TIMESTAMPTZ` → `timestamp({ withTimezone: true })`
-   - `BOOLEAN` → `boolean()`
-   - `INTEGER` → `integer()`
-
-9. **Push schema**: Run `npm run db:push` to push the schema to the database.
+5. **Push schema**: Run `npm run db:push` to push the schema to the database.
 
 ## Output
 

@@ -1,26 +1,14 @@
-// Example model schema from the Drizzle docs
-// https://orm.drizzle.team/docs/sql-schema-declaration
-
-import { index, pgTableCreator } from "drizzle-orm/pg-core";
+import { pgSchema } from "drizzle-orm/pg-core";
+import { env } from "~/env";
 
 /**
- * This is an example of how to use the multi-project schema feature of Drizzle ORM. Use the same
- * database instance for multiple projects.
- *
- * @see https://orm.drizzle.team/docs/goodies#multi-project-schema
+ * Use a dedicated PostgreSQL schema for this app's tables.
+ * @see https://orm.drizzle.team/docs/schemas
  */
-export const createTable = pgTableCreator((name) => `{{app_name}}_${name}`);
+export const schema = pgSchema(env.DATABASE_SCHEMA);
 
-export const posts = createTable(
-  "post",
-  (d) => ({
-    id: d.integer().primaryKey().generatedByDefaultAsIdentity(),
-    name: d.varchar({ length: 256 }),
-    createdAt: d
-      .timestamp({ withTimezone: true })
-      .$defaultFn(() => /* @__PURE__ */ new Date())
-      .notNull(),
-    updatedAt: d.timestamp({ withTimezone: true }).$onUpdate(() => new Date()),
-  }),
-  (t) => [index("name_idx").on(t.name)]
-);
+/**
+ * Helper to create tables in the app's schema.
+ * Always use this instead of pgTable to ensure tables are in the correct schema.
+ */
+const createTable = schema.table;

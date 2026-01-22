@@ -200,7 +200,7 @@ Pages specify a `features` field that describes **what the page does**, not pre-
 | `create-dialog` | Dialog with form for creating new items |
 | `edit-dialog` | Dialog with form for editing items (reuse form from create) |
 | `delete-confirm` | Confirmation dialog before deletion |
-| `auth-form` | Sign-in/sign-up form (check `docs/plan/auth.md` for method) |
+| `auth-form` | Sign-in/sign-up form - **each form must be a separate component** (see Auth Form Pattern below) |
 | `settings-form` | User settings form |
 | `stat-cards` | Grid of stat/metric cards |
 | `*-header` | Header section for that entity (e.g., `category-header`) |
@@ -460,6 +460,38 @@ interface StepEditorProps {
 
 This eliminates biome-ignore comments and provides proper type safety.
 
+### Multiple Forms (Sign-in/Sign-up, Tabs, Modals)
+
+**Each form must be in its own component.** Never put multiple `useForm` hooks in the same component - this causes `field.onChange` to disconnect when switching forms.
+
+```tsx
+// ❌ WRONG - Two useForm hooks in same component
+export default function AuthPage() {
+  const [mode, setMode] = useState<"sign-in" | "sign-up">("sign-in");
+  const signInForm = useForm({ ... });
+  const signUpForm = useForm({ ... });
+  return mode === "sign-in" ? <Form {...signInForm}>...</Form> : <Form {...signUpForm}>...</Form>;
+}
+
+// ✅ CORRECT - Each form in its own component
+function SignInForm() {
+  const form = useForm({ ... });
+  return <Form {...form}>...</Form>;
+}
+
+function SignUpForm() {
+  const form = useForm({ ... });
+  return <Form {...form}>...</Form>;
+}
+
+export default function AuthPage() {
+  const [mode, setMode] = useState<"sign-in" | "sign-up">("sign-in");
+  return mode === "sign-in" ? <SignInForm /> : <SignUpForm />;
+}
+```
+
+This applies to: sign-in/sign-up toggles, tabbed forms, modal forms with different schemas.
+
 ### Form Patterns
 
 All forms use Zod 4 and shadcn form elements.
@@ -503,11 +535,12 @@ const form = useForm({
 
 Zod transforms (transform, pipe, coerce, preprocess) change the output type. In interactive forms, this conflicts with React Hook Form field typing (especially with shadcn/ui FormField).
 
-Prefer a single form value type that matches what the UI emits, and convert at submit time:
+ALWAYS use a single form value type that matches what the UI emits, and convert at submit time. NEVER use transform, pipe, coerce, preprocess in form schemas.
 ```typescript
 // ❌ Bad - transforms cause type mismatch with form fields
 const formSchema = z.object({
   categoryId: z.string().transform(Number).pipe(z.number()),
+  displayOrder: z.coerce.number().int().min(0).optional(), // coerce also transforms
 });
 
 // ✅ Good - form schema matches UI, no transforms
@@ -524,16 +557,18 @@ useForm<FormValues>({
 
 NEVER use transform, pipe, coerce, preprocess in form schemas.
 
-**2. For `<Select>`, keep value as string and use a submit schema**
+**2. For FormField, keep value as string and use a submit schema**
 
-Both native `<select>` and shadcn Select emit strings. Validate presence in the form schema, convert to number in a submit schema:
+When using shadcn `FormField` (which uses Controller), all inputs emit strings. Keep the form schema as strings and convert at submit:
 ```typescript
 const formSchema = z.object({
   categoryId: z.string().min(1, { message: "Select a category" }),
+  displayOrder: z.string().optional(), // Input type="number" also emits string
 });
 
 const submitSchema = formSchema.extend({
   categoryId: z.coerce.number().int().min(1),
+  displayOrder: z.coerce.number().int().min(0).optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -541,29 +576,13 @@ type FormValues = z.infer<typeof formSchema>;
 // Parse at submit time
 form.handleSubmit((values) => {
   const parsed = submitSchema.parse(values);
-  mutation.mutate(parsed);  // categoryId is number
+  mutation.mutate(parsed);  // categoryId and displayOrder are numbers
 });
 ```
 
 This keeps form state aligned with UI behavior while enforcing numeric correctness.
 
-**3. Use `valueAsNumber` only when form state should be numeric**
-
-With `{ valueAsNumber: true }`, RHF stores numbers directly. Use `z.number()`, skip transforms:
-```typescript
-const schema = z.object({
-  amount: z.number().int().min(1),
-});
-type FormValues = z.infer<typeof schema>;
-
-useForm<FormValues>({ resolver: zodResolver(schema) });
-
-<Input type="number" {...register("amount", { valueAsNumber: true })} />
-```
-
-Use only for native numeric inputs. If field can be cleared, preprocess NaN to undefined.
-
-**4. Prefer `pipe` over `refine` when validating transformed values**
+**3. Prefer `pipe` over `refine` when validating transformed values**
 
 When a schema performs a transform, validate the result using `pipe`:
 ```typescript
@@ -740,8 +759,44 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 }
 ```
 
-**Login form (Better Auth)**:
+**Auth page with sign-in/sign-up toggle (Better Auth)** - each form MUST be its own component:
+
 ```typescript
+// src/app/sign-in/page.tsx
+"use client";
+
+import { useState } from "react";
+import { SignInForm } from "./_components/sign-in-form";
+import { SignUpForm } from "./_components/sign-up-form";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "~/components/ui/card";
+import { Button } from "~/components/ui/button";
+
+export default function AuthPage() {
+  const [mode, setMode] = useState<"sign-in" | "sign-up">("sign-in");
+
+  return (
+    <div className="container mx-auto flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-8">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <CardTitle>{mode === "sign-in" ? "Sign In" : "Create Account"}</CardTitle>
+          <CardDescription>
+            {mode === "sign-in" ? "Enter your credentials" : "Create a new account"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {mode === "sign-in" ? <SignInForm /> : <SignUpForm />}
+        </CardContent>
+        <CardFooter className="justify-center">
+          <Button onClick={() => setMode(mode === "sign-in" ? "sign-up" : "sign-in")} type="button" variant="link">
+            {mode === "sign-in" ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
+          </Button>
+        </CardFooter>
+      </Card>
+    </div>
+  );
+}
+
+// src/app/sign-in/_components/sign-in-form.tsx
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -754,48 +809,37 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "~/components/ui/input";
 import { authClient } from "~/server/better-auth/client";
 
-const loginSchema = z.object({
+const signInSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(1, "Password is required"),
 });
 
-export function LoginForm() {
+export function SignInForm() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const form = useForm<z.infer<typeof loginSchema>>({
-    resolver: zodResolver(loginSchema),
+  const form = useForm<z.infer<typeof signInSchema>>({
+    resolver: zodResolver(signInSchema),
     defaultValues: { email: "", password: "" },
   });
 
-  async function onSubmit(values: z.infer<typeof loginSchema>) {
+  async function onSubmit(values: z.infer<typeof signInSchema>) {
     setError(null);
     setIsLoading(true);
     try {
-      const result = await authClient.signIn.email({
-        email: values.email,
-        password: values.password,
-      });
-      if (result.error) {
-        setError(result.error.message ?? "Invalid email or password");
-        return;
-      }
-      router.push("/dashboard"); // Redirect to main app page
+      const result = await authClient.signIn.email({ email: values.email, password: values.password });
+      if (result.error) { setError(result.error.message ?? "Invalid email or password"); return; }
+      router.push("/");
       router.refresh();
-    } catch {
-      setError("An unexpected error occurred. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
+    } catch { setError("An unexpected error occurred."); }
+    finally { setIsLoading(false); }
   }
 
   return (
     <Form {...form}>
       <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
-        {error && (
-          <div className="rounded-md bg-destructive/10 p-3 text-destructive text-sm">{error}</div>
-        )}
+        {error && <div className="rounded-md bg-destructive/10 p-3 text-destructive text-sm">{error}</div>}
         <FormField control={form.control} name="email" render={({ field }) => (
           <FormItem>
             <FormLabel>Email</FormLabel>
@@ -806,7 +850,7 @@ export function LoginForm() {
         <FormField control={form.control} name="password" render={({ field }) => (
           <FormItem>
             <FormLabel>Password</FormLabel>
-            <FormControl><Input type="password" autoComplete="current-password" placeholder="Enter your password" {...field} /></FormControl>
+            <FormControl><Input type="password" autoComplete="current-password" {...field} /></FormControl>
             <FormMessage />
           </FormItem>
         )} />
@@ -817,10 +861,8 @@ export function LoginForm() {
     </Form>
   );
 }
-```
 
-**Signup form (Better Auth)**:
-```typescript
+// src/app/sign-in/_components/sign-up-form.tsx
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -833,50 +875,38 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "~/components/ui/input";
 import { authClient } from "~/server/better-auth/client";
 
-const signupSchema = z.object({
+const signUpSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
-export function SignupForm() {
+export function SignUpForm() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const form = useForm<z.infer<typeof signupSchema>>({
-    resolver: zodResolver(signupSchema),
+  const form = useForm<z.infer<typeof signUpSchema>>({
+    resolver: zodResolver(signUpSchema),
     defaultValues: { name: "", email: "", password: "" },
   });
 
-  async function onSubmit(values: z.infer<typeof signupSchema>) {
+  async function onSubmit(values: z.infer<typeof signUpSchema>) {
     setError(null);
     setIsLoading(true);
     try {
-      const result = await authClient.signUp.email({
-        name: values.name,
-        email: values.email,
-        password: values.password,
-      });
-      if (result.error) {
-        setError(result.error.message ?? "Failed to create account");
-        return;
-      }
-      router.push("/dashboard"); // Redirect to main app page
+      const result = await authClient.signUp.email({ name: values.name, email: values.email, password: values.password });
+      if (result.error) { setError(result.error.message ?? "Failed to create account"); return; }
+      router.push("/");
       router.refresh();
-    } catch {
-      setError("An unexpected error occurred. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
+    } catch { setError("An unexpected error occurred."); }
+    finally { setIsLoading(false); }
   }
 
   return (
     <Form {...form}>
       <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
-        {error && (
-          <div className="rounded-md bg-destructive/10 p-3 text-destructive text-sm">{error}</div>
-        )}
+        {error && <div className="rounded-md bg-destructive/10 p-3 text-destructive text-sm">{error}</div>}
         <FormField control={form.control} name="name" render={({ field }) => (
           <FormItem>
             <FormLabel>Name</FormLabel>
@@ -894,7 +924,7 @@ export function SignupForm() {
         <FormField control={form.control} name="password" render={({ field }) => (
           <FormItem>
             <FormLabel>Password</FormLabel>
-            <FormControl><Input type="password" autoComplete="new-password" placeholder="Create a password" {...field} /></FormControl>
+            <FormControl><Input type="password" autoComplete="new-password" {...field} /></FormControl>
             <FormMessage />
           </FormItem>
         )} />

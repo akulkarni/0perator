@@ -108,3 +108,10 @@ export async function writeClaudeMdTemplate(
     return template(vars);
   });
 }
+
+/**
+ * Write Better Auth templates (static files, no templating needed)
+ */
+export async function writeBetterAuthTemplates(destDir: string): Promise<void> {
+  await copyTemplateDir("better-auth", destDir);
+}

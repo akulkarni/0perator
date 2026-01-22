@@ -8,5 +8,5 @@ export default {
   dbCredentials: {
     url: env.DATABASE_URL,
   },
-  tablesFilter: ["{{app_name}}_*"],
+  schemaFilter: [env.DATABASE_SCHEMA],
 } satisfies Config;

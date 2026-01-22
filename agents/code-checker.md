@@ -52,6 +52,10 @@ Run formatting fixes and verify the codebase compiles and passes linting.
 - Install the missing component: `npx shadcn@latest add button`
 - Update `docs/plan/frontend-plan.md` to add the missing component to the shadcn/ui dependencies list
 
+## Important
+
+- **NEVER run biome with `--unsafe`** or `npm run check:unsafe`. All necessary fixes should be safe fixes. If a rule requires unsafe fixes, fix the code manually instead.
+
 ## Output
 
 After all checks pass, summarize:
